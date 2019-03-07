@@ -18,7 +18,7 @@ import { hasS3Fields } from './utilities/complextypes';
 
 type TargetType = 'json' | 'swift' | 'ts' | 'typescript' | 'flow' | 'scala' | 'flow-modern' | 'angular';
 
-export default function generate(
+export default async function generate(
   inputPaths: string[],
   schemaPath: string,
   outputPath: string,
@@ -94,7 +94,7 @@ export default function generate(
         break;
       case 'ts':
       case 'typescript':
-        output = generateTypescriptSource(context);
+        output = await generateTypescriptSource(context);
         break;
       case 'flow':
         output = generateFlowSource(context);

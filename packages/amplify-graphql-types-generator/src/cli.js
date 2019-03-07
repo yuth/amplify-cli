@@ -96,7 +96,7 @@ yargs
         choices: ['yes', 'no', 'auto'],
       }
     },
-    argv => {
+    async argv => {
       let { input } = argv;
 
       // Use glob if the user's shell was unable to expand the pattern
@@ -119,7 +119,7 @@ yargs
         complexObjectSupport: argv["complex-object-support"],
       };
 
-      generate(inputPaths, argv.schema, argv.output, argv.only, argv.target, argv.tagName, options);
+      await generate(inputPaths, argv.schema, argv.output, argv.only, argv.target, argv.tagName, options);
     },
   )
   .fail(function(message, error) {
