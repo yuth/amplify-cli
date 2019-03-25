@@ -1,13 +1,5 @@
-import { stripIndent } from 'common-tags';
-
 import {
-  parse,
-  isType,
-  GraphQLID,
-  GraphQLString,
-  GraphQLInt,
-  GraphQLList,
-  GraphQLNonNull
+  parse
 } from 'graphql';
 
 import {
