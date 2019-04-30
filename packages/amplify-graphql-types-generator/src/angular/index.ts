@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-import { GraphQLNonNull, GraphQLType, isScalarType } from 'graphql';
-=======
->>>>>>> Use latest codegen
 import * as prettier from 'prettier';
 import { LegacyCompilerContext } from '../compiler/legacyIR';
 
