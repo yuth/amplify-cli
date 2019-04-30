@@ -103,7 +103,7 @@ export default async function generate(
         output = generateScalaSource(context, options);
         break;
       case 'angular':
-        output = generateAngularSource(context);
+        output = await generateAngularSource(context);
     }
 
     if (outputPath) {

@@ -13,18 +13,18 @@ import * as tsOpPlugin from '@graphql-codegen/typescript-operations';
 import * as angularPlugin from '@graphql-codegen/typescript-aws-amplify-angular';
 
 export async function generateSource(context: LegacyCompilerContext) {
-  const filename = 'graphql.ts';
+  const filename = 'foobarbaz.ts';
   const schema = parse(printSchema(context.schema));
   const fragments = Object.keys(context.fragments).map(name => {
     return {
       filePath: context.fragments[name].filePath || '',
-      content: parse(context.fragments[name].source),
+      content: parse(context.fragments[name].source)
     };
   });
   const operations = Object.keys(context.operations).map(name => {
     return {
       filePath: context.operations[name].filePath || '',
-      content: parse(context.operations[name].source),
+      content: parse(context.operations[name].source)
     };
   });
   const documents = [...fragments, ...operations];
@@ -37,21 +37,25 @@ export async function generateSource(context: LegacyCompilerContext) {
       {
         add: [
           '/* tslint:disable */',
-          '//  This file was automatically generated and should not be edited.',
-        ],
-        typescript: {},
-        'typescript-operations': {},
-        'typescript-aws-amplify-angular': {},
+          '//  This file was automatically generated and should not be edited.'
+        ]
       },
+      {
+        typescript: {}
+      },
+      {
+        'typescript-operations': {}
+      },
+      { 'typescript-aws-amplify-angular': {} }
     ],
     config: {},
     pluginMap: {
       add: addPlugin,
       typescript: tsPlugin,
       'typescript-operations': tsOpPlugin,
-      'typescript-aws-amplify-angular': angularPlugin,
-    },
+      'typescript-aws-amplify-angular': angularPlugin
+    }
   });
 
-  return prettier.format(output, { parser: 'typescript' })
+  return prettier.format(output, { parser: 'typescript' });
 }
