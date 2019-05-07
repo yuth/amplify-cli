@@ -11,49 +11,51 @@ const systemConfigManager = require('./system-config-manager');
 
 async function run(context) {
   await configurationManager.init(context);
-  if (!context.exeInfo || (context.exeInfo.isNewEnv)) {
-    const initTemplateFilePath = path.join(__dirname, 'rootStackTemplate.json');
-    const timeStamp = `${moment().format('YYYYMMDDHHmmss')}`;
-    const { envName = '' } = context.exeInfo.localEnvInfo;
-    const stackName = normalizeStackName(`${context.exeInfo.projectConfig.projectName}-${envName}-${timeStamp}`);
-    const deploymentBucketName = `${stackName}-deployment`;
-    const authRoleName = `${stackName}-authRole`;
-    const unauthRoleName = `${stackName}-unauthRole`;
-    const params = {
-      StackName: stackName,
-      Capabilities: ['CAPABILITY_NAMED_IAM'],
-      TemplateBody: fs.readFileSync(initTemplateFilePath).toString(),
-      Parameters: [
-        {
-          ParameterKey: 'DeploymentBucketName',
-          ParameterValue: deploymentBucketName,
-        },
-        {
-          ParameterKey: 'AuthRoleName',
-          ParameterValue: authRoleName,
-        },
-        {
-          ParameterKey: 'UnauthRoleName',
-          ParameterValue: unauthRoleName,
-        },
-      ],
-    };
+}
 
-    const spinner = ora();
-    spinner.start('Initializing project in the cloud...');
-    const awsConfig = await getConfiguredAwsCfnClient(context);
-    return new Cloudformation(context, 'init', awsConfig)
-      .then(cfnItem => cfnItem.createResourceStack(params))
-      .then((waitData) => {
-        processStackCreationData(context, waitData);
-        spinner.succeed('Successfully created initial AWS cloud resources for deployments.');
-        return context;
-      })
-      .catch((e) => {
-        spinner.fail('Root stack creation failed');
-        throw e;
-      });
-  }
+async function createStack(context) {
+  await configurationManager.init(context);
+  const initTemplateFilePath = path.join(__dirname, 'rootStackTemplate.json');
+  const timeStamp = `${moment().format('YYYYMMDDHHmmss')}`;
+  const { envName = '' } = context.exeInfo.localEnvInfo;
+  const stackName = normalizeStackName(`${context.exeInfo.projectConfig.projectName}-${envName}-${timeStamp}`);
+  const deploymentBucketName = `${stackName}-deployment`;
+  const authRoleName = `${stackName}-authRole`;
+  const unauthRoleName = `${stackName}-unauthRole`;
+  const params = {
+    StackName: stackName,
+    Capabilities: ['CAPABILITY_NAMED_IAM'],
+    TemplateBody: fs.readFileSync(initTemplateFilePath).toString(),
+    Parameters: [
+      {
+        ParameterKey: 'DeploymentBucketName',
+        ParameterValue: deploymentBucketName,
+      },
+      {
+        ParameterKey: 'AuthRoleName',
+        ParameterValue: authRoleName,
+      },
+      {
+        ParameterKey: 'UnauthRoleName',
+        ParameterValue: unauthRoleName,
+      },
+    ],
+  };
+
+  const spinner = ora();
+  spinner.start('Initializing project in the cloud...');
+  const awsConfig = await getConfiguredAwsCfnClient(context);
+  return new Cloudformation(context, 'init', awsConfig)
+    .then(cfnItem => cfnItem.createResourceStack(params))
+    .then((waitData) => {
+      processStackCreationData(context, waitData);
+      spinner.succeed('Successfully created initial AWS cloud resources for deployments.');
+      return context;
+    })
+    .catch((e) => {
+      spinner.fail('Root stack creation failed');
+      throw e;
+    });
 }
 
 async function getConfiguredAwsCfnClient(context) {
@@ -93,9 +95,9 @@ function processStackCreationData(context, stackDescriptiondata) {
 
 async function onInitSuccessful(context) {
   configurationManager.onInitSuccessful(context);
-  if (context.exeInfo.isNewEnv) {
-    context = await storeCurrentCloudBackend(context);
-  }
+  // if (context.exeInfo.isNewEnv) {
+  //   context = await storeCurrentCloudBackend(context);
+  // }
   return context;
 }
 
@@ -141,4 +143,5 @@ function normalizeStackName(stackName) {
 module.exports = {
   run,
   onInitSuccessful,
+  createStack,
 };

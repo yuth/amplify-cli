@@ -15,6 +15,7 @@ const { loadResourceParameters, saveResourceParameters } = require('./src/resour
 const { formUserAgentParam } = require('./src/aws-utils/user-agent');
 
 function init(context) {
+  context.exeInfo.amplifyMeta = {};
   return initializer.run(context);
 }
 
@@ -28,7 +29,11 @@ function onInitSuccessful(context) {
   return initializer.onInitSuccessful(context);
 }
 
-function pushResources(context, category, resourceName) {
+async function pushResources(context, category, resourceName) {
+  if (context.exeInfo.amplifyMeta && !context.exeInfo.amplifyMeta.providers) {
+    await initializer.createStack(context);
+  }
+  await initializer.run(context);
   return resourcePusher.run(context, category, resourceName);
 }
 

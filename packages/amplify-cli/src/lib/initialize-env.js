@@ -51,10 +51,12 @@ async function initializeEnv(context, currentAmplifyMeta) {
 
     context.exeInfo.projectConfig.providers.forEach((provider) => {
       const providerModule = require(providerPlugins[provider]);
-      initializationTasks.push(() => providerModule.initEnv(
-        context,
-        amplifyMeta.providers[provider],
-      ));
+      if (amplifyMeta.providers && amplifyMeta.providers[provider]) {
+        initializationTasks.push(() => providerModule.initEnv(
+          context,
+          amplifyMeta.providers[provider],
+        ));
+      }
     });
 
     spinner.start(`Initializing your environment: ${currentEnv}`);
