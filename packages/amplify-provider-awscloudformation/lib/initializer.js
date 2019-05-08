@@ -44,12 +44,14 @@ async function createStack(context) {
 
   const spinner = ora();
   spinner.start('Initializing project in the cloud...');
-  const awsConfig = await getConfiguredAwsCfnClient(context);
-  return new Cloudformation(context, 'init', awsConfig)
+  // const awsConfig = await getConfiguredAwsCfnClient(context);
+    // const awsConfig = await getProfiledAwsConfig(context);
+  return new Cloudformation(context, 'init')
     .then(cfnItem => cfnItem.createResourceStack(params))
     .then((waitData) => {
       processStackCreationData(context, waitData);
       spinner.succeed('Successfully created initial AWS cloud resources for deployments.');
+      storeCurrentCloudBackend(context);
       return context;
     })
     .catch((e) => {
