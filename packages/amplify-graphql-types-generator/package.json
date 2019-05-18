@@ -62,7 +62,12 @@
     "prettier": "^1.14.3",
     "rimraf": "^2.6.2",
     "source-map-support": "^0.5.9",
-    "yargs": "^12.0.2"
+    "yargs": "^12.0.2",
+    "@graphql-codegen/core": "^1.1.1",
+    "@graphql-codegen/add": "^1.1.1",
+    "@graphql-codegen/typescript": "^1.1.1",
+    "@graphql-codegen/typescript-operations": "^1.1.1",
+    "amplify-codegen-plugin-angular": "../amplify-codegen-plugin-angular"
   },
   "jest": {
     "setupFiles": [
