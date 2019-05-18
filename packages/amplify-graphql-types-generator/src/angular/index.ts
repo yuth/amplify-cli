@@ -5,9 +5,10 @@ import { parse, printSchema } from 'graphql';
 import { codegen } from '@graphql-codegen/core';
 import * as addPlugin from '@graphql-codegen/add';
 import * as angularPlugin from 'amplify-codegen-plugin-angular';
+import * as typescriptPlugin from '@graphql-codegen/typescript';
 
 export async function generateSource(context: LegacyCompilerContext) {
-  const filename = 'foobarbaz.ts';
+  const filename = 'codegen.ts';
   const schema = parse(printSchema(context.schema));
   const fragments = Object.keys(context.fragments).map(name => {
     return {
@@ -34,11 +35,13 @@ export async function generateSource(context: LegacyCompilerContext) {
           '//  This file was automatically generated and should not be edited.'
         ]
       },
+      { typescriptPlugin: {}},
       { 'amplify-codegen-plugin-angular': {} }
     ],
     config: {},
     pluginMap: {
       add: addPlugin,
+      typescriptPlugin,
       'amplify-codegen-plugin-angular': angularPlugin
     }
   });

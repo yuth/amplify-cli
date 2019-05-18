@@ -7,7 +7,8 @@ import {
   FragmentSpreadNode,
   InlineFragmentNode,
   OperationTypeNode,
-  OperationDefinitionNode
+  OperationDefinitionNode,
+  FieldNode
 } from 'graphql';
 import {
   ParsedDocumentsConfig,
@@ -120,7 +121,7 @@ export class AngularOperationsVisitor extends BaseDocumentsVisitor<
       throw new Error(`Unable to find root schema type for operation type "${node.operation}"!`);
     }
 
-    const selectionSet = this._selectionSetToObject.createNext(resultType, node.selectionSet);
+    const selectionSet = this._selectionSetToObject.createNext(resultType, (resultSelections as FieldNode).selectionSet);
 
     const operationResult = new DeclarationBlock(this._declarationBlockConfig)
       .export()

@@ -56,7 +56,6 @@
     "common-tags": "^1.4.0",
     "core-js": "^2.5.0",
     "glob": "^7.1.2",
-    "graphql": "^14.0.2",
     "inflected": "^2.0.2",
     "mkdirp": "^0.5.1",
     "prettier": "^1.14.3",
@@ -88,6 +87,9 @@
     ],
     "transform": {
       "^.+\\.(ts|js)x?$": "ts-jest"
+    },
+    "resolutions": {
+      "graphql": "14.0.2"
     },
     "moduleFileExtensions": [
       "ts",

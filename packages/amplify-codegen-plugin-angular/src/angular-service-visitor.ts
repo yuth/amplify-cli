@@ -76,8 +76,8 @@ export class AwsAmplifyAngularServiceVisitor extends ClientSideBaseVisitor<
     this.generatedAPIs.push(name);
 
     const field = node.selectionSet.selections[0] as FieldNode;
-    const fieldName = field.alias ? field.alias.value : field.name.value;
 
+    const fieldName = field.alias ? field.alias.value : field.name.value;
     const variables = hasVariables
       ? this.variableToObjectConverter.transform(node.variableDefinitions)
       : '';
@@ -91,25 +91,33 @@ export class AwsAmplifyAngularServiceVisitor extends ClientSideBaseVisitor<
       : '';
 
     if (isSubscription) {
-//       const OnCreateBlogListenerApi: Observable<
-//   OnCreateBlogSubscription
-// > = new Observable((observer) => {
-//   (API.graphql(graphqlOperation(OnCreateBlogDocument)) as Observable<Object>).subscribe((result: any) => {
-//     debugger;
-//     observer.next(result.value.data.onCreateBlog)
-//   })
-// });
-      return `
+      if(hasVariables) {
+        return `
+        async function ${name}(${variables}): Promise<Observable<${operationResultType}>> {
+          ${variableDecl};
+          const subscription = (await API.graphql(graphqlOperation(${documentVariableName}, variables)) as Observable<any>);
+          return new Observable((observer) => {
+            subscription
+              .subscribe((result) => {
+                if(result && result.value && result.value.data && result.value.data.${fieldName} ) {
+                  observer.next(result.value.data.${fieldName});
+                }
+              })
+          });
+        }
+        ` ;
+      } else {
+        return `
       const ${name}: Observable<${operationResultType}> = new Observable((observer) => {
         (API.graphql(graphqlOperation(${documentVariableName})) as Observable<any>)
           .subscribe((result) => {
-            observer.next(result.value.data.${fieldName});
+            if(result && result.value && result.value.data && result.value.data.${fieldName} ) {
+              observer.next(result.value.data.${fieldName});
+            }
           })
       });
       `;
-      // return `
-      //   const ${name}: Observable<${operationResultType}> = API.graphql(graphqlOperation(${documentVariableName})) as Observable<${operationResultType}>
-      // `;
+      }
     }
     const graphqlOperation =
       'graphqlOperation(' +

@@ -36,7 +36,7 @@ export const plugin: PluginFunction<AmplifyCodegenPluginAngularConfig> = (
   const visitorResult = visit(allAst, { leave: visitor });
 
   return [
-    operationVisitorResult.definitions,
+    operationVisitorResult.definitions.join('\n'),
     visitor.getImports(),
     visitor.fragments,
     ...visitorResult.definitions.filter(t => typeof t === 'string'),
