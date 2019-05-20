@@ -70,7 +70,8 @@ export class AwsAmplifyAngularServiceVisitor extends ClientSideBaseVisitor<
     const hasVariables = node.variableDefinitions.length > 0;
 
     const name = this.convertName(node, {
-      suffix: isSubscription ? 'ListenerAPI' : 'API'
+      suffix: (isSubscription ? (hasVariables ? '' : 'ListenerAPI') : 'API'),
+      prefix: (isSubscription && hasVariables) ? 'SubscribeTo': ''
     });
 
     this.generatedAPIs.push(name);

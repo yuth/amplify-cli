@@ -36,13 +36,13 @@ export async function generateSource(context: LegacyCompilerContext) {
         ]
       },
       { typescriptPlugin: {}},
-      { 'amplify-codegen-plugin-angular': {} }
+      { 'z-amplify-codegen-plugin-angular': {} } // prefixed with z- to put the serice at the end of file
     ],
     config: {},
     pluginMap: {
       add: addPlugin,
       typescriptPlugin,
-      'amplify-codegen-plugin-angular': angularPlugin
+      'z-amplify-codegen-plugin-angular': angularPlugin // prefixed with z- to put the serice at the end of file
     }
   });
 
