@@ -226,9 +226,10 @@ async function transformGraphQLSchema(context, options) {
   }
 
   const transformerInst = await TransformPackage.buildAPIProject({
-    projectDirectory: options.dryrun ? false : resourceDir,
+    projectDirectory: resourceDir,
     transformers: transformerList,
     rootStackFileName: 'cloudformation-template.json',
+    dryRun: options.dryRun,
   });
 
   context.print.success(`\nGraphQL schema compiled successfully.\n\nEdit your schema at ${schemaFilePath} or \
@@ -236,7 +237,7 @@ place .graphql files in a directory at ${schemaDirPath}`);
 
   const jsonString = JSON.stringify(parameters, null, 4);
 
-  if (!options.dryrun) {
+  if (!options.dryRun) {
     fs.writeFileSync(parametersFilePath, jsonString, 'utf8');
   }
   return transformerInst;

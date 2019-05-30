@@ -4,7 +4,7 @@ const { PubSub } = require('graphql-subscriptions');
 const fs = require('fs');
 const path = require('path');
 const { createSchema: createSchemaCore } = require('./schema');
-const createServerCore = require('./serverCore');
+const {createServer: createServerCore} = require('./serverCore');
 const log = require('logdown')('amplify-graphql-test-server');
 const { wrapSchema } = require('./schemaWrapper');
 const { cloudFormationProcessor } = require('./cloudFormationProcessor');
@@ -111,10 +111,8 @@ const createServer = async ({
   });
 };
 
-async function createServerWithConfig(ddbClient, config) {
+async function createServerWithConfig(ddbClient, config, port = 0, wsPort = 0) {
   const pubsub = new PubSub();
-  const wsPort = 18000;
-  const port = 9999;
 
   const graphqlSchema = await wrapSchema(config.custom.appSync.schemaStr);
   const dynamodbTables = await ensureDynamodbTables(ddbClient, config, config.custom.appSync)
@@ -128,12 +126,13 @@ async function createServerWithConfig(ddbClient, config) {
     pubsub,
   });
 
-  return await createServerCore({
+  const server = createServerCore({
     wsPort,
     port,
     pubsub,
     schema,
     subscriptions,
   });
+  return server;
 }
 module.exports = { createServer, createServerWithConfig };

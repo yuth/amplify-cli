@@ -48,10 +48,11 @@ export function graphQLDataSource(resourceName, resource, cfnContext:CloudFormat
 }
 
 export function graphQLAPIResourceHandler(resourceName, resource, cfnContext:CloudFormationParseContext,  transformResult: any) {
-  const apiId = '3at7v3grjfe67f2yq3roxul6ii' // TODO: Generate
+  const apiId = 'amplify-test-api-id' // TODO: Generate
   const processedResource = {
     type: resource.Type,
-    name: 'GraphQLAPI',
+    name: cfnContext.params.AppSyncApiName || 'AppSyncTransformer',
+    authenticationType: resource.Properties.AuthenticationType,
     // authenticationType: parseValue(resource.Properties.AuthenticationType, cfnContext,  transformResult: any),
     ref: `arn:aws:appsync:us-east-1:123456789012:apis/${apiId}`,
   }
@@ -59,7 +60,7 @@ export function graphQLAPIResourceHandler(resourceName, resource, cfnContext:Clo
 }
 
 export function graphQLAPIKeyResourceHandler(resourceName, resource, cfnContext:CloudFormationParseContext,  transformResult: any) {
-  const value = 'da2-5dz775p64vflnff37edbm6x6xy' // TODO: Generate
+  const value = 'da2-fakeApiId123456' // TODO: Generate
   const processedResource = {
     type: resource.Type,
     // apiId: parseValue(resource.Properties.ApiId, cfnContext),
@@ -102,11 +103,12 @@ function getDataSourceName(dataSourceName) {
 
 
 }
-export function processResources(resources, transformResult:any) {
+export function processResources(resources, transformResult:any, params = {}) {
   const cfnContext:CloudFormationParseContext = {
     conditions: {},
     params: {
       env: 'NONE',
+      ...params
     },
     resources: {},
     exports: {}
@@ -118,6 +120,8 @@ export function processResources(resources, transformResult:any) {
         mappingTemplates: [],
         schemaStr: '',
         name: '',
+        apiKey: null,
+        authenticationType: null,
       }
     },
     resources: {
@@ -146,7 +150,12 @@ export function processResources(resources, transformResult:any) {
             break;
         case 'AWS::AppSync::GraphQLApi':
             processedResources.custom.appSync.name = result.name;
+            processedResources.custom.appSync.authenticationType = result.authenticationType;
             break;
+        case 'AWS::AppSync::ApiKey':
+            processedResources.custom.appSync.apiKey = result.value;
+            break;
+
       }
     }
   });

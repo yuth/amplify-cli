@@ -15,6 +15,7 @@ export interface ProjectOptions {
     projectDirectory?: string
     transformers: Transformer[]
     rootStackFileName?: string
+    dryRun?: boolean
 }
 
 export async function buildProject(opts: ProjectOptions) {
@@ -29,7 +30,7 @@ export async function buildProject(opts: ProjectOptions) {
         transformOutput = adjustBuildForMigration(transformOutput, userProjectConfig.config.Migration);
     }
     const merged = mergeUserConfigWithTransformOutput(userProjectConfig, transformOutput)
-    if (opts.projectDirectory) {
+    if (opts.projectDirectory && !opts.dryRun) {
         writeDeploymentToDisk(merged, path.join(opts.projectDirectory, 'build'), opts.rootStackFileName)
     }
     return transformOutput;
