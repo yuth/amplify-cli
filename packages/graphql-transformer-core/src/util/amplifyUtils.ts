@@ -12,7 +12,7 @@ const CLOUDFORMATION_FILE_NAME = 'cloudformation-template.json';
 const PARAMETERS_FILE_NAME = 'parameters.json';
 
 export interface ProjectOptions {
-    projectDirectory: string
+    projectDirectory?: string
     transformers: Transformer[]
     rootStackFileName?: string
 }
@@ -29,7 +29,10 @@ export async function buildProject(opts: ProjectOptions) {
         transformOutput = adjustBuildForMigration(transformOutput, userProjectConfig.config.Migration);
     }
     const merged = mergeUserConfigWithTransformOutput(userProjectConfig, transformOutput)
-    writeDeploymentToDisk(merged, path.join(opts.projectDirectory, 'build'), opts.rootStackFileName)
+    if (opts.projectDirectory) {
+        writeDeploymentToDisk(merged, path.join(opts.projectDirectory, 'build'), opts.rootStackFileName)
+    }
+    return transformOutput;
 }
 
 /**

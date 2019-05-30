@@ -225,8 +225,8 @@ async function transformGraphQLSchema(context, options) {
     transformerList.push(new SearchableModelTransformer());
   }
 
-  await TransformPackage.buildAPIProject({
-    projectDirectory: resourceDir,
+  const transformerInst = await TransformPackage.buildAPIProject({
+    projectDirectory: options.dryrun ? false : resourceDir,
     transformers: transformerList,
     rootStackFileName: 'cloudformation-template.json',
   });
@@ -236,7 +236,10 @@ place .graphql files in a directory at ${schemaDirPath}`);
 
   const jsonString = JSON.stringify(parameters, null, 4);
 
-  fs.writeFileSync(parametersFilePath, jsonString, 'utf8');
+  if (!options.dryrun) {
+    fs.writeFileSync(parametersFilePath, jsonString, 'utf8');
+  }
+  return transformerInst;
 }
 
 function getModelConfig(project) {
