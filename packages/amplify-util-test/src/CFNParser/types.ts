@@ -1,5 +1,5 @@
 export type CloudFormationParseContext = {
-  params: object;
+  params: any;
   conditions: object;
   resources: object;
   exports: object;
