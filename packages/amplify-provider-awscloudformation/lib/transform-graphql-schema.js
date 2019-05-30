@@ -239,7 +239,7 @@ place .graphql files in a directory at ${schemaDirPath}`);
 
   const jsonString = JSON.stringify(parameters, null, 4);
 
-  if (!options.dryrun) {
+  if (!options.dryRun) {
     fs.writeFileSync(parametersFilePath, jsonString, 'utf8');
   }
   return transformerOutput;
