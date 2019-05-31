@@ -4,6 +4,8 @@ import * as chokidar from 'chokidar';
 import * as dynamoEmulator from '@conduitvc/dynamodb-emulator';
 import { processResources } from './CFNParser/resource-processor';
 import { createServerWithConfig } from 'amplify-graphql-test-server';
+import { generate } from 'amplify-codegen';
+
 const cleanupQueue = [];
 
 export async function testGraphQLAPI(context: any) {
@@ -64,6 +66,7 @@ async function startAppSyncServer(context, ddbClient, port = 8899, wsPort = 8810
     additionalAuthenticationProviders: [],
     securityType: config.custom.appSync.authenticationType
   });
+  await generateCode(context, transformerOutput);
   return server;
 }
 
@@ -145,6 +148,15 @@ async function generateFrontendExports(
   await context.amplify.onCategoryOutputsChange(context, null, currentMeta);
 }
 
+async function generateCode(context, transformerOutput) {
+  console.log('Running codegen');
+  const { projectPath } = context.amplify.getEnvInfo();
+  const { name: apiName } = await getAppSyncAPI(context);
+  const schemaPath = path.join(projectPath, 'amplify', 'backend', 'api', apiName, 'build', 'schema.graphql');
+  fs.writeFileSync(schemaPath, transformerOutput.schema);
+  await generate(context);
+
+}
 async function getAmplifyMeta(context: any) {
   const amplifyMetaFilePath = context.amplify.pathManager.getAmplifyMetaFilePath();
   return context.amplify.readJsonFile(amplifyMetaFilePath);
