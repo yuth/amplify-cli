@@ -117,7 +117,7 @@ async function createServerWithConfig(ddbClient, config, port = 0, wsPort = 0) {
   const graphqlSchema = await wrapSchema(config.custom.appSync.schemaStr);
   const dynamodbTables = await ensureDynamodbTables(ddbClient, config, config.custom.appSync)
 
-  const {schema, subscriptions } = await createSchemaCore({
+  const {schema, subscriptions, topics } = await createSchemaCore({
     dynamodb: ddbClient,
     dynamodbTables,
     graphqlSchema,

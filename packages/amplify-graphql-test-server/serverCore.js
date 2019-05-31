@@ -176,9 +176,11 @@ class SubscriptionServer {
   }
 
   async register({ documentAST, variables, context }) {
-    const clientId = context.jwt.sub;
+    const clientId = context.jwt.sub || uuid.v4();
 
-    const topicId = uuid();
+    // const topicId = uuid();
+    const topicId = documentAST.definitions[0].selectionSet.selections[0].name.value;
+
     log.info('register', { clientId, topicId });
 
     const registration = {
@@ -323,6 +325,13 @@ const createGQLHandler = ({ schema, subServer }) => async (req, res) => {
           }),
         );
       case 'subscription':
+        const result = await executeGQL({
+          schema,
+          documentAST,
+          context,
+          variables,
+          operationName,
+        });
         return res.send(
           await subServer.register({
             context,
