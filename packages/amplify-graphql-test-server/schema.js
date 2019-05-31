@@ -1,7 +1,4 @@
-const {
-  makeExecutableSchema,
-  SchemaDirectiveVisitor,
-} = require('graphql-tools');
+const { makeExecutableSchema, SchemaDirectiveVisitor } = require('graphql-tools');
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -24,7 +21,7 @@ const vtlMacros = {
     // eslint-disable-next-line no-console
     console.log(...args);
     return '';
-  },
+  }
 };
 
 // eslint-disable-next-line
@@ -49,7 +46,7 @@ class AppSyncError extends Error {
 const buildVTLContext = ({ root, vars, context, info }, result = null) => {
   const {
     jwt: { iss: issuer, sub },
-    request,
+    request
   } = context;
   const util = createUtils();
   const args = javaify(vars);
@@ -65,16 +62,16 @@ const buildVTLContext = ({ root, vars, context, info }, result = null) => {
       username: context.jwt['cognito:username'],
       sourceIp: ['0.0.0.0'],
       defaultAuthStrategy: 'ALLOW',
-      claims: context.jwt,
+      claims: context.jwt
     }),
     source: root || {},
-    result: javaify(result),
+    result: javaify(result)
   };
   return {
     util,
     utils: util,
     context: vtlContext,
-    ctx: vtlContext,
+    ctx: vtlContext
   };
 };
 
@@ -83,9 +80,7 @@ const returnJSON = input => {
     // apparently appsync allows things like trailing commas.
     return json5.parse(input);
   } catch (err) {
-    consola.error(
-      new Error('Failed to parse VTL template as JSON (see below)'),
-    );
+    consola.error(new Error('Failed to parse VTL template as JSON (see below)'));
     consola.error(input);
     throw err;
   }
@@ -96,7 +91,7 @@ const handleVTLRender = (
   context,
   // eslint-disable-next-line
   vtlMacros,
-  { info: gqlInfo, context: gqlContext },
+  { info: gqlInfo, context: gqlContext }
 ) => {
   let templateOutput;
   try {
@@ -125,7 +120,7 @@ const handleVTLRender = (
       gqlInfo.fieldNodes,
       null,
       null,
-      gqlPathAsArray(gqlInfo.path),
+      gqlPathAsArray(gqlInfo.path)
     );
     Object.assign(gqlErrorObj, { errorType, data, errorInfo });
     return gqlErrorObj;
@@ -153,12 +148,9 @@ const runResponseVTL = (template, graphqlInfo, result) => {
 const dispatchRequestToSource = async (
   source,
   { dynamodb, dynamodbTables, serverlessDirectory, serverlessConfig },
-  request,
+  request
 ) => {
-  consola.info(
-    'Dispatch to source',
-    inspect({ name: source.name, type: source.type }),
-  );
+  consola.info('Dispatch to source', inspect({ name: source.name, type: source.type }));
   log.info('resolving with source: ', source.name, source.type);
   switch (source.type) {
     case 'AMAZON_DYNAMODB':
@@ -168,7 +160,7 @@ const dispatchRequestToSource = async (
         source.config.tableName,
         // mapping used for multi table operations.
         dynamodbTables,
-        request,
+        request
       );
     case 'AWS_LAMBDA':
       return lambdaSource(
@@ -176,10 +168,10 @@ const dispatchRequestToSource = async (
           serverlessDirectory,
           serverlessConfig,
           dynamodbEndpoint: dynamodb.endpoint.href,
-          dynamodbTables,
+          dynamodbTables
         },
         source.config.functionName,
-        request,
+        request
       );
     case 'AMAZON_ELASTICSEARCH':
       return elasticsearchSource(source.config.endpoint, request);
@@ -202,14 +194,14 @@ const generateDataLoaderResolver = (source, configs) => {
           batchRequest.payload = requests.map(r => r.payload);
           consola.info(
             'Rendered Batch Request:\n',
-            inspect(batchRequest, { depth: null, colors: true }),
+            inspect(batchRequest, { depth: null, colors: true })
           );
           log.info('resolver batch request', batchRequest);
           return dispatchRequestToSource(source, configs, batchRequest);
         },
         {
-          shouldCache: false,
-        },
+          shouldCache: false
+        }
       );
     }
 
@@ -220,7 +212,7 @@ const generateDataLoaderResolver = (source, configs) => {
 const generateTypeResolver = (
   source,
   configs,
-  { requestTemplate,  responseTemplate, dataLoaderResolver },
+  { requestTemplate, responseTemplate, dataLoaderResolver }
 ) => async (root, vars, context, info) => {
   try {
     const fieldPath = `${info.parentType}.${info.fieldName}`;
@@ -237,19 +229,13 @@ const generateTypeResolver = (
       const loader = dataLoaderResolver(fieldPath);
       requestResult = await loader.load(request);
     } else {
-      consola.info(
-        'Rendered Request:\n',
-        inspect(request, { depth: null, colors: true }),
-      );
+      consola.info('Rendered Request:\n', inspect(request, { depth: null, colors: true }));
       log.info('resolver request', request);
       requestResult = await dispatchRequestToSource(source, configs, request);
     }
 
     const response = runResponseVTL(responseTemplate, resolverArgs, requestResult);
-    consola.info(
-      'Rendered Response:\n',
-      inspect(response, { depth: null, colors: true }),
-    );
+    consola.info('Rendered Response:\n', inspect(response, { depth: null, colors: true }));
     log.info('resolver response', response);
     // XXX: parentType probably is constructed with new String so == is required.
     // eslint-disable-next-line
@@ -268,7 +254,7 @@ const generateSubscriptionTypeResolver = (
   field,
   source,
   configs,
-  { requestTemplate, responseTemplate },
+  { requestTemplate, responseTemplate }
 ) => {
   const subscriptionList = configs.subscriptions[field];
   if (!subscriptionList) {
@@ -277,18 +263,11 @@ const generateSubscriptionTypeResolver = (
   }
 
   const { mutations } = subscriptionList;
-  assert(
-    mutations && mutations.length,
-    `${field} must have aws_subscribe with mutations arg`,
-  );
+  assert(mutations && mutations.length, `${field} must have aws_subscribe with mutations arg`);
 
   return {
     resolve: async (root, _, context, info) => {
-      consola.start(
-        `Resolve: ${info.parentType}.${info.fieldName} [${gqlPathAsArray(
-          info.path,
-        )}]`,
-      );
+      consola.start(`Resolve: ${info.parentType}.${info.fieldName} [${gqlPathAsArray(info.path)}]`);
       log.info('resolving', gqlPathAsArray(info.path));
       assert(context && context.jwt, 'must have context.jwt');
       // XXX: The below is what our templates expect but not 100% sure it's correct.
@@ -298,40 +277,45 @@ const generateSubscriptionTypeResolver = (
         (await dispatchRequestToSource(
           source,
           configs,
-          runRequestVTL(requestTemplate, resolverArgs),
+          runRequestVTL(requestTemplate, resolverArgs)
         )) || {};
 
-      consola.info(
-        'Rendered Request:\n',
-        inspect(request, { depth: null, colors: true }),
-      );
+      consola.info('Rendered Request:\n', inspect(request, { depth: null, colors: true }));
       log.info('subscription resolver request', request);
       const response = runResponseVTL(responseTemplate, resolverArgs, request);
-      consola.info(
-        'Rendered Response:\n',
-        inspect(response, { depth: null, colors: true }),
-      );
+      consola.info('Rendered Response:\n', inspect(response, { depth: null, colors: true }));
       log.info('subscription resolver response', response);
       return response;
     },
     subscribe() {
       return configs.pubsub.asyncIterator(mutations);
-    },
+    }
   };
 };
-
+const generateDefaultSubscriptionResolvers = (cwd, config, configs) => {
+  return Object.keys(configs.subscriptions).reduce((acc, subName) => {
+    const { mutations } = configs.subscriptions[subName];
+    const resolver = {
+      resolve(data) { return data;},
+      subscribe() {
+        return configs.pubsub.asyncIterator(mutations);
+      }
+    }
+    return { ...acc, [subName]: resolver };
+  }, {});
+};
 const generateResolvers = (cwd, config, configs) => {
   const { mappingTemplatesLocation = 'mapping-templates' } = config;
   // const mappingTemplates = path.join(cwd, mappingTemplatesLocation);
   const dataSourceByName = config.dataSources.reduce(
     (sum, value) => ({
       ...sum,
-      [value.name]: value,
+      [value.name]: value
     }),
-    {},
+    {}
   );
 
-  return config.mappingTemplates.reduce(
+  const resolvers = config.mappingTemplates.reduce(
     (sum, { dataSource, type, field, requestTemplate, responseTemplate }) => {
       if (!sum[type]) {
         // eslint-disable-next-line
@@ -341,7 +325,7 @@ const generateResolvers = (cwd, config, configs) => {
       const pathing = {
         requestTemplate,
         dataLoaderResolver: generateDataLoaderResolver(source, configs),
-        responseTemplate,
+        responseTemplate
       };
       const resolver =
         type === 'Subscription'
@@ -352,12 +336,19 @@ const generateResolvers = (cwd, config, configs) => {
         ...sum,
         [type]: {
           ...sum[type],
-          [field]: resolver,
-        },
+          [field]: resolver
+        }
       };
     },
-    { ...scalars },
+    { ...scalars }
   );
+  return {
+    ...resolvers,
+    Subscription: {
+      ...generateDefaultSubscriptionResolvers(cwd, config, configs),
+      ...resolvers.Subscription
+    }
+  };
 };
 
 const createSubscriptionsVisitor = () => {
@@ -370,7 +361,7 @@ const createSubscriptionsVisitor = () => {
 
   return {
     subscriptions,
-    DirectiveVisitor,
+    DirectiveVisitor
   };
 };
 
@@ -380,13 +371,10 @@ const createSchema = async ({
   graphqlSchema,
   serverlessDirectory,
   serverlessConfig,
-  pubsub,
+  pubsub
 } = {}) => {
   assert(dynamodb, 'must pass dynamodb');
-  assert(
-    dynamodbTables && typeof dynamodbTables === 'object',
-    'must pass dynamodbTables',
-  );
+  assert(dynamodbTables && typeof dynamodbTables === 'object', 'must pass dynamodbTables');
   assert(graphqlSchema, 'must pass graphql schema');
   // assert(serverlessDirectory, 'must pass serverless dir');
   assert(serverlessConfig, 'must pass serverless config');
@@ -400,43 +388,34 @@ const createSchema = async ({
   makeExecutableSchema({
     typeDefs: graphqlSchema,
     schemaDirectives: {
-      aws_subscribe: DirectiveVisitor,
-    },
+      aws_subscribe: DirectiveVisitor
+    }
   });
 
-  const resolvers = await generateResolvers(
+  const resolvers = await generateResolvers(serverlessDirectory, appSyncConfig, {
+    dynamodb,
+    dynamodbTables,
+    pubsub,
+    subscriptions,
     serverlessDirectory,
-    appSyncConfig,
-    {
-      dynamodb,
-      dynamodbTables,
-      pubsub,
-      subscriptions,
-      serverlessDirectory,
-      serverlessConfig,
-    },
-  );
+    serverlessConfig
+  });
   const schema = makeExecutableSchema({
     typeDefs: graphqlSchema,
     resolvers,
     schemaDirectives: {
-      aws_subscribe: DirectiveVisitor,
-    },
+      aws_subscribe: DirectiveVisitor
+    }
   });
 
   const topics = Array.from(
-    new Set(
-      Object.values(subscriptions).reduce(
-        (sum, { mutations }) => sum.concat(mutations),
-        [],
-      ),
-    ),
+    new Set(Object.values(subscriptions).reduce((sum, { mutations }) => sum.concat(mutations), []))
   );
 
   return {
     schema,
     topics,
-    subscriptions,
+    subscriptions
   };
 };
 
