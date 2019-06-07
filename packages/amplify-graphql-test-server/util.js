@@ -65,7 +65,7 @@ const create = (errors = [], now = new Date()) => ({
     throw new ValidateError(message, type, data);
   },
   isNull(value) {
-    return value === null;
+    return value === null || value === undefined;
   },
   isNullOrEmpty(value) {
     return !!value;
