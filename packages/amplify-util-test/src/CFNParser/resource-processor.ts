@@ -71,7 +71,10 @@ export function graphQLAPIKeyResourceHandler(resourceName, resource, cfnContext:
 }
 
 export function graphQLSchemaHandler(resourceName, resource, cfnContext: CloudFormationParseContext, transformResult: any) {
-  return transformResult.schema;
+  return {
+    content: transformResult.schema,
+    path: 'schema.json' // XXX: handle schema folder
+  };
 }
 
 export function graphQLResolverHandler(resourceName, resource, cfnContext: CloudFormationParseContext, transformResult: any) {
@@ -79,11 +82,11 @@ export function graphQLResolverHandler(resourceName, resource, cfnContext: Cloud
   const requestMappingTemplate = [properties.TypeName, properties.FieldName, 'req.vtl'].join('.')
   const responseMappingTemplate = [properties.TypeName, properties.FieldName, 'res.vtl'].join('.')
   return {
-    dataSource: getDataSourceName(properties.DataSourceName),
-    type: properties.TypeName,
-    field: properties.FieldName,
-    requestTemplate: transformResult.resolvers[requestMappingTemplate],
-    responseTemplate: transformResult.resolvers[responseMappingTemplate],
+    dataSourceName: getDataSourceName(properties.DataSourceName),
+    typeName: properties.TypeName,
+    fieldName: properties.FieldName,
+    requestMappingTemplateLocation: requestMappingTemplate,
+    responseMappingTemplateLocation: responseMappingTemplate,
   }
 }
 
@@ -114,18 +117,17 @@ export function processResources(resources, transformResult:any, params = {}) {
     exports: {}
   }
   const processedResources = {
-    custom: {
-      appSync: {
-        dataSources: [],
-        mappingTemplates: [],
-        schemaStr: '',
-        name: '',
-        apiKey: null,
-        authenticationType: null,
-      }
+    schema: {
     },
-    resources: {
-      Resources: {}
+    resolvers: [],
+    functions: [],
+    dataSources: [],
+    mappingTemplates: [],
+    tables: [],
+    appSync: {
+      name: '',
+      authenticationType: '',
+      apiKey: null
     }
   };
   Object.entries(resources).forEach((entry) => {
@@ -137,28 +139,34 @@ export function processResources(resources, transformResult:any, params = {}) {
 
       switch(resourceType) {
         case 'AWS::AppSync::DataSource':
-          processedResources.custom.appSync.dataSources.push(result);
+          processedResources.dataSources.push(result);
           break;
         case 'AWS::AppSync::Resolver':
-            processedResources.custom.appSync.mappingTemplates.push(result);
+            processedResources.resolvers.push(result);
             break;
         case 'AWS::DynamoDB::Table':
-            processedResources.resources.Resources[resourceName] = result;
+            processedResources.tables.push(result);
             break;
         case 'AWS::AppSync::GraphQLSchema':
-            processedResources.custom.appSync.schemaStr = result;
+            processedResources.schema = result;
             break;
         case 'AWS::AppSync::GraphQLApi':
-            processedResources.custom.appSync.name = result.name;
-            processedResources.custom.appSync.authenticationType = result.authenticationType;
+            processedResources.appSync.name = result.name;
+            processedResources.appSync.authenticationType = result.authenticationType;
             break;
         case 'AWS::AppSync::ApiKey':
-            processedResources.custom.appSync.apiKey = result.value;
+            processedResources.appSync.apiKey = result.value;
             break;
-
       }
     }
   });
+  Object.entries(transformResult.resolvers).forEach(([path, content]) => {
+    processedResources.mappingTemplates.push({
+      path,
+      content
+    })
+  })
+
   return processedResources;
 
 }

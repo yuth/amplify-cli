@@ -3,7 +3,7 @@ import * as fs from 'fs-extra';
 import * as chokidar from 'chokidar';
 import * as dynamoEmulator from '@conduitvc/dynamodb-emulator';
 import { processResources } from './CFNParser/resource-processor';
-import { createServerWithConfig } from 'amplify-graphql-test-server';
+import { AmplifyAppSyncSimulator, AppSyncSimulatorConfig } from 'amplify-appsync-simulator';
 import { generate } from 'amplify-codegen';
 
 const cleanupQueue = [];
@@ -56,18 +56,29 @@ export async function testGraphQLAPI(context: any) {
 async function startAppSyncServer(context, ddbClient, port = 8899, wsPort = 8810) {
   const { name, api } = await getAppSyncAPI(context);
   const { transformerOutput, stack } = await runTransformer(context);
-  const config = processResources(stack, transformerOutput);
-  const server = await createServerWithConfig(ddbClient, config, port, wsPort);
+  const config: any = processResources(stack, transformerOutput);
+
+  await ensureDynamoDBTables(ddbClient, config.tables.map(t => t.Properties));
+
+  config.dataSources.filter(d => d.type === 'AMAZON_DYNAMODB').forEach((d) => {
+    d.config.endpoint = ddbClient.config.endpoint;
+    d.config.region =ddbClient.config.region;
+    d.config.accessKeyId = ddbClient.config.accessKeyId;
+    d.config.secretAccessKey = ddbClient.config.secretAccessKey;
+  });
+  const appsyncSimulator = new AmplifyAppSyncSimulator(config, {port, wsPort});
+  await appsyncSimulator.start();
+  // const server = await createServerWithConfig(ddbClient, config, port, wsPort);
   await generateFrontendExports(context, {
-    endpoint: server.url,
+    endpoint: `http://localhost:${port}/graphql`,
     name,
-    GraphQLAPIKeyOutput: config.custom.appSync.apiKey,
+    GraphQLAPIKeyOutput: config.appSync.apiKey,
     region: 'local',
     additionalAuthenticationProviders: [],
-    securityType: config.custom.appSync.authenticationType
+    securityType: config.appSync.authenticationType
   });
   await generateCode(context, transformerOutput);
-  return server;
+  return appsyncSimulator;
 }
 
 async function registerWatcher(context: any) {
@@ -99,6 +110,25 @@ async function launchDDBLocal(context: any) {
   });
   return await dynamoEmulator.getClient(emulator);
 }
+
+async function ensureDynamoDBTables (
+  dynamodb,
+  tables: any[]
+)  {
+
+  await Promise.all(
+    tables
+      .map(async resource => {
+        try {
+          console.info('creating table', resource.TableName);
+          await dynamodb.createTable(resource).promise();
+        } catch (err) {
+          if (err.code !== 'ResourceInUseException') throw err;
+        }
+      }),
+  );
+};
+
 
 async function runTransformer(context: any) {
   const transformerOutput = await context.amplify.executeProviderUtils(
