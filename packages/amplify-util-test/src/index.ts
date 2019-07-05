@@ -70,7 +70,7 @@ async function startAppSyncServer(context, ddbClient, port = 8899, wsPort = 8810
   await appsyncSimulator.start();
   // const server = await createServerWithConfig(ddbClient, config, port, wsPort);
   await generateFrontendExports(context, {
-    endpoint: `http://localhost:${port}/graphql`,
+    endpoint: appsyncSimulator.url,
     name,
     GraphQLAPIKeyOutput: config.appSync.apiKey,
     region: 'local',
