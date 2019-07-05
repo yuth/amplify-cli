@@ -38,7 +38,7 @@
     "libphonenumber-js": "^1.7.18",
     "lodash": "^4.17.11",
     "uuid": "^3.3.2",
-    "velocityjs": "^1.1.3"
+    "amplify-velocity-template": "^0.0.1"
   },
   "devDependencies": {
     "@conduitvc/dynamodb-emulator": "^0.5.3",

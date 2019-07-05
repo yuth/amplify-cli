@@ -1,10 +1,9 @@
 import { create as createUtil } from './util';
 import { map as convertToJavaTypes } from './value-mapper/mapper';
-import { Compile, parse } from 'velocityjs';
+import { Compile, parse } from 'amplify-velocity-template';
 import { map } from './value-mapper/mapper';
 import { AppSyncVTLTemplate } from '..';
 import * as JSON5 from 'json5';
-import { Source } from 'graphql';
 
 export type AppSyncSimulatorRequestContext = {
   jwt?: {
