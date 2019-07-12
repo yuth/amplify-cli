@@ -1,5 +1,8 @@
 import { Unauthorized, ValidateError, TemplateSentError } from './errors';
 import * as autoId from 'uuid/v4';
+import { JavaString } from '../value-mapper/string';
+import { JavaArray } from '../value-mapper/array';
+import { JavaMap } from '../value-mapper/map';
 export const generalUtils = {
   errors:[],
   quiet: () => '',
@@ -52,13 +55,23 @@ export const generalUtils = {
     throw new ValidateError(message, type, data);
   },
   isNull(value) {
-    return value === null || !value;
+    return value === null || typeof value == 'undefined';
   },
   isNullOrEmpty(value) {
+    if(this.isNull(value))
+      return true;
+
+    if(value instanceof JavaMap) {
+      return Object.keys(value.toJSON()).length == 0;
+    }
+    if(value instanceof JavaArray || value instanceof JavaString) {
+      return value.toJSON().length == 0;
+    }
     return !!value;
   },
+
   isNullOrBlank(value) {
-    return !!value;
+    return this.isNullOrEmpty(value);
   },
   defaultIfNull(value, defaultValue = '') {
     if (value !== null && value !== undefined) return value;
@@ -73,7 +86,7 @@ export const generalUtils = {
     return defaultValue;
   },
   isString(value) {
-    return typeof value === 'string';
+    return value instanceof JavaString;
   },
   isNumber(value) {
     return typeof value === 'number';
@@ -82,7 +95,7 @@ export const generalUtils = {
     return typeof value === 'boolean';
   },
   isList(value) {
-    return Array.isArray(value);
+    return Array.isArray(value) || value instanceof JavaArray;
   },
   isMap(value) {
     if (value instanceof Map) return value;

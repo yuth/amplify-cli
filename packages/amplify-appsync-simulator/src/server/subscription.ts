@@ -1,9 +1,10 @@
 import { subscribe, DocumentNode, ExecutionResult } from 'graphql';
 import * as crypto from 'crypto';
 import { inspect } from 'util';
-// import { createServer as createHTTPServer } from 'http';
+import { createServer as createHTTPServer } from 'http';
 import * as e2p from 'event-to-promise';
-import { createServer as createHTTPServer} from 'https';
+import * as portfinder from 'portfinder';
+// import { createServer as createHTTPServer} from 'https';
 
 import { Server as CoreHTTPServer, AddressInfo } from 'net';
 import { Server as MQTTServer } from '@conduitvc/mosca';
@@ -17,6 +18,8 @@ import { Address } from 'aws-sdk/clients/ses';
 const MINUTE = 1000 * 60;
 const CONNECTION_TIME_OUT = 2 * MINUTE; // 2 mins
 const TOPIC_EXPIRATION_TIMEOUT = 60 * MINUTE; // 60 mins
+const BASE_PORT = 8900;
+const MAX_PORT = 9999;
 
 const log = console;
 
@@ -26,6 +29,7 @@ export class SubscriptionServer {
   private webSocketServer: CoreHTTPServer;
   private mqttServer;
   url: string;
+  private port: number;
   private publishingTopics: Set<string>;
 
   constructor(
@@ -36,10 +40,14 @@ export class SubscriptionServer {
     const secureKey = readFileSync(join(__dirname, '..', '..', 'certs', 'appsync-simulator.key'));
     const secureCert = readFileSync(join(__dirname, '..', '..', 'certs', 'appsync-simulator.crt'));
 
-    this.webSocketServer = createHTTPServer({
-      key: secureKey,
-      cert: secureCert
-    });
+    // this.webSocketServer = createHTTPServer({
+    //   key: secureKey,
+    //   cert: secureCert
+    // });
+
+    this.port = config.wsPort;
+    this.webSocketServer = createHTTPServer();
+
 
     this.mqttServer = new MQTTServer({
       backend: { type: 'memory' },
@@ -63,9 +71,12 @@ export class SubscriptionServer {
     this.mqttServer.on('unsubscribed', this.afterUnsubscribe.bind(this));
   }
 
-  start() {
-    const server = this.webSocketServer.listen(this.config.wsPort);
-    return e2p(server, 'listening').then(() => {
+  async start() {
+    if(!this.port) {
+      this.port = await portfinder.getPortPromise({startPort: BASE_PORT, stopPort: MAX_PORT});
+    }
+    const server = this.webSocketServer.listen(this.port);
+    return await e2p(server, 'listening').then(() => {
       const address = server.address() as AddressInfo;
       this.url = `wss://${getLocalIpAddress()}:${address.port}/`;
       return server

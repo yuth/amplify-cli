@@ -33,7 +33,7 @@ describe('Set && Expression', function() {
     assert.equal("monica", getContext(vm).monkey.Friend)
     assert.equal("123", getContext(vm).monkey.Number)
   })
-  
+
   it('set equal to result of method ', function () {
     var vm = "#set( $monkey = 'monica' ) ## string literal\n" +
              '#set( $result = $monkey.substring(1) ) ##calling method'
@@ -109,16 +109,6 @@ describe('Set && Expression', function() {
     assert.equal(false, getContext('#set($foo = 10 == 11)').foo)
   })
 
-  it('expression compare text version', function() {
-    assert.equal(false, getContext('#set($foo = 10 gt 11)').foo)
-    assert.equal(true, getContext('#set($foo = 10 lt 11)').foo)
-    assert.equal(true, getContext('#set($foo = 10 ne 11)').foo)
-    assert.equal(true, getContext('#set($foo = 10 le 11)').foo)
-    assert.equal(true, getContext('#set($foo = 11 le 11)').foo)
-    assert.equal(false, getContext('#set($foo = 12 le 11)').foo)
-    assert.equal(true, getContext('#set($foo = 12 ge 11)').foo)
-    assert.equal(false, getContext('#set($foo = 10 eq 11)').foo)
-  })
 
   it('expression logic', function() {
     assert.equal(false, getContext('#set($foo = 10 == 11 && 3 > 1)').foo)
@@ -130,15 +120,6 @@ describe('Set && Expression', function() {
     assert.equal(true, getContext('#set($foo = $a || $b)', {a: 1, b: 0}).foo)
   })
 
-  it('expression logic text version', function() {
-    assert.equal(false, getContext('#set($foo = 10 eq 11 and 3 gt 1)').foo)
-    assert.equal(true, getContext('#set($foo = 10 lt 11 and 3 gt 1)').foo)
-    assert.equal(true, getContext('#set($foo = 10 gt 11 or 3 gt 1)').foo)
-    assert.equal(true, getContext('#set($foo = not(10 gt 11) and 3 gt 1)').foo)
-    assert.equal(false, getContext('#set($foo = $a gt $b)', {a: 1, b: 2}).foo)
-    assert.equal(false, getContext('#set($foo = $a and $b)', {a: 1, b: 0}).foo)
-    assert.equal(true, getContext('#set($foo = $a or $b)', {a: 1, b: 0}).foo)
-  })
 
   it('var in key', function() {
     var vm = '#set($o = {}) #set($key = "k") #set($o[$key] = "c") #set($o.f = "d") $o $o[$key]'
@@ -165,6 +146,17 @@ describe('Set && Expression', function() {
     var vm = '#macro(local) #set($val =1) $val #end #local() $val'
     var ret = render(vm).replace(/\s+/g, '')
     assert.equal('11', ret)
+  })
+
+  it('#set should support settinng string place holders', function() {
+    var vm = `
+    #set ($val = "Foo")
+    #set ($sortKeyValue = "Moo")
+    #set($res = "$sortKeyValue#$val")
+    $res
+    `
+    var ret = render(vm).replace(/\s+/g, '')
+    assert.equal('Moo#Foo', ret)
   })
 
   describe('set mult level var', function() {
@@ -216,4 +208,5 @@ describe('Set && Expression', function() {
     const html = render(tpl).replace(/\n\s.|\s{2}/g, '').trim();
     html.should.eql('<h1>test1 test3</h1><h1>test1 test2 test3</h1><h1>test1 test3</h1><h1>test1 test2 test3</h1>');
   })
+
 })

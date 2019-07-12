@@ -4,6 +4,7 @@ import {
   AppSyncSimulatorEventType
 } from '..';
 import { Socket } from 'net';
+import { Unauthorized } from '../velocity/util';
 
 export type UnitResolveConfig = {
   fieldName: string;
@@ -21,7 +22,7 @@ export class AppSyncUnitResolver {
       simulatorContext.getMappingTemplate(config.responseMappingTemplateLocation);
       simulatorContext.getDataLoader(config.dataSourceName);
     } catch (e) {
-      throw new Error(`Invalid config for UNIT_RESOLVER ${JSON.stringify(config)}`);
+      throw new Error(`Invalid config for UNIT_RESOLVER ${JSON.stringify(config)} \n ${e.message}`);
     }
     const { fieldName, typeName } = config;
     if (!fieldName || !typeName) {
@@ -31,17 +32,6 @@ export class AppSyncUnitResolver {
   }
 
   async resolve(source, args, context, info) {
-    this.simulatorContext.emit(
-      AppSyncSimulatorEventType.BEFORE_RESOLVE,
-      this.config.fieldName,
-      this.config.typeName,
-      {
-        source,
-        args,
-        context,
-        info
-      }
-    );
     const requestMappingTemplate = this.simulatorContext.getMappingTemplate(
       this.config.requestMappingTemplateLocation
     );
@@ -55,18 +45,6 @@ export class AppSyncUnitResolver {
       info
     );
     const result = await dataLoader.load(requestPayload);
-    this.simulatorContext.emit(
-      AppSyncSimulatorEventType.AFTER_RESOLVE,
-      this.config.fieldName,
-      this.config.typeName,
-      {
-        source,
-        args,
-        context,
-        info,
-        result
-      }
-    );
     const { result: responseTemplateResult } = responseMappingTemplate.render({ source, arguments: args, result }, context, info);
     return responseTemplateResult;
   }

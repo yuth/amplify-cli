@@ -104,6 +104,12 @@ export function createMapProxy(map) {
         return map.get(prop);
       }
       return map[prop];
+    },
+    set(obj, prop, val) {
+      if(typeof val !== 'function') {
+        map.map.set(prop, val);
+      }
+      return true;
     }
   });
 }

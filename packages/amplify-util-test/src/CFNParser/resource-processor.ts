@@ -37,14 +37,22 @@ export function dynamoDBResourceHandler(resourceName, resource, cfnContext:Cloud
 
 export function graphQLDataSource(resourceName, resource, cfnContext:CloudFormationParseContext, transformResult: any) {
   const tableName = resource.Properties.Name;
-  const processedResource = {
-    name: resourceName,
-    type: 'AMAZON_DYNAMODB',
-    config: {
-      tableName,
+  const typeName = resource.Properties.Type;
+  if(typeName === 'AMAZON_DYNAMODB') {
+    return {
+      name: resourceName,
+      type: 'AMAZON_DYNAMODB',
+      config: {
+        tableName,
+      }
     }
   }
-  return processedResource;
+  if(typeName === 'NONE') {
+    return {
+      name: resource.Properties.Name,
+      type: 'NONE',
+    }
+  }
 }
 
 export function graphQLAPIResourceHandler(resourceName, resource, cfnContext:CloudFormationParseContext,  transformResult: any) {

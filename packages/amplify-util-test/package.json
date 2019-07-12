@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "test": "jest",
+    "e2e": "jest src/__e2e__/*.e2e.test.ts",
     "test-ci": "jest --ci -i",
     "test-watch": "jest --watch",
     "build": "tsc",
@@ -33,7 +34,20 @@
     "prettier": "^1.14.2",
     "ts-jest": "^22.4.6",
     "tslint": "^5.10.0",
-    "typescript": "^2.8.3"
+    "typescript": "^2.8.3",
+    "graphql-transformer-common": "3.8.2",
+    "graphql-mapping-template": "3.1.1",
+    "graphql-transformer-core": "3.7.4",
+    "graphql-auth-transformer": "3.7.4",
+    "graphql-connection-transformer": "3.5.4",
+    "graphql-dynamodb-transformer": "3.8.4",
+    "graphql-elasticsearch-transformer": "3.6.5",
+    "graphql-function-transformer": "1.1.4",
+    "graphql-key-transformer": "1.1.6",
+    "graphql-versioned-transformer": "3.4.11",
+    "axios": "^0.19.0",
+    "aws-amplify": "1.1.4",
+    "aws-sdk": "^2.259.1"
   },
   "jest": {
     "transform": {
@@ -46,7 +60,7 @@
       "!src/__tests__/**"
     ],
     "testURL": "http://localhost/",
-    "testRegex": "(src/__tests__/.*.test.*)$",
+    "testRegex": "(src/(__tests__|__e2e__)/.*.test.*)$",
     "moduleFileExtensions": [
       "ts",
       "tsx",

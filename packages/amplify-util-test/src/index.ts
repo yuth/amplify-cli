@@ -56,19 +56,10 @@ export async function testGraphQLAPI(context: any) {
 async function startAppSyncServer(context, ddbClient, port = 8899, wsPort = 8810) {
   const { name, api } = await getAppSyncAPI(context);
   const { transformerOutput, stack } = await runTransformer(context);
-  const config: any = processResources(stack, transformerOutput);
-
-  await ensureDynamoDBTables(ddbClient, config.tables.map(t => t.Properties));
-
-  config.dataSources.filter(d => d.type === 'AMAZON_DYNAMODB').forEach((d) => {
-    d.config.endpoint = ddbClient.config.endpoint;
-    d.config.region =ddbClient.config.region;
-    d.config.accessKeyId = ddbClient.config.accessKeyId;
-    d.config.secretAccessKey = ddbClient.config.secretAccessKey;
-  });
-  const appsyncSimulator = new AmplifyAppSyncSimulator(config, {port, wsPort});
-  await appsyncSimulator.start();
-  // const server = await createServerWithConfig(ddbClient, config, port, wsPort);
+  let config: any = processResources(stack, transformerOutput);
+  await ensureDynamoDBTables(ddbClient, config);
+  config = configureDDBDataSource(config, ddbClient.config);
+  const appsyncSimulator  = await runAppSyncSimulator(config, port, wsPort);
   await generateFrontendExports(context, {
     endpoint: appsyncSimulator.url,
     name,
@@ -79,6 +70,28 @@ async function startAppSyncServer(context, ddbClient, port = 8899, wsPort = 8810
   });
   await generateCode(context, transformerOutput);
   return appsyncSimulator;
+}
+
+export function configureDDBDataSource(config, ddbConfig) {
+  config.dataSources
+    .filter(d => d.type === 'AMAZON_DYNAMODB')
+    .forEach(d => {
+      d.config.endpoint = ddbConfig.endpoint;
+      d.config.region = ddbConfig.region;
+      d.config.accessKeyId = ddbConfig.accessKeyId;
+      d.config.secretAccessKey = ddbConfig.secretAccessKey;
+    });
+  return config;
+}
+export async function runAppSyncSimulator(config, port?: number, wsPort?: number): AmplifyAppSyncSimulator {
+  const appsyncSimulator = new AmplifyAppSyncSimulator(config, { port, wsPort });
+  await appsyncSimulator.start();
+  return appsyncSimulator;
+}
+
+export async function reloadAppSyncSimulator(config, simulator: AmplifyAppSyncSimulator): AmplifyAppSyncSimulator {
+  await simulator.reload(config);
+  return simulator;
 }
 
 async function registerWatcher(context: any) {
@@ -111,24 +124,19 @@ async function launchDDBLocal(context: any) {
   return await dynamoEmulator.getClient(emulator);
 }
 
-async function ensureDynamoDBTables (
-  dynamodb,
-  tables: any[]
-)  {
-
+export async function ensureDynamoDBTables(dynamodb, config) {
+  const tables = config.tables.map(t => t.Properties)
   await Promise.all(
-    tables
-      .map(async resource => {
-        try {
-          console.info('creating table', resource.TableName);
-          await dynamodb.createTable(resource).promise();
-        } catch (err) {
-          if (err.code !== 'ResourceInUseException') throw err;
-        }
-      }),
+    tables.map(async resource => {
+      try {
+        console.info('creating table', resource.TableName);
+        await dynamodb.createTable(resource).promise();
+      } catch (err) {
+        if (err.code !== 'ResourceInUseException') throw err;
+      }
+    })
   );
-};
-
+}
 
 async function runTransformer(context: any) {
   const transformerOutput = await context.amplify.executeProviderUtils(
@@ -182,10 +190,17 @@ async function generateCode(context, transformerOutput) {
   console.log('Running codegen');
   const { projectPath } = context.amplify.getEnvInfo();
   const { name: apiName } = await getAppSyncAPI(context);
-  const schemaPath = path.join(projectPath, 'amplify', 'backend', 'api', apiName, 'build', 'schema.graphql');
+  const schemaPath = path.join(
+    projectPath,
+    'amplify',
+    'backend',
+    'api',
+    apiName,
+    'build',
+    'schema.graphql'
+  );
   fs.writeFileSync(schemaPath, transformerOutput.schema);
   await generate(context);
-
 }
 async function getAmplifyMeta(context: any) {
   const amplifyMetaFilePath = context.amplify.pathManager.getAmplifyMetaFilePath();
@@ -206,11 +221,11 @@ async function getAppSyncAPI(context) {
   return { name, api: appSyncApi };
 }
 
-function addCleanupTask(task: Function) {
+export function addCleanupTask(task: Function) {
   cleanupQueue.push(task);
 }
 
-function registerCleanup(context) {
+export function registerCleanup(context) {
   // do all the cleanup
   //  1. Update the Frontend exports to original version
   process.on('SIGINT', async () => {

@@ -36,6 +36,7 @@
     "json5": "^2.1.0",
     "jwt-decode": "^2.2.0",
     "libphonenumber-js": "^1.7.18",
+    "portfinder": "^1.0.20",
     "lodash": "^4.17.11",
     "uuid": "^3.3.2",
     "amplify-velocity-template": "^0.0.1"

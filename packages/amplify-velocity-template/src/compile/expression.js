@@ -1,3 +1,4 @@
+const _ = require('lodash');
 module.exports = function(Velocity, utils){
   /**
    * expression运算
@@ -52,7 +53,11 @@ module.exports = function(Velocity, utils){
           break;
 
           case '==':
-          ret = this.getExpression(exp[0]) == this.getExpression(exp[1]);
+            const val0 = this.getExpression(exp[0]);
+            const val1 = this.getExpression(exp[1]);
+            const val0Json = val0 && val0.toJSON ? val0.toJSON() : val0;
+            const val1Json = val1 && val1.toJSON ? val1.toJSON() : val1;
+            ret = _.isEqual(val0, val1);
           break;
 
           case '>=':

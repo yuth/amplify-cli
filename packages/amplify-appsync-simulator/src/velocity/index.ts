@@ -31,7 +31,8 @@ export class VelocityTemplate {
     try {
       const ast = parse(template.content.toString());
       this.compiler = new Compile(ast, {
-        valueMapper: map
+        valueMapper: map,
+        escape: false,
       });
       this.template = template;
     } catch (e) {
@@ -48,10 +49,17 @@ export class VelocityTemplate {
     info?: any,
   ): any {
     const context = this.buildRenderContext(ctxValues, requestContext, info);
-    const templateResult = this.compiler.render(context);
-    const stash = context.ctx.stash.toJSON()
-    return {result: JSON5.parse(templateResult), stash };
+    try {
+      const templateResult = this.compiler.render(context);
+      const stash = context.ctx.stash.toJSON()
+      return {result: JSON5.parse(templateResult), stash, errors: context.util.errors };
+    } catch(e) {
+      throw e;
+    }
+
+
   }
+
   private buildRenderContext(
     ctxValues: AppSyncVTLRenderContext,
     requestContext: any,

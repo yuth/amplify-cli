@@ -291,10 +291,10 @@ module.exports = function(Velocity, utils) {
           } catch (e) {
             var pos = ast.pos;
             var text = Velocity.Helper.getRefText(ast);
-            var err = ' on ' + text + ' at L/N ' + pos.first_line + ':' + pos.first_column;
+            var err = ' on ' + text + ' at Line number ' + pos.first_line + ':' + pos.first_column;
             e.name = '';
             e.message += err;
-            throw new Error(e);
+            throw e;
           }
         } else {
           this._throw(ast, property, 'TypeError');

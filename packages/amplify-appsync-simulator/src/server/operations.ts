@@ -7,9 +7,14 @@ import { createServer } from 'https';
 import { readFileSync } from 'fs-extra';
 import { address as getLocalIpAddress } from 'ip';
 import * as e2p from 'event-to-promise';
+import * as portfinder from 'portfinder';
 
 import { AppSyncSimulatorServerConfig, AmplifyAppSyncSimulator } from '..';
 import { SubscriptionServer } from './subscription';
+import { exposeGraphQLErrors } from '../utils/expose-graphql-errors';
+
+const BASE_PORT = 8900;
+const MAX_PORT = 9999;
 
 const STATIC_ROOT = join(__dirname, '..', '..','public');
 export class OperationServer {
@@ -18,6 +23,7 @@ export class OperationServer {
   private connection;
   private secureKey;
   private secureCert;
+  private port: number;
   url: string;
 
   constructor(
@@ -25,6 +31,7 @@ export class OperationServer {
     private simulatorContext: AmplifyAppSyncSimulator,
     private subscriptionServer: SubscriptionServer
   ) {
+    this.port = config.port;
     this.app = express();
     this.app.use(express.json());
     this.app.use(cors());
@@ -36,21 +43,28 @@ export class OperationServer {
     this.secureCert = readFileSync(join(__dirname, '..', '..', 'certs', 'appsync-simulator.crt'));
   }
 
-  start() {
+  async start() {
     if (this.server) {
       throw new Error('Server is already running');
     }
 
-    this.server = createServer({
-      cert: this.secureCert,
-      key: this.secureKey
-    }, this.app).listen(this.config.port);
+    if(!this.port) {
+      this.port = await portfinder.getPortPromise({
+        startPort: BASE_PORT,
+        stopPort: MAX_PORT
+      });
+    }
 
-    // this.server = this.app.listen(this.config.port);
+    // this.server = createServer({
+    //   cert: this.secureCert,
+    //   key: this.secureKey
+    // }, this.app).listen(this.config.port);
 
-    return e2p(this.server, 'listening').then(() => {
+    this.server = this.app.listen(this.port);
+
+    return await e2p(this.server, 'listening').then(() => {
       this.connection = this.server.address();
-      this.url = `https://${getLocalIpAddress()}:${this.connection.port}/graphql`
+      this.url = `http://${getLocalIpAddress()}:${this.connection.port}/graphql`
       return this.server;
     })
   }
@@ -97,9 +111,13 @@ export class OperationServer {
             operationName
           );
           if (Object.keys(context.appsyncErrors).length) {
-            results.errors = context.appsyncErrors;
+            results.errors = JSON.stringify(context.appsyncErrors);
           }
-          return response.send(results);
+          // Make extensions available at the root level
+          if(results.errors) {
+            results.errors = exposeGraphQLErrors(results.errors);
+          }
+          return response.send({ data: null,...results });
 
         case 'subscription':
           const result = await execute(

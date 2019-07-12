@@ -469,7 +469,7 @@ describe('Compile', function() {
 
       assert.throws(function() {
         compile.render(context)
-      }, /L\/N 3:0/)
+      }, /Line number 3:0/)
     })
 
     it('print error stack of user-defined macro', function() {
@@ -604,7 +604,6 @@ describe('Compile', function() {
 
         },
         toString: function() {
-          debugger;
           return this.eval(this.vm, this.__temp);
         },
         setParameter: function(key, value) {

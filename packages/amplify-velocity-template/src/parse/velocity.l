@@ -4,6 +4,7 @@
 %%
 
 [^#]*?/"$"                        {
+
                                     var _reg = /\\+$/;
                                     var _esc = yytext.match(_reg);
                                     var _num = _esc ? _esc[0].length: null;
@@ -54,20 +55,16 @@
 <c,i>"in"                         { return 'IN'; }
 <c,i>[%\+\-\*/]                   { return yytext; }
 <c,i>"<="                         { return yytext; }
-<c,i>"le"                         { return '<='; }
 <c,i>">="                         { return yytext; }
-<c,i>"ge"                         { return '>='; }
 <c,i>[><]                         { return yytext; }
-<c,i>"gt"                         { return '>'; }
-<c,i>"lt"                         { return '<'; }
 <c,i>"=="                         { return yytext; }
-<c,i>"eq"                         { return '=='; }
+<c,i>">"                          { return yytext; }
+<c,i>"<"                          { return yytext; }
 <c,i>"||"                         { return yytext; }
 <c,i>"or"                         { return '||'; }
 <c,i>"&&"                         { return yytext; }
 <c,i>"and"                        { return '&&'; }
 <c,i>"!="                         { return yytext; }
-<c,i>"ne"                         { return '!='; }
 <c,i>"not"                        { return '!'; }
 
 <mu,c,run,h,i>"$!"/[{a-zA-Z_]     { return 'DOLLAR'; }
@@ -130,8 +127,9 @@
 <run,c,i>"false"                     { return 'BOOL'; }
 <run,c,i>"true"                      { return 'BOOL'; }
 <h,run,c,i>[0-9]+                    { return 'INTEGER'; }
-<mu,run,c,i>[_a-zA-Z][a-zA-Z0-9_\-]* { return 'ID'; }
+<mu,run,c,i>[_a-zA-Z][a-zA-Z0-9_-]* {  /* return ID */ return 'ID'; }
 <h>[_a-zA-Z][a-zA-Z0-9_\-]*[ ]*/"("  { this.begin("run"); return 'ID'; }
+<h,run,mu>"\\#"                      { this.popState(); yytext = '#'; return 'CONTENT'; }
 <mu>"#"                              { this.begin('h'); return 'HASH'; }
 <h,run,mu>.                          { this.popState(); return 'CONTENT'; }
 <h,run,mu>\s+                        { this.popState(); return 'CONTENT'; }

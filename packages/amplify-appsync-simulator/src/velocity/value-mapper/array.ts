@@ -22,7 +22,8 @@ export class JavaArray extends Array<any> {
   }
 
   contains(value) {
-    return this.indexOf(value) !== -1;
+    value = value && value.toJSON ? value.toJSON() : value;
+    return this.toJSON().indexOf(value) !== -1;
   }
 
   containsAll(value = []) {

@@ -1,5 +1,4 @@
 import { dynamodbUtils } from '../dynamodb-utils';
-
 type DDBFilterExpression = {
   expressions: string[];
   expressionNames: { [key: string]: string };

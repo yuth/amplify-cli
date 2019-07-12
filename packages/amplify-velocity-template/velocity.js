@@ -84,238 +84,238 @@ performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* actio
 var $0 = $$.length - 1;
 switch (yystate) {
 case 1:
- return []; 
+ return [];
 break;
 case 2:
- return $$[$0-1]; 
+ return $$[$0-1];
 break;
 case 3: case 38: case 44: case 45: case 89: case 97: case 99:
- this.$ = [$$[$0]]; 
+ this.$ = [$$[$0]];
 break;
 case 4: case 39: case 90:
- this.$ = [].concat($$[$0-1], $$[$0]); 
+ this.$ = [].concat($$[$0-1], $$[$0]);
 break;
 case 5:
- $$[$0]['prue'] = true;  $$[$0].pos = this._$; this.$ = $$[$0]; 
+ $$[$0]['prue'] = true;  $$[$0].pos = this._$; this.$ = $$[$0];
 break;
 case 6:
- $$[$0].pos = this._$; this.$ = $$[$0]; 
+ $$[$0].pos = this._$; this.$ = $$[$0];
 break;
 case 7: case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17: case 18: case 20: case 21: case 22: case 50: case 51: case 55: case 56: case 57: case 71: case 74: case 75: case 85: case 86: case 87: case 88: case 94: case 102: case 109: case 110: case 115: case 121: case 123: case 136: case 137:
- this.$ = $$[$0]; 
+ this.$ = $$[$0];
 break;
 case 8:
- this.$ = {type: 'raw', value: $$[$0] }; 
+ this.$ = {type: 'raw', value: $$[$0] };
 break;
 case 9:
- this.$ = {type: 'comment', value: $$[$0] }; 
+ this.$ = {type: 'comment', value: $$[$0] };
 break;
 case 19:
- this.$ = { type: 'noescape' }; 
+ this.$ = { type: 'noescape' };
 break;
 case 23:
- this.$ = {type: 'set', equal: $$[$0-1] }; 
+ this.$ = {type: 'set', equal: $$[$0-1] };
 break;
 case 24:
- this.$ = {type: 'if', condition: $$[$0-1] }; 
+ this.$ = {type: 'if', condition: $$[$0-1] };
 break;
 case 25:
- this.$ = {type: 'elseif', condition: $$[$0-1] }; 
+ this.$ = {type: 'elseif', condition: $$[$0-1] };
 break;
 case 26:
- this.$ = {type: 'else' }; 
+ this.$ = {type: 'else' };
 break;
 case 27:
- this.$ = {type: 'end' }; 
+ this.$ = {type: 'end' };
 break;
 case 28: case 30:
- this.$ = {type: 'foreach', to: $$[$0-3], from: $$[$0-1] }; 
+ this.$ = {type: 'foreach', to: $$[$0-3], from: $$[$0-1] };
 break;
 case 29: case 31:
- this.$ = {type: 'foreach', to: $$[$0-4], from: $$[$0-1] }; 
+ this.$ = {type: 'foreach', to: $$[$0-4], from: $$[$0-1] };
 break;
 case 32:
- this.$ = {type: $$[$0] }; 
+ this.$ = {type: $$[$0] };
 break;
 case 33:
- this.$ = {type: 'return', value: 4 }; 
+ this.$ = {type: 'return', value: 4 };
 break;
 case 34:
- this.$ = {type: 'return', value: null }; 
+ this.$ = {type: 'return', value: null };
 break;
 case 35:
- this.$ = {type: 'define', id: $$[$0-1] }; 
+ this.$ = {type: 'define', id: $$[$0-1] };
 break;
 case 36:
- this.$ = {type: 'macro', id: $$[$0-2], args: $$[$0-1] }; 
+ this.$ = {type: 'macro', id: $$[$0-2], args: $$[$0-1] };
 break;
 case 37:
- this.$ = {type: 'macro', id: $$[$0-1] }; 
+ this.$ = {type: 'macro', id: $$[$0-1] };
 break;
 case 40:
- this.$ = { type:"macro_call", id: $$[$0-3].replace(/^\s+|\s+$/g, ''), args: $$[$0-1] }; 
+ this.$ = { type:"macro_call", id: $$[$0-3].replace(/^\s+|\s+$/g, ''), args: $$[$0-1] };
 break;
 case 41:
- this.$ = { type:"macro_call", id: $$[$0-2].replace(/^\s+|\s+$/g, '') }; 
+ this.$ = { type:"macro_call", id: $$[$0-2].replace(/^\s+|\s+$/g, '') };
 break;
 case 42:
- this.$ = {type: 'macro_body', id: $$[$0-3], args: $$[$0-1] }; 
+ this.$ = {type: 'macro_body', id: $$[$0-3], args: $$[$0-1] };
 break;
 case 43:
- this.$ = {type: 'macro_body', id: $$[$0-2] }; 
+ this.$ = {type: 'macro_body', id: $$[$0-2] };
 break;
 case 46: case 47: case 48: case 49: case 100: case 101:
- this.$ = [].concat($$[$0-2], $$[$0]); 
+ this.$ = [].concat($$[$0-2], $$[$0]);
 break;
 case 52: case 53: case 104: case 105:
- this.$ = $$[$0-1]; 
+ this.$ = $$[$0-1];
 break;
 case 54:
- this.$ = [$$[$0-2], $$[$0]]; 
+ this.$ = [$$[$0-2], $$[$0]];
 break;
 case 58:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '||' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '||' };
 break;
 case 59:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '&&' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '&&' };
 break;
 case 60: case 61: case 62: case 63: case 64:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: $$[$0-1] }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: $$[$0-1] };
 break;
 case 65:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '>' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '>' };
 break;
 case 66:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '<' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '<' };
 break;
 case 67:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '==' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '==' };
 break;
 case 68:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '>=' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '>=' };
 break;
 case 69:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '<=' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '<=' };
 break;
 case 70:
- this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '!=' }; 
+ this.$ = {type: 'math', expression: [$$[$0-2], $$[$0]], operator: '!=' };
 break;
 case 72:
- this.$ = {type: 'math', expression: [$$[$0]], operator: 'minus' }; 
+ this.$ = {type: 'math', expression: [$$[$0]], operator: 'minus' };
 break;
 case 73:
- this.$ = {type: 'math', expression: [$$[$0]], operator: 'not' }; 
+ this.$ = {type: 'math', expression: [$$[$0]], operator: 'not' };
 break;
 case 76:
- this.$ = {type: 'math', expression: [$$[$0-1]], operator: 'parenthesis' }; 
+ this.$ = {type: 'math', expression: [$$[$0-1]], operator: 'parenthesis' };
 break;
 case 77:
- this.$ = {type: "references", id: $$[$0-2], path: $$[$0-1], isWraped: true, leader: $$[$0-4] }; 
+ this.$ = {type: "references", id: $$[$0-2], path: $$[$0-1], isWraped: true, leader: $$[$0-4] };
 break;
 case 78:
- this.$ = {type: "references", id: $$[$0-1], path: $$[$0], leader: $$[$0-2] }; 
+ this.$ = {type: "references", id: $$[$0-1], path: $$[$0], leader: $$[$0-2] };
 break;
 case 79:
- this.$ = {type: "references", id: $$[$0-2].id, path: $$[$0-1], isWraped: true, leader: $$[$0-4], args: $$[$0-2].args }; 
+ this.$ = {type: "references", id: $$[$0-2].id, path: $$[$0-1], isWraped: true, leader: $$[$0-4], args: $$[$0-2].args };
 break;
 case 80:
- this.$ = {type: "references", id: $$[$0-1].id, path: $$[$0], leader: $$[$0-2], args: $$[$0-1].args }; 
+ this.$ = {type: "references", id: $$[$0-1].id, path: $$[$0], leader: $$[$0-2], args: $$[$0-1].args };
 break;
 case 81:
- this.$ = {type: "references", id: $$[$0], leader: $$[$0-1] }; 
+ this.$ = {type: "references", id: $$[$0], leader: $$[$0-1] };
 break;
 case 82:
- this.$ = {type: "references", id: $$[$0-1], isWraped: true, leader: $$[$0-3] }; 
+ this.$ = {type: "references", id: $$[$0-1], isWraped: true, leader: $$[$0-3] };
 break;
 case 83:
- this.$ = {type: "references", id: $$[$0].id, leader: $$[$0-1], args: $$[$0].args }; 
+ this.$ = {type: "references", id: $$[$0].id, leader: $$[$0-1], args: $$[$0].args };
 break;
 case 84:
- this.$ = {type: "references", id: $$[$0-1].id, isWraped: true, args: $$[$0-1].args, leader: $$[$0-3] }; 
+ this.$ = {type: "references", id: $$[$0-1].id, isWraped: true, args: $$[$0-1].args, leader: $$[$0-3] };
 break;
 case 91:
- this.$ = {type:"method", id: $$[$0].id, args: $$[$0].args }; 
+ this.$ = {type:"method", id: $$[$0].id, args: $$[$0].args };
 break;
 case 92:
- this.$ = {type: "index", id: $$[$0] }; 
+ this.$ = {type: "index", id: $$[$0] };
 break;
 case 93:
- this.$ = {type: "property", id: $$[$0] }; if ($$[$0].type === 'content') this.$ = $$[$0]; 
+ this.$ = {type: "property", id: $$[$0] }; if ($$[$0].type === 'content') this.$ = $$[$0];
 break;
 case 95:
- this.$ = {id: $$[$0-3], args: $$[$0-1] }; 
+ this.$ = {id: $$[$0-3], args: $$[$0-1] };
 break;
 case 96:
- this.$ = {id: $$[$0-2], args: false }; 
+ this.$ = {id: $$[$0-2], args: false };
 break;
 case 98:
- this.$ = [ { type: 'runt', value: $$[$0] } ]; 
+ this.$ = [ { type: 'runt', value: $$[$0] } ];
 break;
 case 103:
- this.$ = {type: 'content', value: $$[$0-1] + $$[$0] }; 
+ this.$ = {type: 'content', value: $$[$0-1] + $$[$0] };
 break;
 case 106:
- this.$ = {type: "content", value: $$[$0-2] + $$[$0-1].value + $$[$0] }; 
+ this.$ = {type: "content", value: $$[$0-2] + $$[$0-1].value + $$[$0] };
 break;
 case 107: case 108:
- this.$ = {type: "content", value: $$[$0-1] + $$[$0] }; 
+ this.$ = {type: "content", value: $$[$0-1] + $$[$0] };
 break;
 case 111:
- this.$ = {type: 'bool', value: $$[$0] }; 
+ this.$ = {type: 'bool', value: $$[$0] };
 break;
 case 112:
- this.$ = {type: "integer", value: $$[$0]}; 
+ this.$ = {type: "integer", value: $$[$0]};
 break;
 case 113:
- this.$ = {type: "decimal", value: + ($$[$0-2] + '.' + $$[$0]) }; 
+ this.$ = {type: "decimal", value: + ($$[$0-2] + '.' + $$[$0]) };
 break;
 case 114:
- this.$ = {type: "decimal", value: - ($$[$0-2] + '.' + $$[$0]) }; 
+ this.$ = {type: "decimal", value: - ($$[$0-2] + '.' + $$[$0]) };
 break;
 case 116:
- this.$ = - parseInt($$[$0], 10); 
+ this.$ = - parseInt($$[$0], 10);
 break;
 case 117:
- this.$ = {type: 'string', value: $$[$0] }; 
+ this.$ = {type: 'string', value: $$[$0] };
 break;
 case 118:
- this.$ = {type: 'string', value: $$[$0], isEval: true }; 
+ this.$ = {type: 'string', value: $$[$0], isEval: true };
 break;
 case 119: case 120:
  this.$ = $$[$0];
 break;
 case 122:
- this.$ = {type: 'array', value: $$[$0-1] }; 
+ this.$ = {type: 'array', value: $$[$0-1] };
 break;
 case 124:
- this.$ = {type: 'array', value: [] }; 
+ this.$ = {type: 'array', value: [] };
 break;
 case 125: case 126: case 127: case 128:
- this.$ = {type: 'array', isRange: true, value: [$$[$0-3], $$[$0-1]]}; 
+ this.$ = {type: 'array', isRange: true, value: [$$[$0-3], $$[$0-1]]};
 break;
 case 129:
- this.$ = {type: 'map', value: $$[$0-1] }; 
+ this.$ = {type: 'map', value: $$[$0-1] };
 break;
 case 130:
- this.$ = {type: 'map'}; 
+ this.$ = {type: 'map'};
 break;
 case 131: case 132:
- this.$ = {}; this.$[$$[$0-2].value] = $$[$0]; 
+ this.$ = {}; this.$[$$[$0-2].value] = $$[$0];
 break;
 case 133:
- this.$ = {}; this.$[$$[$0-1].value] = $$[$01]; 
+ this.$ = {}; this.$[$$[$0-1].value] = $$[$01];
 break;
 case 134: case 135:
- this.$ = $$[$0-4]; this.$[$$[$0-2].value] = $$[$0]; 
+ this.$ = $$[$0-4]; this.$[$$[$0-2].value] = $$[$0];
 break;
 case 138: case 141:
- this.$ = $$[$0-1] + $$[$0]; 
+ this.$ = $$[$0-1] + $$[$0];
 break;
 case 139:
- this.$ = $$[$0-2] + $$[$0-1] + $$[$0]; 
+ this.$ = $$[$0-2] + $$[$0-1] + $$[$0];
 break;
 case 140:
- this.$ = $$[$0-2] + $$[$0-1]; 
+ this.$ = $$[$0-2] + $$[$0-1];
 break;
 }
 },
@@ -808,7 +808,7 @@ case 0:
                                     }
                                     if (_num > 1) yy_.yytext = yy_.yytext.replace(/(\\\\)+$/, '\\');
                                     if(yy_.yytext) return 84;
-                                  
+
 break;
 case 1:
                                     var _reg = /\\+$/;
@@ -822,110 +822,110 @@ case 1:
                                     }
                                     if (_num > 1) yy_.yytext = yy_.yytext.replace(/(\\\\)+$/, '\\');
                                     if(yy_.yytext) return 84;
-                                  
+
 break;
-case 2: return 84; 
+case 2: return 84;
 break;
-case 3: this.popState(); return 11; 
+case 3: this.popState(); return 11;
 break;
 case 4: this.popState(); yy_.yytext = yy_.yytext.replace(/^#\[\[|\]\]#$/g, ''); return 10
 break;
-case 5: this.popState(); return 11; 
+case 5: this.popState(); return 11;
 break;
-case 6: return 48; 
+case 6: return 48;
 break;
-case 7: return 21; 
+case 7: return 21;
 break;
-case 8: return 28; 
+case 8: return 28;
 break;
-case 9: return 30; 
+case 9: return 30;
 break;
-case 10: return 32; 
+case 10: return 32;
 break;
-case 11: this.popState(); return 33; 
+case 11: this.popState(); return 33;
 break;
-case 12: this.popState(); return 33; 
+case 12: this.popState(); return 33;
 break;
-case 13: this.popState(); return 34; 
+case 13: this.popState(); return 34;
 break;
-case 14: this.popState(); return 34; 
+case 14: this.popState(); return 34;
 break;
-case 15: this.popState(); return 42; 
+case 15: this.popState(); return 42;
 break;
-case 16: this.popState(); return 43; 
+case 16: this.popState(); return 43;
 break;
-case 17: return 35; 
+case 17: return 35;
 break;
-case 18: return 22; 
+case 18: return 22;
 break;
-case 19: return 44; 
+case 19: return 44;
 break;
-case 20: return 45; 
+case 20: return 45;
 break;
-case 21: return 38; 
+case 21: return 38;
 break;
-case 22: return yy_.yytext; 
+case 22: return yy_.yytext;
 break;
-case 23: return yy_.yytext; 
+case 23: return yy_.yytext;
 break;
-case 24: return 67; 
+case 24: return 67;
 break;
-case 25: return yy_.yytext; 
+case 25: return yy_.yytext;
 break;
-case 26: return 66; 
+case 26: return 66;
 break;
-case 27: return yy_.yytext; 
+case 27: return yy_.yytext;
 break;
-case 28: return 63; 
+case 28: return 63;
 break;
-case 29: return 64; 
+case 29: return 64;
 break;
-case 30: return yy_.yytext; 
+case 30: return yy_.yytext;
 break;
-case 31: return 65; 
+case 31: return 65;
 break;
-case 32: return yy_.yytext; 
+case 32: return yy_.yytext;
 break;
-case 33: return 56; 
+case 33: return 56;
 break;
-case 34: return yy_.yytext; 
+case 34: return yy_.yytext;
 break;
-case 35: return 57; 
+case 35: return 57;
 break;
-case 36: return yy_.yytext; 
+case 36: return yy_.yytext;
 break;
-case 37: return 68; 
+case 37: return 68;
 break;
-case 38: return 70; 
+case 38: return 70;
 break;
-case 39: return 36; 
+case 39: return 36;
 break;
-case 40: return 36; 
+case 40: return 36;
 break;
-case 41: return yy_.yytext; 
+case 41: return yy_.yytext;
 break;
-case 42: return 53; 
+case 42: return 53;
 break;
 case 43:
                                     var len = this.stateStackSize();
                                     if (len >= 2 && this.topState() === 'c' && this.topState(1) === 'run') {
                                       return 51;
                                     }
-                                  
+
 break;
-case 44: /*ignore whitespace*/ 
+case 44: /*ignore whitespace*/
 break;
-case 45: return 39; 
+case 45: return 39;
 break;
-case 46: return 40; 
+case 46: return 40;
 break;
-case 47: return 98; 
+case 47: return 98;
 break;
-case 48: yy.begin = true; return 76; 
+case 48: yy.begin = true; return 76;
 break;
-case 49: this.popState(); if (yy.begin === true) { yy.begin = false; return 77;} else { return 84; } 
+case 49: this.popState(); if (yy.begin === true) { yy.begin = false; return 77;} else { return 84; }
 break;
-case 50: this.begin("c"); return 23; 
+case 50: this.begin("c"); return 23;
 break;
 case 51:
                                     if (this.popState() === "c") {
@@ -950,9 +950,9 @@ case 51:
                                     } else {
                                       return 84;
                                     }
-                                  
+
 break;
-case 52: this.begin("i"); return 85; 
+case 52: this.begin("i"); return 85;
 break;
 case 53:
                                     if (this.popState() === "i") {
@@ -960,43 +960,43 @@ case 53:
                                     } else {
                                       return 84;
                                     }
-                                  
+
 break;
-case 54: return 96; 
+case 54: return 96;
 break;
-case 55: return 82; 
+case 55: return 82;
 break;
-case 56: return 92; 
+case 56: return 92;
 break;
-case 57: return 52; 
+case 57: return 52;
 break;
-case 58: yy_.yytext = yy_.yytext.substr(1, yy_.yyleng-2).replace(/\\"/g,'"'); return 94; 
+case 58: yy_.yytext = yy_.yytext.substr(1, yy_.yyleng-2).replace(/\\"/g,'"'); return 94;
 break;
-case 59: yy_.yytext = yy_.yytext.substr(1, yy_.yyleng-2).replace(/\\'/g,"'"); return 93; 
+case 59: yy_.yytext = yy_.yytext.substr(1, yy_.yyleng-2).replace(/\\'/g,"'"); return 93;
 break;
-case 60: return 89; 
+case 60: return 89;
 break;
-case 61: return 89; 
+case 61: return 89;
 break;
-case 62: return 89; 
+case 62: return 89;
 break;
-case 63: return 91; 
+case 63: return 91;
 break;
-case 64: return 37; 
+case 64: return 37;
 break;
-case 65: this.begin("run"); return 37; 
+case 65: this.begin("run"); return 37;
 break;
-case 66: this.begin('h'); return 21; 
+case 66: this.begin('h'); return 21;
 break;
-case 67: this.popState(); return 84; 
+case 67: this.popState(); return 84;
 break;
-case 68: this.popState(); return 84; 
+case 68: this.popState(); return 84;
 break;
-case 69: this.popState(); return 84; 
+case 69: this.popState(); return 84;
 break;
-case 70: this.popState(); return 4; 
+case 70: this.popState(); return 4;
 break;
-case 71: return 4; 
+case 71: return 4;
 break;
 }
 },

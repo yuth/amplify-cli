@@ -93,8 +93,8 @@ export enum AppSyncSimulatorEventType {
 }
 
 export type AppSyncSimulatorServerConfig = {
-  port: number;
-  wsPort: number;
+  port?: number;
+  wsPort?: number;
 };
 export class AmplifyAppSyncSimulator {
   private resolvers;
@@ -112,8 +112,8 @@ export class AmplifyAppSyncSimulator {
   constructor(
     config: AppSyncSimulatorConfig,
     serverConfig: AppSyncSimulatorServerConfig = {
-      port: 8899,
-      wsPort: 8900
+      port: 0,
+      wsPort: 0
     }
   ) {
     this._serverConfig = serverConfig;
@@ -185,7 +185,6 @@ export class AmplifyAppSyncSimulator {
         config.resolvers,
         this
       );
-      console.log('foo')
     } catch (e) {
       this._schema = lastSchema;
       this.resolvers = lastResolverMap;
