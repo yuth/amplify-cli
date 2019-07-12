@@ -101,14 +101,14 @@ break;
 case 6:
  $$[$0].pos = this._$; this.$ = $$[$0]; 
 break;
-case 7: case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17: case 18: case 20: case 21: case 22: case 50: case 51: case 55: case 56: case 57: case 71: case 74: case 75: case 85: case 86: case 87: case 88: case 94: case 102: case 109: case 110: case 115: case 121: case 123: case 137:
+case 7: case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17: case 18: case 20: case 21: case 22: case 50: case 51: case 55: case 56: case 57: case 71: case 74: case 75: case 85: case 86: case 87: case 88: case 94: case 102: case 109: case 110: case 115: case 121: case 123: case 136: case 137:
  this.$ = $$[$0]; 
 break;
 case 8:
  this.$ = {type: 'raw', value: $$[$0] }; 
 break;
 case 9:
- debugger; this.$ = {type: 'comment', value: $$[$0] }; 
+ this.$ = {type: 'comment', value: $$[$0] }; 
 break;
 case 19:
  this.$ = { type: 'noescape' }; 
@@ -307,9 +307,6 @@ case 133:
 break;
 case 134: case 135:
  this.$ = $$[$0-4]; this.$[$$[$0-2].value] = $$[$0]; 
-break;
-case 136:
- debugger; this.$ = $$[$0]; 
 break;
 case 138: case 141:
  this.$ = $$[$0-1] + $$[$0]; 

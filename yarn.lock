@@ -1574,24 +1574,6 @@ amdefine@>=0.0.4:
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
   integrity sha1-SlKCrBZHKek2Gbz9OtFR+BfOkfU=
 
-amplify-codegen@1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/amplify-codegen/-/amplify-codegen-1.5.0.tgz#5280ebebe4af11f41396241c463547a1cc58a7ba"
-  integrity sha512-WFbq/LOF9g1h/CZzrMV+jE6Ur33av+pYUcgtxxATigDdBtQCeWwVzPsbwhuy16tZCUnJDGqV/ISFJoBp8fWtuA==
-  dependencies:
-    amplify-graphql-docs-generator "^1.4.1"
-    amplify-graphql-types-generator "^1.0.10"
-    aws-appsync-codegen "^0.17.4"
-    chalk "^2.4.1"
-    eslint "^4.9.0"
-    fs-jetpack "^2.1.0"
-    glob-all "^3.1.0"
-    graphql "^14.0.2"
-    graphql-config "^2.1.0"
-    inquirer "^6.0.0"
-    ora "^3.0.0"
-    underscore "^1.9.1"
-
 amqp@~0.2.4:
   version "0.2.7"
   resolved "https://registry.yarnpkg.com/amqp/-/amqp-0.2.7.tgz#738cfc45fd9c99260b45d5fafc32ed000841e1b1"
@@ -7784,25 +7766,6 @@ inquirer@^3.0.6:
     rx-lite-aggregates "^4.0.8"
     string-width "^2.1.0"
     strip-ansi "^4.0.0"
-    through "^2.3.6"
-
-inquirer@^6.0.0:
-  version "6.4.1"
-  resolved "https://registry.yarnpkg.com/inquirer/-/inquirer-6.4.1.tgz#7bd9e5ab0567cd23b41b0180b68e0cfa82fc3c0b"
-  integrity sha512-/Jw+qPZx4EDYsaT6uz7F4GJRNFMRdKNeUZw3ZnKV8lyuUgz/YWRCSUAJMZSVhSq4Ec0R2oYnyi6b3d4JXcL5Nw==
-  dependencies:
-    ansi-escapes "^3.2.0"
-    chalk "^2.4.2"
-    cli-cursor "^2.1.0"
-    cli-width "^2.0.0"
-    external-editor "^3.0.3"
-    figures "^2.0.0"
-    lodash "^4.17.11"
-    mute-stream "0.0.7"
-    run-async "^2.2.0"
-    rxjs "^6.4.0"
-    string-width "^2.1.0"
-    strip-ansi "^5.1.0"
     through "^2.3.6"
 
 int64-buffer@^0.1.9:
