@@ -1,4 +1,4 @@
-import { runAppSyncSimulator, ensureDynamoDBTables, configureDDBDataSource } from '../../index';
+import { runAppSyncSimulator, ensureDynamoDBTables, configureDDBDataSource } from '../../api';
 import { processResources } from '../../CFNParser/resource-processor';
 import * as dynamoEmulator from '@conduitvc/dynamodb-emulator';
 import * as fs from 'fs-extra';

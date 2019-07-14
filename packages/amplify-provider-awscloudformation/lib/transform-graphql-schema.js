@@ -230,6 +230,7 @@ async function transformGraphQLSchema(context, options) {
     transformers: transformerList,
     rootStackFileName: 'cloudformation-template.json',
     currentCloudBackendDirectory: previouslyDeployedBackendDir,
+    disableResolverOverrides: options.disableResolverOverrides,
   };
   await TransformPackage.ensureMissingStackMappings(buildConfig);
   const transformerOutput = await TransformPackage.buildAPIProject(buildConfig);

@@ -16,7 +16,8 @@ export interface ProjectOptions {
     projectDirectory?: string
     transformers: Transformer[]
     rootStackFileName?: string
-    dryRun?: boolean
+    dryRun?: boolean,
+    disableResolverOverrides?: boolean,
 }
 export async function buildProject(opts: ProjectOptions) {
     const builtProject = await _buildProject(opts);
@@ -27,7 +28,7 @@ export async function buildProject(opts: ProjectOptions) {
 }
 
 async function _buildProject(opts: ProjectOptions) {
-    const userProjectConfig = await loadProject(opts.projectDirectory)
+    const userProjectConfig = await loadProject(opts.projectDirectory, opts)
     const stackMapping = getStackMappingFromProjectConfig(userProjectConfig.config);
     const transform = new GraphQLTransform({
         transformers: opts.transformers,

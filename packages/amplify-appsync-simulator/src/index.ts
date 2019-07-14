@@ -108,7 +108,7 @@ export class AmplifyAppSyncSimulator {
   private _schema: GraphQLSchema;
   private _server: AppSyncSimulatorServer;
   private _eventEmitter: EventEmitter;
-
+  private _config: AppSyncSimulatorConfig;
   constructor(
     config: AppSyncSimulatorConfig,
     serverConfig: AppSyncSimulatorServerConfig = {
@@ -185,6 +185,7 @@ export class AmplifyAppSyncSimulator {
         config.resolvers,
         this
       );
+      this._config = config;
     } catch (e) {
       this._schema = lastSchema;
       this.resolvers = lastResolverMap;
@@ -254,6 +255,9 @@ export class AmplifyAppSyncSimulator {
 
   get url() {
     return this._server.url.graphql;
+  }
+  get config() {
+    return this._config;
   }
 
   private getEventName(
