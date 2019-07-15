@@ -3,12 +3,10 @@ const generateStatements = require('../../src/commands/statements');
 const generateTypes = require('../../src/commands/types');
 const generateStatementsAndTypes = require('../../src/commands/generateStatementsAndType');
 const { AmplifyCodeGenNoAppSyncAPIAvailableError } = require('../../src/errors');
-const constants = require('../../src/constants');
 const path = require('path');
 
 const {
   downloadIntrospectionSchemaWithProgress,
-  isAppSyncApiPendingPush,
   getAppSyncAPIDetails,
 } = require('../../src/utils');
 

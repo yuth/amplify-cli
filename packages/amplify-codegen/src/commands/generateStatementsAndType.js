@@ -6,7 +6,7 @@ const generateTypes = require('./types');
 const generateStatements = require('./statements');
 const loadConfig = require('../codegen-config');
 const constants = require('../constants');
-const { downloadIntrospectionSchemaWithProgress, isAppSyncApiPendingPush, getAppSyncAPIDetails } = require('../utils');
+const { downloadIntrospectionSchemaWithProgress, getAppSyncAPIDetails } = require('../utils');
 
 async function generateStatementsAndTypes(context, forceDownloadSchema, maxDepth) {
   const config = loadConfig(context);

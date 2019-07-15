@@ -32,7 +32,6 @@ async function add(context, apiId = null) {
     }
     [apiDetails] = availableAppSyncApis;
     apiDetails.isLocal = true;
-
   } else {
     let shouldRetry = true;
     while (shouldRetry) {
