@@ -15,7 +15,7 @@ import ModelAuthTransformer from 'graphql-versioned-transformer';
 import { GraphQLClient } from './utils/graphql-client';
 import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
 
-jest.setTimeout(2000000);
+jest.setTimeout(2000);
 
 let GRAPHQL_CLIENT = undefined;
 let ddbEmulator = null;
@@ -64,7 +64,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
     try {
-        await server.stop();
+        if (server) {
+            await server.stop();
+        }
         await terminateDDB(ddbEmulator, dbPath);
     } catch (e) {
         console.error(e);

@@ -67,7 +67,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-    await server.stop();
+    if (server) {
+        await server.stop();
+    }
     await terminateDDB(ddbEmulator, dbPath);
 });
 

@@ -1,4 +1,5 @@
-import { runAppSyncSimulator, ensureDynamoDBTables, configureDDBDataSource } from '../../api';
+import { AmplifyAppSyncSimulator } from 'amplify-appsync-simulator';
+import { ensureDynamoDBTables, configureDDBDataSource } from '../../utils/ddb-utils';
 import { processResources } from '../../CFNParser/resource-processor';
 import * as dynamoEmulator from '@conduitvc/dynamodb-emulator';
 import * as fs from 'fs-extra';
@@ -27,7 +28,6 @@ export async function deploy(transformerOutput: any, client) {
     );
 
     let config = processResources(stacks, transformerOutput);
-    console.log(JSON.stringify(config, null, 4))
     await ensureDynamoDBTables(client, config);
     config = configureDDBDataSource(config, client.config);
     const simulator = await runAppSyncSimulator(config);
@@ -37,4 +37,14 @@ export async function deploy(transformerOutput: any, client) {
 export async function terminateDDB(emulator, dbPath) {
     await emulator.terminate();
     fs.removeSync(dbPath);
+}
+
+export async function runAppSyncSimulator(
+    config,
+    port?: number,
+    wsPort?: number
+) {
+    const appsyncSimulator = new AmplifyAppSyncSimulator(config, { port, wsPort });
+    await appsyncSimulator.start();
+    return appsyncSimulator;
 }

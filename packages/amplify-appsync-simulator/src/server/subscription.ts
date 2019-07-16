@@ -14,6 +14,7 @@ import { address as getLocalIpAddress } from 'ip';
 
 import { AmplifyAppSyncSimulator, AppSyncSimulatorConfig, AppSyncSimulatorServerConfig } from '..';
 import { Address } from 'aws-sdk/clients/ses';
+import { toJSON } from '../velocity/value-mapper/to-json';
 
 const MINUTE = 1000 * 60;
 const CONNECTION_TIME_OUT = 2 * MINUTE; // 2 mins
@@ -78,14 +79,18 @@ export class SubscriptionServer {
     const server = this.webSocketServer.listen(this.port);
     return await e2p(server, 'listening').then(() => {
       const address = server.address() as AddressInfo;
-      this.url = `wss://${getLocalIpAddress()}:${address.port}/`;
+      this.url = `ws://${getLocalIpAddress()}:${address.port}/`;
       return server
     });
   }
 
   stop() {
-    this.webSocketServer.close();
-    this.url = null;
+    if(this.webSocketServer) {
+      this.webSocketServer.close();
+      this.url = null;
+      this.webSocketServer = null;
+    }
+
   }
 
   async afterClientConnect(client) {

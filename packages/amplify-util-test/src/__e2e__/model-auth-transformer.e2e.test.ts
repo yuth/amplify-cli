@@ -22,7 +22,7 @@ const STACK_NAME = `ModelAuthTransformerTest-${BUILD_TIMESTAMP}`;
 
 // // to deal with bug in cognito-identity-js
 
-// (global as any).fetch = require('node-fetch'));
+(global as any).fetch = require('node-fetch');
 
 let GRAPHQL_ENDPOINT = undefined;
 
@@ -245,7 +245,9 @@ beforeAll(async () => {
 afterAll(async () => {
     try {
         await deleteUserPool(cognitoClient, USER_POOL_ID);
-        await server.stop();
+        if (server) {
+            await server.stop();
+        }
         await terminateDDB(ddbEmulator, dbPath);
     } catch (e) {
         console.error(e);

@@ -108,7 +108,6 @@ beforeAll(async () => {
     );
     const userPoolClientId = userPoolClientResponse.UserPoolClient.ClientId;
     try {
-
         const out = transformer.transform(validSchema);
 
         let ddbClient;
@@ -191,9 +190,11 @@ beforeAll(async () => {
 afterAll(async () => {
     try {
         await deleteUserPool(cognitoClient, USER_POOL_ID);
-        await server.stop();
-        await terminateDDB(ddbEmulator, dbPath);
+        if (server) {
+            await server.stop();
+        }
 
+        await terminateDDB(ddbEmulator, dbPath);
     } catch (e) {
         console.error(e);
         throw e;
