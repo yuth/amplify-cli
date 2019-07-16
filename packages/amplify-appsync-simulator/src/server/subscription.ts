@@ -194,7 +194,7 @@ export class SubscriptionServer {
     const clientId = crypto.createHash('MD5').update(remoteAddress).digest().toString('hex')
 
     const subscriptionName = documentAST.definitions[0].selectionSet.selections[0].name.value;
-    const paramHash = Object.keys(variables).length ? crypto.createHash('MD5').update(JSON.stringify(variables)).digest().toString('hex') : null;
+    const paramHash = (variables && Object.keys(variables).length) ? crypto.createHash('MD5').update(JSON.stringify(variables)).digest().toString('hex') : null;
     const topicId = [clientId, subscriptionName, paramHash].join('/');
 
     log.info('register', { clientId, topicId });

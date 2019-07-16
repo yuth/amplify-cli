@@ -34,6 +34,7 @@ export class APITest {
             const appSyncConfig = await this.runTransformer(context);
             this.appSyncSimulator = new AmplifyAppSyncSimulator(appSyncConfig);
             await this.appSyncSimulator.start();
+            console.log('AppSync Emulator is running in', this.appSyncSimulator.url);
             this.watcher = await this.registerWatcher(context);
             this.watcher
                 .on('add', path => {
@@ -138,7 +139,7 @@ export class APITest {
 
     private async generateTestFrontendExports(context) {
         await this.generateFrontendExports(context, {
-            endpoint: this.appSyncSimulator.url,
+            endpoint: `${this.appSyncSimulator.url}/graphql`,
             name: this.apiName,
             GraphQLAPIKeyOutput: this.transformerResult.appSync.apiKey,
             region: 'local',

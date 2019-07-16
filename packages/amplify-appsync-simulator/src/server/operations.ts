@@ -64,7 +64,7 @@ export class OperationServer {
 
     return await e2p(this.server, 'listening').then(() => {
       this.connection = this.server.address();
-      this.url = `http://${getLocalIpAddress()}:${this.connection.port}/graphql`
+      this.url = `http://${getLocalIpAddress()}:${this.connection.port}`
       return this.server;
     })
   }
@@ -137,6 +137,7 @@ export class OperationServer {
           throw new Error(`unknown operation type: ${queryType}`);
       }
     } catch (e) {
+      console.log('Error while executing', e);
       return response.send({
         errorMessage: e.message
       });
