@@ -58,6 +58,10 @@ function getAWSExportsObject(resources) {
   const { serviceResourceMapping } = resources;
   const configOutput = {};
 
+  if (resources.testMode) {
+    configOutput.dangerously_connect_to_http_endpoint_for_testing = true;
+  }
+
   const projectRegion = resources.metadata.Region;
   configOutput.aws_project_region = projectRegion;
 
