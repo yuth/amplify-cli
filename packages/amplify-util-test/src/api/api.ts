@@ -9,6 +9,7 @@ import { getAmplifyMeta, addCleanupTask } from '../utils';
 import { runTransformer } from './run-graphql-transformer';
 import { processResources } from '../CFNParser/resource-processor';
 import { ResolverOverrides } from './resolver-overrides';
+import { ConfigOverrideManager } from '../utils/config-override';
 import { configureDDBDataSource, ensureDynamoDBTables } from '../utils/ddb-utils';
 
 export class APITest {
@@ -19,13 +20,14 @@ export class APITest {
     private resolverOverrideManager: ResolverOverrides;
     private watcher: chokidar.FSWatcher;
     private ddbEmulator;
+    private configOverrideManager: ConfigOverrideManager;
 
     async start(context) {
         try {
             addCleanupTask(context, async context => {
                 await this.stop(context);
             });
-
+            this.configOverrideManager = ConfigOverrideManager.getInstance(context);
             this.apiName = await this.getAppSyncAPI(context);
             this.ddbClient = await this.startDynamoDBLocalServer(context);
             const resolverDirectory = await this.getResolverTemplateDirectory(context);
@@ -65,7 +67,6 @@ export class APITest {
         }
         await this.appSyncSimulator.stop();
         this.resolverOverrideManager.stop();
-        await this.generateFrontendExports(context);
     }
 
     private async runTransformer(context) {
@@ -203,7 +204,7 @@ export class APITest {
     }
     private async generateFrontendExports(
         context: any,
-        localAppSyncDetails?: {
+        localAppSyncDetails: {
             name: string;
             endpoint: string;
             securityType: string;
@@ -213,10 +214,10 @@ export class APITest {
         }
     ) {
         const currentMeta = await getAmplifyMeta(context);
+        const override = currentMeta.api || {};
         if (localAppSyncDetails) {
-            currentMeta.api = currentMeta.api || {};
-            const appSyncApi = currentMeta.api[localAppSyncDetails.name] || { output: {} };
-            currentMeta.api[localAppSyncDetails.name] = {
+            const appSyncApi = override[localAppSyncDetails.name] || { output: {} };
+            override[localAppSyncDetails.name] = {
                 service: 'AppSync',
                 ...appSyncApi,
                 output: {
@@ -230,6 +231,7 @@ export class APITest {
             };
         }
 
-        await context.amplify.onCategoryOutputsChange(context, null, currentMeta);
+        this.configOverrideManager.addOverride('api', override);
+        await this.configOverrideManager.generateOverriddenFrontendExports(context);
     }
 }
