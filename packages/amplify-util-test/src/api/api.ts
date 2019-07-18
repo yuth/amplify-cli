@@ -22,7 +22,7 @@ export class APITest {
     private ddbEmulator;
     private configOverrideManager: ConfigOverrideManager;
 
-    async start(context) {
+    async start(context, port: number = 20002, wsPort: number = 20003) {
         try {
             addCleanupTask(context, async context => {
                 await this.stop(context);
@@ -34,7 +34,10 @@ export class APITest {
             this.resolverOverrideManager = new ResolverOverrides(resolverDirectory);
             await this.resolverOverrideManager.start();
             const appSyncConfig = await this.runTransformer(context);
-            this.appSyncSimulator = new AmplifyAppSyncSimulator(appSyncConfig);
+            this.appSyncSimulator = new AmplifyAppSyncSimulator(appSyncConfig, {
+                port,
+                wsPort
+            });
             await this.appSyncSimulator.start();
             console.log('AppSync Emulator is running in', this.appSyncSimulator.url);
             this.watcher = await this.registerWatcher(context);
@@ -155,7 +158,7 @@ export class APITest {
 
     private configureDDBDataSource(config) {
         const ddbConfig = this.ddbClient.config;
-        return configureDDBDataSource(config, ddbConfig)
+        return configureDDBDataSource(config, ddbConfig);
     }
     private async getAppSyncAPI(context) {
         const currentMeta = await getAmplifyMeta(context);
@@ -163,13 +166,13 @@ export class APITest {
         let appSyncApi = null;
         let name = null;
         Object.entries(apis).some((entry: any) => {
-            if (entry[1].service === 'AppSync') {
+            if (entry[1].service === 'AppSync' && entry[1].providerPlugin === 'awscloudformation') {
                 appSyncApi = entry[1];
                 name = entry[0];
                 return true;
             }
         });
-        if(!name) {
+        if (!name) {
             throw new Error('No AppSync API is added to the project');
         }
         return name;

@@ -268,20 +268,3 @@ export class AmplifyAppSyncSimulator {
     return `${prefix}::${fieldName}->${typeName}`;
   }
 }
-
-// (async () => {
-//   const simulator = new AmplifyAppSyncSimulator(await getTodoConfig());
-//   simulator.start();
-// })();
-
-// const mappedValue = map({
-//   foo: [1,2,3, 'four'],
-//   str: 'some string',
-//   somObj: {
-//     'key': 'value'
-//   }
-// })
-
-// const template1 = new VelocityTemplate(mockConfig.mappingTemplates[0]);
-// const result = template1.render({}, {id: 'abcd1234'}, { jwt: {},request: {header: {'x-api-key': '1234'}}} )
-// console.log(result);
