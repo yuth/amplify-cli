@@ -14,7 +14,8 @@ export class StorageTest {
     async start(context) {
          // loading s3 resource config form parameters.json
         const existingStorage = context.amplify.getProjectDetails().amplifyMeta.storage;
-        if (Object.keys(existingStorage).length === 0) {
+        console.log("existingStorage",existingStorage);
+        if (existingStorage === undefined || Object.keys(existingStorage).length === 0) {
             return context.print.warning('Storage has not yet been added to this project.');
         }
         let backendPath = context.amplify.pathManager.getBackendDirPath();
@@ -23,8 +24,8 @@ export class StorageTest {
         const metaData = context.amplify.readJsonFile(parametersFilePath)
         const route = path.join('/' ,metaData.bucketName , '/');
         let localDirS3 = this.createLocalStorage(backendPath,resourceName);
-        const port = 8899;
-        const wsPort = 8810; 
+        const port = 20005; // port for S3
+        const wsPort = 20006; 
 
         try {
             addCleanupTask(context, async context => {
@@ -93,7 +94,7 @@ export class StorageTest {
         return  name ;
       }
 
-      // create local storage for S3 on disk
+      // create local storage for S3 on disk which is fixes as the test folder
     private createLocalStorage(backendPath:string,resourceName:string){
     const directoryPath = path.join(backendPath,'../','test'); // get bucket througb parameters remove afterwards
     if (!fs.existsSync(directoryPath)){
