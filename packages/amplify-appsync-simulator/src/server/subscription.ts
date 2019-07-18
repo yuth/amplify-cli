@@ -133,7 +133,8 @@ export class SubscriptionServer {
         const { asyncIterator, topicId, variables } = reg;
         log.info('clientConnect', { clientId, topicId, variables });
 
-        for await (let payload of asyncIterator) {
+        while (true) {
+            let {value: payload}  = await asyncIterator.next();
             if (!this.shouldPublishSubscription(payload, variables)) {
                 console.info('skipping publish', { clientId, topicId });
                 continue;

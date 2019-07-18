@@ -51,7 +51,7 @@ export class APITest {
             await this.generateTestFrontendExports(context);
             await this.generateCode(context);
         } catch (e) {
-            console.error('Failed to start API test server', e);
+            console.error('Failed to start API test server \n', e);
         }
     }
 
@@ -169,6 +169,9 @@ export class APITest {
                 return true;
             }
         });
+        if(!name) {
+            throw new Error('No AppSync API is added to the project');
+        }
         return name;
     }
 
