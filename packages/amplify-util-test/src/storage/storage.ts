@@ -21,8 +21,9 @@ export class StorageTest {
         let backendPath = context.amplify.pathManager.getBackendDirPath();
         const resourceName = Object.keys(existingStorage)[0]; 
         const parametersFilePath = path.join(backendPath,'storage',resourceName,'parameters.json');
-        const metaData = context.amplify.readJsonFile(parametersFilePath)
-        const route = path.join('/' ,metaData.bucketName , '/');
+        const metaData = context.amplify.readJsonFile(parametersFilePath);
+        console.log("metadata",metaData);
+        const route = path.join('/' ,metaData.bucketName +'-test'  , '/');
         let localDirS3 = this.createLocalStorage(backendPath,resourceName);
         const port = 20005; // port for S3
         const wsPort = 20006; 
@@ -64,7 +65,6 @@ export class StorageTest {
     ) {
         const currentMeta = await getAmplifyMeta(context);
         const override = currentMeta.storage || {};
-        console.log("aws-exports endpoint",localStorageDetails.endpoint); 
         if (localStorageDetails) {
             const storageMeta = override[localStorageDetails.name] || { output: {} };
             override[localStorageDetails.name] = {

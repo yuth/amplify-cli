@@ -2,7 +2,7 @@ import * as express from 'express';
 import * as cors from 'cors';
 import { join } from 'path';
 import { createServer } from 'http';
-import { writeFile ,readdir ,readFile ,unlink ,readdirSync, statSync, ensureFileSync} from 'fs-extra';
+import { writeFile ,readdir ,readFile ,unlink ,readdirSync, statSync, ensureFileSync ,writeFileSync} from 'fs-extra';
 import * as xml from 'xml';
 import * as bodyParser from 'body-parser';
 import * as convert from 'xml-js';
@@ -10,6 +10,7 @@ import { address as getLocalIpAddress } from 'ip';
 import * as e2p from 'event-to-promise';
 import * as serveStatic from "serve-static";
 import * as glob from 'glob';
+import * as o2x from 'object-to-xml';
  
 import { StorageSimulatorServerConfig} from '../index';
 
@@ -34,9 +35,9 @@ export class StorageServer {
     this.app.use(express.json());
     this.app.use(cors());
     //this.app.use('/', express.static(STATIC_ROOT))
+    this.app.use(bodyParser.raw({limit: '100mb', type : '*/octet-stream'}));
     this.app.use(bodyParser.json({limit: '50mb'}));
-    this.app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
-    this.app.use(bodyParser.raw({limit: '100mb'}));
+    this.app.use(bodyParser.urlencoded({limit: '50mb', extended: false}));
     this.app.use(serveStatic(this.localDirectoryPath),this.handleRequestAll.bind(this));
 
     this.server = null;
@@ -77,25 +78,32 @@ export class StorageServer {
   }
 
   private async handleRequestAll(request,response){
-    const path = request.url.split(this.route);
+    // parsing the path and the request parameters
+    request.url = (decodeURIComponent(request.url));
+    var str2 = this.route.slice(0, -1) + '';
+    const temp = request.url.split(str2);
+    console.log("temp",temp);
+    if(request.query.prefix !== undefined)
+      request.params.path = join(request.query.prefix,temp[0]);
+    else
+    request.params.path = temp[1].split('?')[0];
+    console.log("path",request.params.path);
+
+
     if(request.method === 'PUT'){
-      request.params.path = String(path[1]).split('?')[0];
       this.handleRequestPut(request,response);
     }
 
     if(request.method === 'GET'){
-      if(String(path[1]) === 'undefined'){
-        request.params.path = path[1];
+      if(request.params.path.indexOf('.') === -1){
         this.handleRequestList(request,response);
       }
       else{
-        request.params.path = String(path[1]).split('?')[0];
         this.handleRequestGet(request,response);
       }
     }
 
     if(request.method === 'DELETE'){
-      request.params.path = path[1];
       this.handleRequestDelete(request,response);
     }
   }
@@ -112,19 +120,26 @@ export class StorageServer {
   private async handleRequestList(request, response) {
     // fill in  this content
     console.log("enter list");
-    var result=[];
+    var object={};
+    var key = 'Contents';
+    object[key]=[];
     // getting folders recursively
-    
-    let files =glob.sync(this.localDirectoryPath + '/**/*');
-      console.log("files",files);
+    const dirPath = join(this.localDirectoryPath,request.params.path);
+    console.log("dirPath",dirPath);
+    let files =glob.sync(dirPath+ '/**/*');
       for(let file in files){
         if(!statSync(files[file]).isDirectory()){
-          console.log('files in dir',files[file].split(this.localDirectoryPath)[1]);
-          result.push(files[file].split(this.localDirectoryPath)[1]);
+          object[key].push({"Key" : files[file].split(dirPath)[1],
+        });
+          console.log(files[file].split(dirPath)[1]);
         }
       }
-    response.send(xml(convert.json2xml(JSON.stringify(result))));
-  }
+      response.set('Content-Type', 'text/xml');
+      response.send(o2x({
+                '?xml version="1.0" encoding="utf-8"?' : null,
+                object
+      }));
+   }
 
   private async handleRequestDelete(request, response) {
     // fill in  this content
@@ -138,10 +153,8 @@ export class StorageServer {
 
   private async handleRequestPut(request, response) {
     // fill in  this content
-    console.log("put enetered");
+    console.log("put entered");
     const directoryPath =  join(String(this.localDirectoryPath),String(request.params.path)); 
-    console.log(request.headers);
-    console.log(Object.keys(request.body)[0]);
     ensureFileSync(directoryPath);
     writeFile(directoryPath,request.body, function(err) {
       if(err) {
