@@ -107,7 +107,6 @@ export class StorageServer {
         this.handleRequestGet(request,response);
       }
     }
-
     if(request.method === 'DELETE'){
       this.handleRequestDelete(request,response);
     }
