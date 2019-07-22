@@ -32,9 +32,9 @@ class StorageServer {
         this.app.use(express.json());
         this.app.use(cors());
         //this.app.use('/', express.static(STATIC_ROOT))
-        this.app.use(bodyParser.raw({ limit: '100mb', type: '*/octet-stream' }));
-        this.app.use(bodyParser.json({ limit: '50mb' }));
-        this.app.use(bodyParser.urlencoded({ limit: '50mb', extended: false }));
+        this.app.use(bodyParser.raw({ limit: '100mb', type: '*/*' }));
+        this.app.use(bodyParser.json({ limit: '50mb', type: '*/*' }));
+        this.app.use(bodyParser.urlencoded({ limit: '50mb', extended: false, type: '*/*' }));
         this.app.use(serveStatic(this.localDirectoryPath), this.handleRequestAll.bind(this));
         this.server = null;
         this.route = config.route;
@@ -74,8 +74,12 @@ class StorageServer {
             console.log("temp", temp);
             if (request.query.prefix !== undefined)
                 request.params.path = path_1.join(request.query.prefix, temp[0]);
-            else
-                request.params.path = temp[1].split('?')[0];
+            else {
+                if (temp[1] !== undefined)
+                    request.params.path = temp[1].split('?')[0];
+                else // change for IOS as no bucket name is present in the original url
+                    request.params.path = temp[0].split('?')[0];
+            }
             console.log("path", request.params.path);
             if (request.method === 'PUT') {
                 this.handleRequestPut(request, response);
@@ -127,7 +131,6 @@ class StorageServer {
                 '?xml version="1.0" encoding="utf-8"?': null,
                 object
             }));
-            //response.send(xml(convert.json2xml(JSON.stringify(object))));
         });
     }
     handleRequestDelete(request, response) {
@@ -147,9 +150,7 @@ class StorageServer {
             console.log("put entered");
             const directoryPath = path_1.join(String(this.localDirectoryPath), String(request.params.path));
             fs_extra_1.ensureFileSync(directoryPath);
-            console.log("request", request);
-            //if(typeof(request.body) === 'object')
-            // request.body = Object.keys(request.body)[0];
+            //console.log(request);
             fs_extra_1.writeFile(directoryPath, request.body, function (err) {
                 if (err) {
                     return console.log(err);

@@ -35,9 +35,9 @@ export class StorageServer {
     this.app.use(express.json());
     this.app.use(cors());
     //this.app.use('/', express.static(STATIC_ROOT))
-    this.app.use(bodyParser.raw({limit: '100mb', type : '*/octet-stream'}));
-    this.app.use(bodyParser.json({limit: '50mb'}));
-    this.app.use(bodyParser.urlencoded({limit: '50mb', extended: false}));
+    this.app.use(bodyParser.raw({limit: '100mb', type : '*/*'}));
+    this.app.use(bodyParser.json({limit: '50mb',type : '*/*'}));
+    this.app.use(bodyParser.urlencoded({limit: '50mb', extended: false ,type : '*/*'}));
     this.app.use(serveStatic(this.localDirectoryPath),this.handleRequestAll.bind(this));
 
     this.server = null;
@@ -81,12 +81,17 @@ export class StorageServer {
     // parsing the path and the request parameters
     request.url = (decodeURIComponent(request.url));
     var str2 = this.route.slice(0, -1) + '';
+
     const temp = request.url.split(str2);
     console.log("temp",temp);
     if(request.query.prefix !== undefined)
       request.params.path = join(request.query.prefix,temp[0]);
-    else
-    request.params.path = temp[1].split('?')[0];
+      else{
+        if(temp[1] !== undefined)
+          request.params.path = temp[1].split('?')[0];
+        else // change for IOS as no bucket name is present in the original url
+          request.params.path = temp[0].split('?')[0];
+      }
     console.log("path",request.params.path);
 
 
@@ -116,7 +121,6 @@ export class StorageServer {
       response.send(data);
     });
   }
-
   private async handleRequestList(request, response) {
     // fill in  this content
     console.log("enter list");
@@ -156,6 +160,7 @@ export class StorageServer {
     console.log("put entered");
     const directoryPath =  join(String(this.localDirectoryPath),String(request.params.path)); 
     ensureFileSync(directoryPath);
+    //console.log(request);
     writeFile(directoryPath,request.body, function(err) {
       if(err) {
           return console.log(err);
