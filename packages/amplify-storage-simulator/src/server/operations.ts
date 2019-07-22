@@ -85,8 +85,12 @@ export class StorageServer {
     console.log("temp",temp);
     if(request.query.prefix !== undefined)
       request.params.path = join(request.query.prefix,temp[0]);
-    else
-    request.params.path = temp[1].split('?')[0];
+    else{
+      if(temp[1] !== undefined)
+        request.params.path = temp[1].split('?')[0];
+      else // change for IOS as no bucket name is present in the original url
+        request.params.path = temp[0].split('?')[0];
+    }
     console.log("path",request.params.path);
 
 
@@ -102,7 +106,6 @@ export class StorageServer {
         this.handleRequestGet(request,response);
       }
     }
-
     if(request.method === 'DELETE'){
       this.handleRequestDelete(request,response);
     }
