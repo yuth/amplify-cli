@@ -16,7 +16,6 @@ const fs_extra_1 = require("fs-extra");
 const xml = require("xml");
 const bodyParser = require("body-parser");
 const convert = require("xml-js");
-const ip_1 = require("ip");
 const e2p = require("event-to-promise");
 const serveStatic = require("serve-static");
 const glob = require("glob");
@@ -53,7 +52,8 @@ class StorageServer {
         this.server = http_1.createServer({}, this.app).listen(this.config.port);
         return e2p(this.server, 'listening').then(() => {
             this.connection = this.server.address();
-            this.url = `http://${ip_1.address()}:${this.connection.port}`;
+            //this.url = `http://${getLocalIpAddress()}:${this.connection.port}`;
+            this.url = `http://localhost:${this.connection.port}`;
             console.log('given url : ', this.url);
             return this.server;
         });

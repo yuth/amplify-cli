@@ -2,6 +2,8 @@ const constants = require('./constants');
 const path = require('path');
 const fs = require('fs');
 
+const CUSTOM_CONFIG_KEY_BLACK_LIST = ['DangerouslyConnectToHTTPEndpointForTesting'];
+
 function createAmplifyConfig(context, amplifyResources) {
   const { amplify } = context;
   const projectPath = context.exeInfo
@@ -38,6 +40,11 @@ function getAWSConfigObject(amplifyResources) {
       Default: {},
     },
   };
+
+  if (amplifyResources.testMode) {
+    configOutput.DangerouslyConnectToHTTPEndpointForTesting = true;
+  }
+
 
   const projectRegion = amplifyResources.metadata.Region;
 
@@ -104,9 +111,10 @@ function getCurrentAWSConfig(context) {
 }
 
 function getCustomConfigs(cloudAWSConfig, currentAWSConfig) {
+
   const customConfigs = {};
   Object.keys(currentAWSConfig).forEach((key) => {
-    if (!cloudAWSConfig[key]) {
+    if (!cloudAWSConfig[key] && !CUSTOM_CONFIG_KEY_BLACK_LIST.includes(key)) {
       customConfigs[key] = currentAWSConfig[key];
     }
   });

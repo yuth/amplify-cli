@@ -63,7 +63,8 @@ export class StorageServer {
 
     return e2p(this.server, 'listening').then(() => {
       this.connection = this.server.address();
-      this.url = `http://${getLocalIpAddress()}:${this.connection.port}`;
+      //this.url = `http://${getLocalIpAddress()}:${this.connection.port}`;
+      this.url = `http://localhost:${this.connection.port}`;
       console.log('given url : ' ,this.url);
       return this.server;
     })
