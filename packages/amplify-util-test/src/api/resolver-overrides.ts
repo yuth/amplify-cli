@@ -7,7 +7,8 @@ export class ResolverOverrides {
     private contentMap: Map<string, string>;
 
     constructor(
-        private _resolverTemplateRoot: string,
+        private _rootFolder: string,
+        private _foldersToWatch: string[] = ['resolvers', 'pipelineFunctions'],
         private fileExtensions: string[] = ['.vtl']
     ) {
         this.overrides = new Set();
@@ -16,18 +17,20 @@ export class ResolverOverrides {
     }
 
     start() {
-        if (
-            fs.existsSync(this.resolverTemplateRoot) &&
-            fs.lstatSync(this.resolverTemplateRoot).isDirectory()
-        ) {
-            fs.readdirSync(this.resolverTemplateRoot)
-                .map(f => path.join(this._resolverTemplateRoot, f))
-                .filter(this.isTemplateFile.bind(this))
-                .forEach(f => {
-                    this.updateContentMap(f);
-                    this.overrides.add(this.getRelativePath(f));
-                });
-        }
+        this._foldersToWatch.map((folder) => path.join(this._rootFolder, folder)).forEach((folder) => {
+            if (
+                fs.existsSync(folder) &&
+                fs.lstatSync(folder).isDirectory()
+            ) {
+                fs.readdirSync(folder)
+                    .map(f => path.join(folder, f))
+                    .filter(this.isTemplateFile.bind(this))
+                    .forEach(f => {
+                        this.updateContentMap(f);
+                        this.overrides.add(this.getRelativePath(f));
+                    });
+            }
+        })
     }
 
     onFileChange(filePath: string) {
@@ -88,7 +91,9 @@ export class ResolverOverrides {
         filesToWrite.forEach((content, filePath) => {
             // Update the content in the map
             this.contentMap.set(filePath, content);
-            fs.writeFileSync(this.getAbsPath(filePath), content);
+            const abPath = this.getAbsPath(filePath);
+            fs.ensureDirSync(path.dirname(abPath));
+            fs.writeFileSync(abPath, content);
         });
 
         // Delete the files that are no longer needed
@@ -110,11 +115,15 @@ export class ResolverOverrides {
         });
     }
 
-    private isTemplateFile(filePath: string): boolean {
+    isTemplateFile(filePath: string): boolean {
         if (!this.fileExtensions.includes(path.extname(filePath))) {
             return false;
         }
-        if (!filePath.includes(this.resolverTemplateRoot)) {
+        const isInWatchedDir = this._foldersToWatch.some((folder) => {
+            const absFolder = path.join(this._rootFolder, folder);
+            return filePath.includes(absFolder);
+        })
+        if (!isInWatchedDir) {
             return false;
         }
 
@@ -159,6 +168,6 @@ export class ResolverOverrides {
         return false;
     }
     get resolverTemplateRoot() {
-        return this._resolverTemplateRoot;
+        return this._rootFolder;
     }
 }

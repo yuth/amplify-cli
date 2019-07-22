@@ -52,12 +52,17 @@ export class VelocityTemplate {
     try {
       const templateResult = this.compiler.render(context);
       const stash = context.ctx.stash.toJSON()
-      return {result: JSON5.parse(templateResult), stash, errors: context.util.errors };
+      let result;
+
+      try {
+        result = JSON5.parse(templateResult);
+      } catch(e) {
+        result = templateResult;
+      }
+      return {result, stash, errors: context.util.errors };
     } catch(e) {
       throw e;
     }
-
-
   }
 
   private buildRenderContext(

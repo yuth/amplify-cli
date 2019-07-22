@@ -1,14 +1,25 @@
 import { CloudFormationParseContext } from './types';
 import { isPlainObject } from 'lodash';
 import { parseValue } from './field-parser';
+const CFN_DEFAULT_PARAMS = {
+  'AWS::Region': 'us-east-1-fake',
+  'AWS::AccountId': '12345678910',
+  'AWS::StackId': 'fake-stackId',
+  'AWS::StackName': 'local-testing'
+};
 
+const CFN_DEFAULT_CONDITIONS = {
+  HasEnvironmentParameter: true
+}
 const resourceProcessorMapping = {
   'AWS::AppSync::GraphQLApi': graphQLAPIResourceHandler,
   'AWS::AppSync::ApiKey': graphQLAPIKeyResourceHandler,
   'AWS::AppSync::GraphQLSchema': graphQLSchemaHandler,
   'AWS::DynamoDB::Table': dynamoDBResourceHandler,
   'AWS::AppSync::Resolver': graphQLResolverHandler,
-  'AWS::AppSync::DataSource': graphQLDataSource
+  'AWS::AppSync::DataSource': graphQLDataSource,
+  'AWS::AppSync::FunctionConfiguration': graphqlFunctionHandler
+
 }
 export function dynamoDBResourceHandler(resourceName, resource, cfnContext:CloudFormationParseContext, transformResult: any) {
   const tableName = resourceName;
@@ -53,6 +64,22 @@ export function graphQLDataSource(resourceName, resource, cfnContext:CloudFormat
       type: 'NONE',
     }
   }
+
+  if(typeName === 'AWS_LAMBDA') {
+    const lambdaArn = parseValue(resource.Properties.LambdaConfig.LambdaFunctionArn, cfnContext)
+    return {
+      type: 'AWS_LAMBDA',
+      name: resource.Properties.Name,
+      LambdaFunctionArn: lambdaArn
+    };
+  }
+
+  // XXX: Handle un-supported data sources
+  console.log(`Data soruce of type ${typeName} is not supported by in local testing. A non data source will be used`)
+   return {
+    name: resource.Properties.Name,
+    type: 'NONE',
+  };
 }
 
 export function graphQLAPIResourceHandler(resourceName, resource, cfnContext:CloudFormationParseContext,  transformResult: any) {
@@ -87,14 +114,25 @@ export function graphQLSchemaHandler(resourceName, resource, cfnContext: CloudFo
 
 export function graphQLResolverHandler(resourceName, resource, cfnContext: CloudFormationParseContext, transformResult: any) {
   const { Properties: properties } = resource;
-  const requestMappingTemplate = [properties.TypeName, properties.FieldName, 'req.vtl'].join('.')
-  const responseMappingTemplate = [properties.TypeName, properties.FieldName, 'res.vtl'].join('.')
+  const requestMappingTemplate = 'resolvers/' + [properties.TypeName, properties.FieldName, 'req.vtl'].join('.');
+  const responseMappingTemplate = 'resolvers/' + [properties.TypeName, properties.FieldName, 'res.vtl'].join('.');
+  let dataSourceName;
+  let functions
+  if(properties.Kind === 'PIPELINE') {
+    functions = (properties.PipelineConfig.Functions || []).map(f => getAppSyncFunctionName(f));
+  }
+  else {
+    dataSourceName = getDataSourceName(properties.DataSourceName)
+  }
+
   return {
-    dataSourceName: getDataSourceName(properties.DataSourceName),
+    dataSourceName,
     typeName: properties.TypeName,
+    functions,
     fieldName: properties.FieldName,
     requestMappingTemplateLocation: requestMappingTemplate,
     responseMappingTemplateLocation: responseMappingTemplate,
+    kind: properties.Kind || 'UNIT'
   }
 }
 
@@ -111,14 +149,41 @@ function getDataSourceName(dataSourceName) {
     else if(dataSourceName.name === 'Fn::ImportValue') {
       return dataSourceName.payload.payload[1][2]
     }
-
-
 }
+
+function getAppSyncFunctionName(functionConfig) {
+  if(functionConfig["Fn::GetAtt"]) {
+    return functionConfig["Fn::GetAtt"][0];
+  }
+  return functionConfig;
+}
+
+export function graphqlFunctionHandler(resourceName, resource, cfnContext:CloudFormationParseContext,  transformResult: any) {
+  const { Properties: properties } = resource;
+  const requestMappingTemplate = parseValue(properties.RequestMappingTemplateS3Location, cfnContext).replace('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/', '')
+  const responseMappingTemplate = parseValue(properties.ResponseMappingTemplateS3Location, cfnContext).replace('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/', '')
+
+  const dataSourceName = getDataSourceName(properties.DataSourceName)
+
+  return {
+    name: resource.Properties.Name,
+    dataSourceName,
+    requestMappingTemplateLocation: requestMappingTemplate,
+    responseMappingTemplateLocation: responseMappingTemplate,
+  }
+}
+
 export function processResources(resources, transformResult:any, params = {}) {
+
   const cfnContext:CloudFormationParseContext = {
-    conditions: {},
+    conditions: {
+      ...CFN_DEFAULT_CONDITIONS,
+    },
     params: {
-      env: 'NONE',
+      ...CFN_DEFAULT_PARAMS,
+      env: '${env}',
+      S3DeploymentBucket:'${S3DeploymentBucket}',
+      S3DeploymentRootKey:'${S3DeploymentRootKey}',
       ...params
     },
     resources: {},
@@ -155,6 +220,9 @@ export function processResources(resources, transformResult:any, params = {}) {
         case 'AWS::DynamoDB::Table':
             processedResources.tables.push(result);
             break;
+        case 'AWS::AppSync::FunctionConfiguration':
+            processedResources.functions.push(result);
+            break;
         case 'AWS::AppSync::GraphQLSchema':
             processedResources.schema = result;
             break;
@@ -170,7 +238,13 @@ export function processResources(resources, transformResult:any, params = {}) {
   });
   Object.entries(transformResult.resolvers).forEach(([path, content]) => {
     processedResources.mappingTemplates.push({
-      path,
+      path: `resolvers/${path}`,
+      content
+    })
+  })
+  Object.entries(transformResult.pipelineFunctions).forEach(([path, content]) => {
+    processedResources.mappingTemplates.push({
+      path: `pipelineFunctions/${path}`,
       content
     })
   })

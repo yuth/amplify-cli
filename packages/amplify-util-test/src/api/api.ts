@@ -77,6 +77,7 @@ export class APITest {
         let config: any = processResources(stack, transformerOutput);
         await this.ensureDDBTables(config);
         this.transformerResult = this.configureDDBDataSource(config);
+        this.transformerResult = this.configureLambdaDataSource(config)
         const overriddenTemplates = await this.resolverOverrideManager.sync(
             this.transformerResult.mappingTemplates
         );
@@ -107,7 +108,7 @@ export class APITest {
     private async reload(context, filePath, action) {
         try {
             let shouldReload;
-            if (filePath.includes(this.resolverOverrideManager.resolverTemplateRoot)) {
+            if (this.resolverOverrideManager.isTemplateFile(filePath)) {
                 switch (action) {
                     case 'add':
                         shouldReload = this.resolverOverrideManager.onAdd(filePath);
@@ -156,6 +157,24 @@ export class APITest {
         await ensureDynamoDBTables(this.ddbClient, config);
     }
 
+    private configureLambdaDataSource(config) {
+        config.dataSources
+        .filter(d => d.type === 'AWS_LAMBDA')
+        .forEach(d => {
+            const arn = d.LambdaFunctionArn;
+            const arnParts = arn.split(':')
+            let functionName = arnParts[arnParts.length - 1];
+            if(functionName.endsWith('-${env}')) {
+                functionName = functionName.replace('-${env}', '');
+                const lambdaPath = path.join('amplify', 'backend', functionName, 'src', 'index.js');
+                d.lambdaPath = lambdaPath;
+            } else {
+                throw new Error('Local testing does not support LAMBDA data source that is not provisioned locally');
+            }
+        });
+        return config;
+    }
+
     private configureDDBDataSource(config) {
         const ddbConfig = this.ddbClient.config;
         return configureDDBDataSource(config, ddbConfig);
@@ -196,7 +215,7 @@ export class APITest {
 
     private async getResolverTemplateDirectory(context) {
         const apiDirectory = await this.getAPIBackendDirectory(context);
-        return path.join(apiDirectory, 'resolvers');
+        return apiDirectory;
     }
     private async registerWatcher(context: any): Promise<chokidar.FSWatcher> {
         const watchDir = await this.getAPIBackendDirectory(context);

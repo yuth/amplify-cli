@@ -1,5 +1,6 @@
 import { DynamoDBDataLoader } from './dynamo-db';
 import { NoneDataLoader } from './none';
+import { LambdaDataLoader } from './lambda';
 
 export interface AmplifyAppSyncSimulatorDataLoader {
   load(payload:any): Promise<object| null>;
@@ -31,3 +32,4 @@ export function removeDataLoader(sourceType: string) {
 // add known data sources
 addDataLoader('AMAZON_DYNAMODB', DynamoDBDataLoader);
 addDataLoader('NONE', NoneDataLoader);
+addDataLoader('AWS_LAMBDA', LambdaDataLoader);

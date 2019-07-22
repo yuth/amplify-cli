@@ -55,15 +55,18 @@ export function generateResolvers(
     d.visitor.simulatorContext = simulatorContext;
     return { ...sum, [d.name]: d.visitor }
   }, {})
+
+
+  if(Object.keys(defaultSubscriptions).length || Object.keys(resolvers.Subscription).length) {
+    resolvers.Subscription = { ...defaultSubscriptions, ...resolvers.Subscription};
+  }
+  else {
+    // When there are no subscriptions in the doc, don't include subscription resolvers
+    delete resolvers.Subscription;
+  }
   return makeExecutableSchema({
     typeDefs: doc,
-    resolvers: {
-      ...resolvers,
-      Subscription: {
-        ...defaultSubscriptions,
-        ...resolvers.Subscription
-      }
-    },
+    resolvers,
     schemaDirectives,
   });
 }
