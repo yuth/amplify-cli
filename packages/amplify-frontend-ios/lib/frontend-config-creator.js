@@ -2,8 +2,6 @@ const constants = require('./constants');
 const path = require('path');
 const fs = require('fs');
 
-const CUSTOM_CONFIG_KEY_BLACK_LIST = ['DangerouslyConnectToHTTPEndpointForTesting'];
-
 function createAmplifyConfig(context, amplifyResources) {
   const { amplify } = context;
   const projectPath = context.exeInfo
@@ -40,12 +38,6 @@ function getAWSConfigObject(amplifyResources) {
       Default: {},
     },
   };
-
-  if (amplifyResources.testMode) {
-    configOutput.DangerouslyConnectToHTTPEndpointForTesting = true;
-  }
-
-
   const projectRegion = amplifyResources.metadata.Region;
 
   Object.keys(serviceResourceMapping).forEach((service) => {
@@ -114,7 +106,7 @@ function getCustomConfigs(cloudAWSConfig, currentAWSConfig) {
 
   const customConfigs = {};
   Object.keys(currentAWSConfig).forEach((key) => {
-    if (!cloudAWSConfig[key] && !CUSTOM_CONFIG_KEY_BLACK_LIST.includes(key)) {
+    if (!cloudAWSConfig[key]) {
       customConfigs[key] = currentAWSConfig[key];
     }
   });
@@ -265,6 +257,7 @@ function getDynamoDBConfig(dynamoDBResources, projectRegion) {
 function getAppSyncConfig(appsyncResources, projectRegion) {
   // There can only be one appsync resource
   const appsyncResource = appsyncResources[0];
+  const testMode = appsyncResource.testMode || false;
   const result = {
     AppSync: {
       Default: {
@@ -279,6 +272,10 @@ function getAppSyncConfig(appsyncResources, projectRegion) {
       },
     },
   };
+  if (testMode) {
+    result.AppSync.Default.DangerouslyConnectToHTTPEndpointForTesting = true;
+  }
+
   const additionalAuths = appsyncResource.output.additionalAuthenticationProviders || [];
   additionalAuths.forEach((authType) => {
     const apiName = `${appsyncResource.resourceName}_${authType}`;
@@ -289,6 +286,9 @@ function getAppSyncConfig(appsyncResources, projectRegion) {
       ApiKey: authType === 'API_KEY' ? appsyncResource.output.GraphQLAPIKeyOutput : undefined,
       ClientDatabasePrefix: apiName,
     };
+    if (testMode) {
+      config.DangerouslyConnectToHTTPEndpointForTesting = true;
+    }
     result.AppSync[apiName] = config;
   });
 

@@ -19,7 +19,6 @@ export class ConfigOverrideManager {
         await context.amplify.onCategoryOutputsChange(context, null, {
             ...meta,
             ...this.overrides,
-            testMode: true
         });
     }
 
