@@ -1,21 +1,13 @@
-import {
-    ObjectTypeDefinitionNode,
-    DirectiveNode,
-    parse,
-    FieldDefinitionNode,
-    DocumentNode,
-    DefinitionNode,
-    Kind
-} from 'graphql';
-import { ResourceConstants } from 'graphql-transformer-common';
-import GraphQLTransform from 'graphql-transformer-core';
 import DynamoDBModelTransformer from 'graphql-dynamodb-transformer';
-import VersionedModelTransformer from 'graphql-versioned-transformer';
-import ModelAuthTransformer from 'graphql-versioned-transformer';
+import GraphQLTransform from 'graphql-transformer-core';
+import {
+    default as ModelAuthTransformer,
+    default as VersionedModelTransformer
+} from 'graphql-versioned-transformer';
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 
-jest.setTimeout(2000);
+jest.setTimeout(20000);
 
 let GRAPHQL_CLIENT = undefined;
 let ddbEmulator = null;
@@ -32,15 +24,15 @@ beforeAll(async () => {
         updatedAt: String
     }
     `;
-    const transformer = new GraphQLTransform({
-        transformers: [
-            new DynamoDBModelTransformer(),
-            new ModelAuthTransformer(),
-            new VersionedModelTransformer()
-        ]
-    });
 
     try {
+        const transformer = new GraphQLTransform({
+            transformers: [
+                new DynamoDBModelTransformer(),
+                new ModelAuthTransformer(),
+                new VersionedModelTransformer()
+            ]
+        });
         const out = transformer.transform(validSchema);
 
         let ddbClient;
@@ -49,7 +41,7 @@ beforeAll(async () => {
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        const endpoint = server.url;
+        const endpoint = server.url + '/graphql';
         console.log(`Using graphql url: ${endpoint}`);
 
         const apiKey = result.config.appSync.apiKey;
@@ -69,6 +61,7 @@ afterAll(async () => {
         }
         await terminateDDB(ddbEmulator, dbPath);
     } catch (e) {
+        console.error(e);
         console.error(e);
         expect(true).toEqual(false);
     }
@@ -185,9 +178,7 @@ test('Test deletePost mutation', async () => {
     expect(createResponse.data.createPost.version).toBeDefined();
     const deleteResponse = await GRAPHQL_CLIENT.query(
         `mutation {
-        deletePost(input: { id: "${createResponse.data.createPost.id}", expectedVersion: ${
-            createResponse.data.createPost.version
-        } }) {
+        deletePost(input: { id: "${createResponse.data.createPost.id}", expectedVersion: ${createResponse.data.createPost.version} }) {
             id
             title
             version

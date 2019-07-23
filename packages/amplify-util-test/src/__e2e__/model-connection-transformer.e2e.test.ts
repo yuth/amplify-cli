@@ -4,14 +4,14 @@ import DynamoDBModelTransformer from 'graphql-dynamodb-transformer';
 import GraphQLTransform from 'graphql-transformer-core';
 
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 
 let GRAPHQL_CLIENT = undefined;
 let GRAPHQL_ENDPOINT = undefined;
 let ddbEmulator = null;
 let dbPath = null;
 let server;
-
+jest.setTimeout(20000);
 beforeAll(async () => {
     const validSchema = `
     type Post @model {
@@ -34,26 +34,27 @@ beforeAll(async () => {
         post: Post @connection(name: "SortedPostComments", keyField: "postId", sortField: "when")
     }
     `;
-    const transformer = new GraphQLTransform({
-        transformers: [
-            new DynamoDBModelTransformer(),
-            new ModelAuthTransformer(),
-            new ModelConnectionTransformer()
-        ]
-    });
-    const out = transformer.transform(validSchema);
 
     try {
+        const transformer = new GraphQLTransform({
+            transformers: [
+                new DynamoDBModelTransformer(),
+                new ModelAuthTransformer(),
+                new ModelConnectionTransformer()
+            ]
+        });
+        const out = transformer.transform(validSchema);
+
         let ddbClient;
         ({ dbPath, emulator: ddbEmulator, client: ddbClient } = await launchDDBLocal());
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        GRAPHQL_ENDPOINT = server.url;
+        GRAPHQL_ENDPOINT = server.url + '/graphql';
         console.log(`Using graphql url: ${GRAPHQL_ENDPOINT}`);
 
         const apiKey = result.config.appSync.apiKey;
-        console.log(apiKey);
+        logDebug(apiKey);
         GRAPHQL_CLIENT = new GraphQLClient(GRAPHQL_ENDPOINT, { 'x-api-key': apiKey });
     } catch (e) {
         console.error(e);

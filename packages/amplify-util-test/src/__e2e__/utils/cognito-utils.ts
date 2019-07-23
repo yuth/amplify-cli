@@ -12,6 +12,7 @@ import {
 import { AuthenticationDetails } from 'amazon-cognito-identity-js';
 import * as CognitoClient from 'aws-sdk/clients/cognitoidentityserviceprovider';
 import TestStorage from './test-storage';
+import { logDebug } from './index';
 
 const cognitoClient = new CognitoClient({ apiVersion: '2016-04-19', region: 'us-west-2' });
 
@@ -68,7 +69,7 @@ export async function signupAndAuthenticateUser(
         // Sign up then login user 1.ß
         await signupUser(userPoolId, username, tmpPw);
     } catch (e) {
-        console.log(`Trying to login with temp password`);
+        logDebug(`Trying to login with temp password`);
     }
 
     try {
@@ -80,7 +81,7 @@ export async function signupAndAuthenticateUser(
         const authRes = await authenticateUser(user, authDetails, realPw);
         return authRes;
     } catch (e) {
-        console.log(`Trying to login with real password`);
+        logDebug(`Trying to login with real password`);
     }
 
     try {
@@ -90,7 +91,7 @@ export async function signupAndAuthenticateUser(
         });
         const user = Amplify.Auth.createCognitoUser(username);
         const authRes: any = await authenticateUser(user, authDetails, realPw);
-        console.log(`Logged in ${username} \n${authRes.getIdToken().getJwtToken()}`);
+        logDebug(`Logged in ${username} \n${authRes.getIdToken().getJwtToken()}`);
         return authRes;
     } catch (e) {
         console.error(`Failed to login.\n`);

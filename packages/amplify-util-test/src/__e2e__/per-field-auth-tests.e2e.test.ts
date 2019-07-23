@@ -7,7 +7,7 @@ import ModelConnectionTransformer from 'graphql-connection-transformer';
 import * as fs from 'fs';
 import * as CognitoClient from 'aws-sdk/clients/cognitoidentityserviceprovider';
 import * as moment from 'moment';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 import {
     addUserToGroup,
     configureAmplify,
@@ -124,7 +124,7 @@ beforeAll(async () => {
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        GRAPHQL_ENDPOINT = server.url;
+        GRAPHQL_ENDPOINT = server.url + '/graphql';
         // Verify we have all the details
         expect(GRAPHQL_ENDPOINT).toBeTruthy();
         expect(USER_POOL_ID).toBeTruthy();
@@ -218,7 +218,7 @@ test('Test that only Admins can create Employee records.', async () => {
     }`,
         {}
     );
-    console.log(createUser1);
+    logDebug(createUser1);
     expect(createUser1.data.createEmployee.email).toEqual('user2@test.com');
     expect(createUser1.data.createEmployee.salary).toEqual(100);
 
@@ -232,7 +232,7 @@ test('Test that only Admins can create Employee records.', async () => {
     }`,
         {}
     );
-    console.log(tryToCreateAsNonAdmin);
+    logDebug(tryToCreateAsNonAdmin);
     expect(tryToCreateAsNonAdmin.data.createEmployee).toBeNull();
     expect(tryToCreateAsNonAdmin.errors).toHaveLength(1);
 
@@ -246,7 +246,7 @@ test('Test that only Admins can create Employee records.', async () => {
     }`,
         {}
     );
-    console.log(tryToCreateAsNonAdmin2);
+    logDebug(tryToCreateAsNonAdmin2);
     expect(tryToCreateAsNonAdmin2.data.createEmployee).toBeNull();
     expect(tryToCreateAsNonAdmin2.errors).toHaveLength(1);
 });
@@ -262,7 +262,7 @@ test('Test that only Admins may update salary & email.', async () => {
     }`,
         {}
     );
-    console.log(createUser1);
+    logDebug(createUser1);
     const employeeId = createUser1.data.createEmployee.id;
     expect(employeeId).not.toBeNull();
     expect(createUser1.data.createEmployee.email).toEqual('user2@test.com');
@@ -278,7 +278,7 @@ test('Test that only Admins may update salary & email.', async () => {
     }`,
         {}
     );
-    console.log(tryToUpdateAsNonAdmin);
+    logDebug(tryToUpdateAsNonAdmin);
     expect(tryToUpdateAsNonAdmin.data.updateEmployee).toBeNull();
     expect(tryToUpdateAsNonAdmin.errors).toHaveLength(1);
 
@@ -292,7 +292,7 @@ test('Test that only Admins may update salary & email.', async () => {
     }`,
         {}
     );
-    console.log(tryToUpdateAsNonAdmin2);
+    logDebug(tryToUpdateAsNonAdmin2);
     expect(tryToUpdateAsNonAdmin2.data.updateEmployee).toBeNull();
     expect(tryToUpdateAsNonAdmin2.errors).toHaveLength(1);
 
@@ -306,7 +306,7 @@ test('Test that only Admins may update salary & email.', async () => {
     }`,
         {}
     );
-    console.log(tryToUpdateAsNonAdmin3);
+    logDebug(tryToUpdateAsNonAdmin3);
     expect(tryToUpdateAsNonAdmin3.data.updateEmployee).toBeNull();
     expect(tryToUpdateAsNonAdmin3.errors).toHaveLength(1);
 
@@ -320,7 +320,7 @@ test('Test that only Admins may update salary & email.', async () => {
     }`,
         {}
     );
-    console.log(updateAsAdmin);
+    logDebug(updateAsAdmin);
     expect(updateAsAdmin.data.updateEmployee.email).toEqual('someonelese@gmail.com');
     expect(updateAsAdmin.data.updateEmployee.salary).toEqual(100);
 
@@ -334,7 +334,7 @@ test('Test that only Admins may update salary & email.', async () => {
     }`,
         {}
     );
-    console.log(updateAsAdmin2);
+    logDebug(updateAsAdmin2);
     expect(updateAsAdmin2.data.updateEmployee.email).toEqual('someonelese@gmail.com');
     expect(updateAsAdmin2.data.updateEmployee.salary).toEqual(99);
 });
@@ -350,7 +350,7 @@ test('Test that owners may update their bio.', async () => {
     }`,
         {}
     );
-    console.log(createUser1);
+    logDebug(createUser1);
     const employeeId = createUser1.data.createEmployee.id;
     expect(employeeId).not.toBeNull();
     expect(createUser1.data.createEmployee.email).toEqual('user2@test.com');
@@ -367,7 +367,7 @@ test('Test that owners may update their bio.', async () => {
     }`,
         {}
     );
-    console.log(tryToUpdateAsNonAdmin);
+    logDebug(tryToUpdateAsNonAdmin);
     expect(tryToUpdateAsNonAdmin.data.updateEmployee.bio).toEqual('Does cool stuff.');
     expect(tryToUpdateAsNonAdmin.data.updateEmployee.email).toEqual('user2@test.com');
     expect(tryToUpdateAsNonAdmin.data.updateEmployee.salary).toEqual(100);
@@ -385,7 +385,7 @@ test('Test that everyone may view employee bios.', async () => {
     }`,
         {}
     );
-    console.log(createUser1);
+    logDebug(createUser1);
     const employeeId = createUser1.data.createEmployee.id;
     expect(employeeId).not.toBeNull();
     expect(createUser1.data.createEmployee.email).toEqual('user3@test.com');
@@ -402,7 +402,7 @@ test('Test that everyone may view employee bios.', async () => {
     }`,
         {}
     );
-    console.log(getAsNonAdmin);
+    logDebug(getAsNonAdmin);
     // Should not be able to view the email as the non owner
     expect(getAsNonAdmin.data.getEmployee.email).toBeNull();
     // Should be able to view the bio.
@@ -420,7 +420,7 @@ test('Test that everyone may view employee bios.', async () => {
     }`,
         {}
     );
-    console.log(listAsNonAdmin);
+    logDebug(listAsNonAdmin);
     expect(listAsNonAdmin.data.listEmployees.items.length).toBeGreaterThan(1);
     let seenId = false;
     for (const item of listAsNonAdmin.data.listEmployees.items) {
@@ -444,7 +444,7 @@ test('Test that only owners may "delete" i.e. update the field to null.', async 
     }`,
         {}
     );
-    console.log(createUser1);
+    logDebug(createUser1);
     const employeeId = createUser1.data.createEmployee.id;
     expect(employeeId).not.toBeNull();
     expect(createUser1.data.createEmployee.email).toEqual('user3@test.com');
@@ -460,7 +460,7 @@ test('Test that only owners may "delete" i.e. update the field to null.', async 
     }`,
         {}
     );
-    console.log(tryToDeleteUserNotes);
+    logDebug(tryToDeleteUserNotes);
     expect(tryToDeleteUserNotes.data.updateEmployee).toBeNull();
     expect(tryToDeleteUserNotes.errors).toHaveLength(1);
 

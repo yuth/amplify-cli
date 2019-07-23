@@ -2,13 +2,14 @@ import ModelAuthTransformer from 'graphql-auth-transformer';
 import DynamoDBModelTransformer from 'graphql-dynamodb-transformer';
 import GraphQLTransform from 'graphql-transformer-core';
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 
 let GRAPHQL_ENDPOINT = undefined;
 let GRAPHQL_CLIENT = undefined;
 let ddbEmulator = null;
 let dbPath = null;
 let server;
+jest.setTimeout(2000000);
 
 beforeAll(async () => {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -55,7 +56,7 @@ beforeAll(async () => {
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        GRAPHQL_ENDPOINT = server.url;
+        GRAPHQL_ENDPOINT = server.url + '/graphql';
         console.log(`Using graphql url: ${GRAPHQL_ENDPOINT}`);
 
         const apiKey = result.config.appSync.apiKey;
@@ -78,7 +79,7 @@ afterAll(async () => {
 afterEach(async () => {
     try {
         // delete all the records
-        console.log('deleting posts');
+        logDebug('deleting posts');
         const response = await GRAPHQL_CLIENT.query(
             `
   query {
@@ -129,7 +130,7 @@ test('Test createAuthor mutation', async () => {
                 }
             }
         );
-        console.log(response);
+        logDebug(response);
         expect(response.data.createAuthor.id).toBeDefined();
         expect(response.data.createAuthor.name).toEqual('Jeff B');
         expect(response.data.createAuthor.entityMetadata).toBeDefined();
@@ -178,7 +179,7 @@ test('Test updatePost mutation', async () => {
       }`,
             {}
         );
-        console.log(JSON.stringify(createResponse, null, 4));
+        logDebug(JSON.stringify(createResponse, null, 4));
         expect(createResponse.data.createPost.id).toBeDefined();
         expect(createResponse.data.createPost.title).toEqual('Test Update');
         debugger;
@@ -191,7 +192,7 @@ test('Test updatePost mutation', async () => {
       }`,
             {}
         );
-        console.log(JSON.stringify(updateResponse, null, 4));
+        logDebug(JSON.stringify(updateResponse, null, 4));
         expect(updateResponse.data.updatePost.title).toEqual('Bye, World!');
     } catch (e) {
         console.log(e);
@@ -214,7 +215,7 @@ test('Test createPost and updatePost mutation with a client generated id.', asyn
       }`,
             {}
         );
-        console.log(JSON.stringify(createResponse, null, 4));
+        logDebug(JSON.stringify(createResponse, null, 4));
         expect(createResponse.data.createPost.id).toEqual(clientId);
         expect(createResponse.data.createPost.title).toEqual('Test Update');
         const updateResponse = await GRAPHQL_CLIENT.query(
@@ -226,7 +227,7 @@ test('Test createPost and updatePost mutation with a client generated id.', asyn
       }`,
             {}
         );
-        console.log(JSON.stringify(updateResponse, null, 4));
+        logDebug(JSON.stringify(updateResponse, null, 4));
         expect(updateResponse.data.updatePost.id).toEqual(clientId);
         expect(updateResponse.data.updatePost.title).toEqual('Bye, World!');
         const getResponse = await GRAPHQL_CLIENT.query(
@@ -238,7 +239,7 @@ test('Test createPost and updatePost mutation with a client generated id.', asyn
       }`,
             {}
         );
-        console.log(JSON.stringify(getResponse, null, 4));
+        logDebug(JSON.stringify(getResponse, null, 4));
         expect(getResponse.data.getPost.id).toEqual(clientId);
         expect(getResponse.data.getPost.title).toEqual('Bye, World!');
 
@@ -251,7 +252,7 @@ test('Test createPost and updatePost mutation with a client generated id.', asyn
       }`,
             {}
         );
-        console.log(JSON.stringify(deleteResponse, null, 4));
+        logDebug(JSON.stringify(deleteResponse, null, 4));
         expect(deleteResponse.data.deletePost.id).toEqual(clientId);
         expect(deleteResponse.data.deletePost.title).toEqual('Bye, World!');
 
@@ -264,7 +265,7 @@ test('Test createPost and updatePost mutation with a client generated id.', asyn
       }`,
             {}
         );
-        console.log(JSON.stringify(getResponse2, null, 4));
+        logDebug(JSON.stringify(getResponse2, null, 4));
         expect(getResponse2.data.getPost).toBeNull();
     } catch (e) {
         console.log(e);
@@ -286,7 +287,7 @@ test('Test deletePost mutation', async () => {
       }`,
             {}
         );
-        console.log(JSON.stringify(createResponse, null, 4));
+        logDebug(JSON.stringify(createResponse, null, 4));
         expect(createResponse.data.createPost.id).toBeDefined();
         expect(createResponse.data.createPost.title).toEqual('Test Delete');
         const deleteResponse = await GRAPHQL_CLIENT.query(
@@ -298,7 +299,7 @@ test('Test deletePost mutation', async () => {
       }`,
             {}
         );
-        console.log(JSON.stringify(deleteResponse, null, 4));
+        logDebug(JSON.stringify(deleteResponse, null, 4));
         expect(deleteResponse.data.deletePost.title).toEqual('Test Delete');
         const getResponse = await GRAPHQL_CLIENT.query(
             `query {
@@ -309,7 +310,7 @@ test('Test deletePost mutation', async () => {
       }`,
             {}
         );
-        console.log(JSON.stringify(getResponse, null, 4));
+        logDebug(JSON.stringify(getResponse, null, 4));
         expect(getResponse.data.getPost).toBeNull();
     } catch (e) {
         console.log(e);
@@ -344,7 +345,7 @@ test('Test getPost query', async () => {
         );
         expect(getResponse.data.getPost.title).toEqual('Test Get');
     } catch (e) {
-        console.log(e);
+        logDebug(e);
         // fail
         expect(e).toBeUndefined();
     }
@@ -380,7 +381,7 @@ test('Test listPosts query', async () => {
         const items = listResponse.data.listPosts.items;
         expect(items.length).toBeGreaterThan(0);
     } catch (e) {
-        console.log(e);
+        logDebug(e);
         // fail
         expect(e).toBeUndefined();
     }
@@ -416,7 +417,7 @@ test('Test listPosts query with filter', async () => {
       }`,
             {}
         );
-        console.log(JSON.stringify(listWithFilterResponse, null, 4));
+        logDebug(JSON.stringify(listWithFilterResponse, null, 4));
         expect(listWithFilterResponse.data.listPosts.items).toBeDefined();
         const items = listWithFilterResponse.data.listPosts.items;
         expect(items.length).toEqual(1);
@@ -491,7 +492,7 @@ test('Test enum filters List', async () => {
         );
         expect(appearsInWithFilterResponseJedi.data.listPosts.items).toBeDefined();
         const items = appearsInWithFilterResponseJedi.data.listPosts.items;
-        console.log(items);
+        logDebug(items);
         expect(items.length).toEqual(1);
         expect(items[0].title).toEqual('Appears in Jedi');
 
@@ -507,7 +508,7 @@ test('Test enum filters List', async () => {
       `,
             {}
         );
-        console.log(JSON.stringify(appearsInWithFilterResponseNonJedi))
+        logDebug(JSON.stringify(appearsInWithFilterResponseNonJedi))
         expect(appearsInWithFilterResponseNonJedi.data.listPosts.items).toBeDefined();
         const appearsInNonJediItems = appearsInWithFilterResponseNonJedi.data.listPosts.items;
         expect(appearsInNonJediItems.length).toEqual(3);

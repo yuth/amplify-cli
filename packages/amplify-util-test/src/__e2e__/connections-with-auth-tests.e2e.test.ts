@@ -14,7 +14,7 @@ import {
     signupAndAuthenticateUser
 } from './utils/cognito-utils';
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 
 // to deal with bug in cognito-identity-js
 (global as any).fetch = require('node-fetch');
@@ -116,7 +116,7 @@ beforeAll(async () => {
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        GRAPHQL_ENDPOINT = server.url;
+        GRAPHQL_ENDPOINT = server.url + '/graphql';
         console.log(`Using graphql url: ${GRAPHQL_ENDPOINT}`);
 
         const apiKey = result.config.appSync.apiKey;
@@ -213,7 +213,7 @@ test('Test creating a post and immediately view it via the User.posts connection
     }`,
         {}
     );
-    console.log(createUser1);
+    logDebug(createUser1);
     expect(createUser1.data.createUser.id).toEqual('user1@test.com');
 
     const response = await GRAPHQL_CLIENT_1.query(
@@ -226,7 +226,7 @@ test('Test creating a post and immediately view it via the User.posts connection
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createPost.id).toBeDefined();
     expect(response.data.createPost.title).toEqual('Hello, World!');
     expect(response.data.createPost.owner).toBeDefined();
@@ -248,7 +248,7 @@ test('Test creating a post and immediately view it via the User.posts connection
     }`,
         {}
     );
-    console.log(JSON.stringify(getResponse, null, 4));
+    logDebug(JSON.stringify(getResponse, null, 4));
     expect(getResponse.data.getUser.posts.items[0].id).toBeDefined();
     expect(getResponse.data.getUser.posts.items[0].title).toEqual('Hello, World!');
     expect(getResponse.data.getUser.posts.items[0].owner).toEqual('user1@test.com');
@@ -266,7 +266,7 @@ test('Testing reading an owner protected field as a non owner', async () => {
     }`,
         {}
     );
-    console.log(response1);
+    logDebug(response1);
     expect(response1.data.createFieldProtected.id).toEqual('1');
     expect(response1.data.createFieldProtected.owner).toEqual(USERNAME1);
     expect(response1.data.createFieldProtected.ownerOnly).toEqual('owner-protected');
@@ -281,7 +281,7 @@ test('Testing reading an owner protected field as a non owner', async () => {
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.getFieldProtected.ownerOnly).toBeNull();
     expect(response2.errors).toHaveLength(1);
 
@@ -295,7 +295,7 @@ test('Testing reading an owner protected field as a non owner', async () => {
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.getFieldProtected.id).toEqual('1');
     expect(response3.data.getFieldProtected.owner).toEqual(USERNAME1);
     expect(response3.data.getFieldProtected.ownerOnly).toEqual('owner-protected');
@@ -312,7 +312,7 @@ test('Test that @connection resolvers respect @model read operations.', async ()
     }`,
         {}
     );
-    console.log(response1);
+    logDebug(response1);
     expect(response1.data.createOpenTopLevel.id).toEqual('1');
     expect(response1.data.createOpenTopLevel.owner).toEqual(USERNAME1);
     expect(response1.data.createOpenTopLevel.name).toEqual('open');
@@ -327,7 +327,7 @@ test('Test that @connection resolvers respect @model read operations.', async ()
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.createConnectionProtected.id).toEqual('1');
     expect(response2.data.createConnectionProtected.owner).toEqual(USERNAME2);
     expect(response2.data.createConnectionProtected.name).toEqual('closed');
@@ -347,7 +347,7 @@ test('Test that @connection resolvers respect @model read operations.', async ()
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.getOpenTopLevel.id).toEqual('1');
     expect(response3.data.getOpenTopLevel.protected.items).toHaveLength(0);
 
@@ -366,7 +366,7 @@ test('Test that @connection resolvers respect @model read operations.', async ()
     }`,
         {}
     );
-    console.log(response4);
+    logDebug(response4);
     expect(response4.data.getOpenTopLevel.id).toEqual('1');
     expect(response4.data.getOpenTopLevel.protected.items).toHaveLength(1);
 });
@@ -383,7 +383,7 @@ test('Test that owners cannot set the field of a FieldProtected object unless au
     }`,
         {}
     );
-    console.log(JSON.stringify(response1));
+    logDebug(JSON.stringify(response1));
     expect(response1.data.createFieldProtected.id).toEqual('2');
     expect(response1.data.createFieldProtected.owner).toEqual(USERNAME1);
     expect(response1.data.createFieldProtected.ownerOnly).toEqual('owner-protected');
@@ -398,7 +398,7 @@ test('Test that owners cannot set the field of a FieldProtected object unless au
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.createFieldProtected).toBeNull();
     expect(response2.errors).toHaveLength(1);
 
@@ -414,7 +414,7 @@ test('Test that owners cannot set the field of a FieldProtected object unless au
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.createFieldProtected.id).toEqual('4');
     expect(response3.data.createFieldProtected.owner).toEqual(USERNAME2);
     // The length is one because the 'ownerOnly' field is protected on reads.
@@ -434,7 +434,7 @@ test('Test that owners cannot update the field of a FieldProtected object unless
     }`,
         {}
     );
-    console.log(JSON.stringify(response1));
+    logDebug(JSON.stringify(response1));
     expect(response1.data.createFieldProtected.id).not.toBeNull();
     expect(response1.data.createFieldProtected.owner).toEqual(USERNAME1);
     expect(response1.data.createFieldProtected.ownerOnly).toEqual('owner-protected');
@@ -451,7 +451,7 @@ test('Test that owners cannot update the field of a FieldProtected object unless
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.updateFieldProtected).toBeNull();
     expect(response2.errors).toHaveLength(1);
 
@@ -469,7 +469,7 @@ test('Test that owners cannot update the field of a FieldProtected object unless
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.updateFieldProtected.id).toEqual(response1.data.createFieldProtected.id);
     expect(response3.data.updateFieldProtected.owner).toEqual(USERNAME1);
     expect(response3.data.updateFieldProtected.ownerOnly).toEqual('updated');
@@ -487,7 +487,7 @@ test('Test that owners cannot update the field of a FieldProtected object unless
     }`,
         {}
     );
-    console.log(response4);
+    logDebug(response4);
     expect(response4.data.updateFieldProtected.id).toEqual(response1.data.createFieldProtected.id);
     expect(response4.data.updateFieldProtected.owner).toEqual(USERNAME3);
     expect(response4.data.updateFieldProtected.ownerOnly).toEqual('updated');

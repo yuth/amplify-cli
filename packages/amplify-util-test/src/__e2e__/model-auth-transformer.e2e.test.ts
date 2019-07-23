@@ -13,7 +13,7 @@ import {
     signupAndAuthenticateUser
 } from './utils/cognito-utils';
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 
 jest.setTimeout(2000000);
 
@@ -171,7 +171,7 @@ beforeAll(async () => {
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        GRAPHQL_ENDPOINT = server.url;
+        GRAPHQL_ENDPOINT = server.url + '/graphql';
         console.log(`Using graphql url: ${GRAPHQL_ENDPOINT}`);
 
         const apiKey = result.config.appSync.apiKey;
@@ -271,7 +271,7 @@ test('Test createPost mutation', async () => {
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createPost.id).toBeDefined();
     expect(response.data.createPost.title).toEqual('Hello, World!');
     expect(response.data.createPost.createdAt).toBeDefined();
@@ -290,7 +290,7 @@ test('Test createPost mutation', async () => {
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.createPost.id).toBeDefined();
     expect(response2.data.createPost.title).toEqual('Hello, World!');
     expect(response2.data.createPost.createdAt).toBeDefined();
@@ -311,7 +311,7 @@ test('Test getPost query when authorized', async () => {
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createPost.id).toBeDefined();
     expect(response.data.createPost.title).toEqual('Hello, World!');
     expect(response.data.createPost.createdAt).toBeDefined();
@@ -329,7 +329,7 @@ test('Test getPost query when authorized', async () => {
     }`,
         {}
     );
-    console.log(getResponse);
+    logDebug(getResponse);
     expect(getResponse.data.getPost.id).toBeDefined();
     expect(getResponse.data.getPost.title).toEqual('Hello, World!');
     expect(getResponse.data.getPost.createdAt).toBeDefined();
@@ -477,7 +477,7 @@ test('Test updatePost mutation when not authorized', async () => {
     );
     expect(updateResponse.data.updatePost).toEqual(null);
     expect(updateResponse.errors.length).toEqual(1);
-    console.log(updateResponse);
+    logDebug(updateResponse);
     expect((updateResponse.errors[0] as any).errorType).toEqual(
         'DynamoDB:ConditionalCheckFailedException'
     );
@@ -613,7 +613,7 @@ test('Test listPosts query when authorized', async () => {
     }`,
         {}
     );
-    console.log(JSON.stringify(listResponse, null, 4));
+    logDebug(JSON.stringify(listResponse, null, 4));
     expect(listResponse.data.listPosts.items.length).toEqual(1);
 
     const listResponseAccess = await GRAPHQL_CLIENT_1_ACCESS.query(
@@ -626,7 +626,7 @@ test('Test listPosts query when authorized', async () => {
     }`,
         {}
     );
-    console.log(JSON.stringify(listResponseAccess, null, 4));
+    logDebug(JSON.stringify(listResponseAccess, null, 4));
     expect(listResponseAccess.data.listPosts.items.length).toEqual(1);
 });
 
@@ -655,7 +655,7 @@ test(`Test update my own salary without admin permission`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.wage).toEqual(10);
     const req2 = await GRAPHQL_CLIENT_2.query(`
     mutation {
@@ -665,7 +665,7 @@ test(`Test update my own salary without admin permission`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req2, null, 4));
+    logDebug(JSON.stringify(req2, null, 4));
     expect(req2.data.updateSalary.wage).toEqual(14);
 });
 
@@ -678,7 +678,7 @@ test(`Test updating someone else's salary as an admin`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(11);
     const req2 = await GRAPHQL_CLIENT_1.query(`
@@ -689,7 +689,7 @@ test(`Test updating someone else's salary as an admin`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req2, null, 4));
+    logDebug(JSON.stringify(req2, null, 4));
     expect(req2.data.updateSalary.id).toEqual(req.data.createSalary.id);
     expect(req2.data.updateSalary.wage).toEqual(12);
 });
@@ -703,7 +703,7 @@ test(`Test updating someone else's salary when I am not admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(13);
     const req2 = await GRAPHQL_CLIENT_2.query(`
@@ -728,7 +728,7 @@ test(`Test deleteSalary w/ Admin group protection authorized`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(15);
     const req2 = await GRAPHQL_CLIENT_1.query(`
@@ -739,7 +739,7 @@ test(`Test deleteSalary w/ Admin group protection authorized`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req2, null, 4));
+    logDebug(JSON.stringify(req2, null, 4));
     expect(req2.data.deleteSalary.id).toEqual(req.data.createSalary.id);
     expect(req2.data.deleteSalary.wage).toEqual(15);
 });
@@ -753,7 +753,7 @@ test(`Test deleteSalary w/ Admin group protection not authorized`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(16);
     const req2 = await GRAPHQL_CLIENT_2.query(`
@@ -778,7 +778,7 @@ test(`Test and Admin can get a salary created by any user`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(15);
     const req2 = await GRAPHQL_CLIENT_1.query(`
@@ -802,7 +802,7 @@ test(`Test owner can create and get a salary when not admin`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(15);
     const req2 = await GRAPHQL_CLIENT_2.query(`
@@ -826,7 +826,7 @@ test(`Test getSalary w/ Admin group protection not authorized`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(16);
     const req2 = await GRAPHQL_CLIENT_2.query(`
@@ -851,7 +851,7 @@ test(`Test listSalarys w/ Admin group protection authorized`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(101);
     const req2 = await GRAPHQL_CLIENT_1.query(`
@@ -878,7 +878,7 @@ test(`Test listSalarys w/ Admin group protection not authorized`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSalary.id).toBeDefined();
     expect(req.data.createSalary.wage).toEqual(102);
     const req2 = await GRAPHQL_CLIENT_2.query(`
@@ -907,7 +907,7 @@ test(`Test createManyGroupProtected w/ dynamic group protection authorized`, asy
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createManyGroupProtected.id).toBeDefined();
     expect(req.data.createManyGroupProtected.value).toEqual(10);
     expect(req.data.createManyGroupProtected.groups).toEqual(['Admin']);
@@ -923,7 +923,7 @@ test(`Test createManyGroupProtected w/ dynamic group protection when not authori
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createManyGroupProtected).toEqual(null);
     expect(req.errors.length).toEqual(1);
     expect((req.errors[0] as any).errorType).toEqual('Unauthorized');
@@ -939,7 +939,7 @@ test(`Test createSingleGroupProtected w/ dynamic group protection authorized`, a
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSingleGroupProtected.id).toBeDefined();
     expect(req.data.createSingleGroupProtected.value).toEqual(10);
     expect(req.data.createSingleGroupProtected.group).toEqual('Admin');
@@ -955,7 +955,7 @@ test(`Test createSingleGroupProtected w/ dynamic group protection when not autho
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createSingleGroupProtected).toEqual(null);
     expect(req.errors.length).toEqual(1);
     expect((req.errors[0] as any).errorType).toEqual('Unauthorized');
@@ -972,7 +972,7 @@ test(`Test listPWProtecteds when the user is authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createPWProtected).toBeTruthy();
 
     const uReq = await GRAPHQL_CLIENT_1.query(`
@@ -985,7 +985,7 @@ test(`Test listPWProtecteds when the user is authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(uReq, null, 4));
+    logDebug(JSON.stringify(uReq, null, 4));
     expect(uReq.data.updatePWProtected).toBeTruthy();
 
     const req2 = await GRAPHQL_CLIENT_1.query(`
@@ -1015,7 +1015,7 @@ test(`Test listPWProtecteds when the user is authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req3, null, 4));
+    logDebug(JSON.stringify(req3, null, 4));
     expect(req3.data.getPWProtected).toBeTruthy();
 
     const dReq = await GRAPHQL_CLIENT_1.query(`
@@ -1028,7 +1028,7 @@ test(`Test listPWProtecteds when the user is authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(dReq, null, 4));
+    logDebug(JSON.stringify(dReq, null, 4));
     expect(dReq.data.deletePWProtected).toBeTruthy();
 });
 
@@ -1043,7 +1043,7 @@ test(`Test Protecteds when the user is not authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createPWProtected).toBeTruthy();
 
     const req2 = await GRAPHQL_CLIENT_2.query(`
@@ -1059,7 +1059,7 @@ test(`Test Protecteds when the user is not authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req2, null, 4));
+    logDebug(JSON.stringify(req2, null, 4));
     expect(req2.data.listPWProtecteds.items.length).toEqual(0);
     expect(req2.data.listPWProtecteds.nextToken).toBeNull();
 
@@ -1073,7 +1073,7 @@ test(`Test Protecteds when the user is not authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(uReq, null, 4));
+    logDebug(JSON.stringify(uReq, null, 4));
     expect(uReq.data.updatePWProtected).toBeNull();
 
     const req3 = await GRAPHQL_CLIENT_2.query(`
@@ -1086,7 +1086,7 @@ test(`Test Protecteds when the user is not authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(req3, null, 4));
+    logDebug(JSON.stringify(req3, null, 4));
     expect(req3.data.getPWProtected).toBeNull();
 
     const dReq = await GRAPHQL_CLIENT_2.query(`
@@ -1099,7 +1099,7 @@ test(`Test Protecteds when the user is not authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(dReq, null, 4));
+    logDebug(JSON.stringify(dReq, null, 4));
     expect(dReq.data.deletePWProtected).toBeNull();
 
     // The record should still exist after delete.
@@ -1113,7 +1113,7 @@ test(`Test Protecteds when the user is not authorized.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(getReq, null, 4));
+    logDebug(JSON.stringify(getReq, null, 4));
     expect(getReq.data.getPWProtected).toBeTruthy();
 });
 
@@ -1126,7 +1126,7 @@ test(`Test creating, updating, and deleting an admin note as an admin`, async ()
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.data.createAdminNote.id).toBeDefined();
     expect(req.data.createAdminNote.content).toEqual('Hello');
     const req2 = await GRAPHQL_CLIENT_1.query(`
@@ -1137,7 +1137,7 @@ test(`Test creating, updating, and deleting an admin note as an admin`, async ()
         }
     }
     `);
-    console.log(JSON.stringify(req2, null, 4));
+    logDebug(JSON.stringify(req2, null, 4));
     expect(req2.data.updateAdminNote.id).toEqual(req.data.createAdminNote.id);
     expect(req2.data.updateAdminNote.content).toEqual('Hello 2');
     const req3 = await GRAPHQL_CLIENT_1.query(`
@@ -1148,7 +1148,7 @@ test(`Test creating, updating, and deleting an admin note as an admin`, async ()
         }
     }
     `);
-    console.log(JSON.stringify(req3, null, 4));
+    logDebug(JSON.stringify(req3, null, 4));
     expect(req3.data.deleteAdminNote.id).toEqual(req.data.createAdminNote.id);
     expect(req3.data.deleteAdminNote.content).toEqual('Hello 2');
 });
@@ -1162,7 +1162,7 @@ test(`Test creating, updating, and deleting an admin note as a non admin`, async
         }
     }
     `);
-    console.log(JSON.stringify(adminReq, null, 4));
+    logDebug(JSON.stringify(adminReq, null, 4));
     expect(adminReq.data.createAdminNote.id).toBeDefined();
     expect(adminReq.data.createAdminNote.content).toEqual('Hello');
 
@@ -1174,7 +1174,7 @@ test(`Test creating, updating, and deleting an admin note as a non admin`, async
         }
     }
     `);
-    console.log(JSON.stringify(req, null, 4));
+    logDebug(JSON.stringify(req, null, 4));
     expect(req.errors.length).toEqual(1);
     expect((req.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1186,7 +1186,7 @@ test(`Test creating, updating, and deleting an admin note as a non admin`, async
         }
     }
     `);
-    console.log(JSON.stringify(req2, null, 4));
+    logDebug(JSON.stringify(req2, null, 4));
     expect(req2.errors.length).toEqual(1);
     expect((req2.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1198,7 +1198,7 @@ test(`Test creating, updating, and deleting an admin note as a non admin`, async
         }
     }
     `);
-    console.log(JSON.stringify(req3, null, 4));
+    logDebug(JSON.stringify(req3, null, 4));
     expect(req3.errors.length).toEqual(1);
     expect((req3.errors[0] as any).errorType).toEqual('Unauthorized');
 });
@@ -1221,7 +1221,7 @@ test(`Test getAllThree as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
 
     const fetchOwnedBy2AsAdmin = await GRAPHQL_CLIENT_1.query(`
@@ -1235,7 +1235,7 @@ test(`Test getAllThree as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedBy2AsAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedBy2AsAdmin, null, 4));
     expect(fetchOwnedBy2AsAdmin.data.getAllThree).toBeTruthy();
 
     const deleteReq = await GRAPHQL_CLIENT_1.query(`
@@ -1245,7 +1245,7 @@ test(`Test getAllThree as admin.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1263,7 +1263,7 @@ test(`Test getAllThree as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
 
     const fetchOwnedBy2AsOwner = await GRAPHQL_CLIENT_2.query(`
@@ -1277,7 +1277,7 @@ test(`Test getAllThree as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedBy2AsOwner, null, 4));
+    logDebug(JSON.stringify(fetchOwnedBy2AsOwner, null, 4));
     expect(fetchOwnedBy2AsOwner.data.getAllThree).toBeTruthy();
 
     const deleteReq = await GRAPHQL_CLIENT_1.query(`
@@ -1287,7 +1287,7 @@ test(`Test getAllThree as owner.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1305,7 +1305,7 @@ test(`Test getAllThree as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
 
     const fetchOwnedBy2AsEditor = await GRAPHQL_CLIENT_2.query(`
@@ -1319,7 +1319,7 @@ test(`Test getAllThree as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedBy2AsEditor, null, 4));
+    logDebug(JSON.stringify(fetchOwnedBy2AsEditor, null, 4));
     expect(fetchOwnedBy2AsEditor.data.getAllThree).toBeTruthy();
 
     const deleteReq = await GRAPHQL_CLIENT_1.query(`
@@ -1329,7 +1329,7 @@ test(`Test getAllThree as one of a set of editors.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1347,7 +1347,7 @@ test(`Test getAllThree as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdmins, null, 4));
+    logDebug(JSON.stringify(ownedByAdmins, null, 4));
     expect(ownedByAdmins.data.createAllThree).toBeTruthy();
 
     const fetchOwnedByAdminsAsAdmin = await GRAPHQL_CLIENT_2.query(`
@@ -1361,7 +1361,7 @@ test(`Test getAllThree as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
     expect(fetchOwnedByAdminsAsAdmin.data.getAllThree).toBeTruthy();
 
     const fetchOwnedByAdminsAsNonAdmin = await GRAPHQL_CLIENT_3.query(`
@@ -1375,7 +1375,7 @@ test(`Test getAllThree as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
     expect(fetchOwnedByAdminsAsNonAdmin.errors.length).toEqual(1);
     expect((fetchOwnedByAdminsAsNonAdmin.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1386,7 +1386,7 @@ test(`Test getAllThree as a member of a dynamic group.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByAdmins.data.createAllThree.id);
 });
 
@@ -1404,7 +1404,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdmins, null, 4));
+    logDebug(JSON.stringify(ownedByAdmins, null, 4));
     expect(ownedByAdmins.data.createAllThree).toBeTruthy();
 
     const fetchOwnedByAdminsAsAdmin = await GRAPHQL_CLIENT_2.query(`
@@ -1418,7 +1418,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
     expect(fetchOwnedByAdminsAsAdmin.data.getAllThree).toBeTruthy();
 
     const fetchOwnedByAdminsAsNonAdmin = await GRAPHQL_CLIENT_3.query(`
@@ -1432,7 +1432,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
     expect(fetchOwnedByAdminsAsNonAdmin.errors.length).toEqual(1);
     expect((fetchOwnedByAdminsAsNonAdmin.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1443,7 +1443,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByAdmins.data.createAllThree.id);
 });
 
@@ -1465,7 +1465,7 @@ test(`Test listAllThrees as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
 
     const fetchOwnedBy2AsAdmin = await GRAPHQL_CLIENT_1.query(`
@@ -1481,7 +1481,7 @@ test(`Test listAllThrees as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedBy2AsAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedBy2AsAdmin, null, 4));
     expect(fetchOwnedBy2AsAdmin.data.listAllThrees.items).toHaveLength(1);
     expect(fetchOwnedBy2AsAdmin.data.listAllThrees.items[0].id).toEqual(
         ownedBy2.data.createAllThree.id
@@ -1494,7 +1494,7 @@ test(`Test listAllThrees as admin.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1512,7 +1512,7 @@ test(`Test listAllThrees as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
 
     const fetchOwnedBy2AsOwner = await GRAPHQL_CLIENT_2.query(`
@@ -1528,7 +1528,7 @@ test(`Test listAllThrees as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedBy2AsOwner, null, 4));
+    logDebug(JSON.stringify(fetchOwnedBy2AsOwner, null, 4));
     expect(fetchOwnedBy2AsOwner.data.listAllThrees.items).toHaveLength(1);
     expect(fetchOwnedBy2AsOwner.data.listAllThrees.items[0].id).toEqual(
         ownedBy2.data.createAllThree.id
@@ -1541,7 +1541,7 @@ test(`Test listAllThrees as owner.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1559,7 +1559,7 @@ test(`Test listAllThrees as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
 
     const fetchOwnedBy2AsEditor = await GRAPHQL_CLIENT_2.query(`
@@ -1575,7 +1575,7 @@ test(`Test listAllThrees as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedBy2AsEditor, null, 4));
+    logDebug(JSON.stringify(fetchOwnedBy2AsEditor, null, 4));
     expect(fetchOwnedBy2AsEditor.data.listAllThrees.items).toHaveLength(1);
     expect(fetchOwnedBy2AsEditor.data.listAllThrees.items[0].id).toEqual(
         ownedBy2.data.createAllThree.id
@@ -1588,7 +1588,7 @@ test(`Test listAllThrees as one of a set of editors.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1606,7 +1606,7 @@ test(`Test listAllThrees as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdmins, null, 4));
+    logDebug(JSON.stringify(ownedByAdmins, null, 4));
     expect(ownedByAdmins.data.createAllThree).toBeTruthy();
 
     const fetchOwnedByAdminsAsAdmin = await GRAPHQL_CLIENT_2.query(`
@@ -1622,7 +1622,7 @@ test(`Test listAllThrees as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
     expect(fetchOwnedByAdminsAsAdmin.data.listAllThrees.items).toHaveLength(1);
     expect(fetchOwnedByAdminsAsAdmin.data.listAllThrees.items[0].id).toEqual(
         ownedByAdmins.data.createAllThree.id
@@ -1641,7 +1641,7 @@ test(`Test listAllThrees as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
     expect(fetchOwnedByAdminsAsNonAdmin.data.listAllThrees.items).toHaveLength(0);
 
     const deleteReq = await GRAPHQL_CLIENT_1.query(`
@@ -1651,7 +1651,7 @@ test(`Test listAllThrees as a member of a dynamic group.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByAdmins.data.createAllThree.id);
 });
 
@@ -1669,7 +1669,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdmins, null, 4));
+    logDebug(JSON.stringify(ownedByAdmins, null, 4));
     expect(ownedByAdmins.data.createAllThree).toBeTruthy();
 
     const fetchOwnedByAdminsAsAdmin = await GRAPHQL_CLIENT_2.query(`
@@ -1685,7 +1685,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsAdmin, null, 4));
     expect(fetchOwnedByAdminsAsAdmin.data.listAllThrees.items).toHaveLength(1);
     expect(fetchOwnedByAdminsAsAdmin.data.listAllThrees.items[0].id).toEqual(
         ownedByAdmins.data.createAllThree.id
@@ -1704,7 +1704,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
+    logDebug(JSON.stringify(fetchOwnedByAdminsAsNonAdmin, null, 4));
     expect(fetchOwnedByAdminsAsNonAdmin.data.listAllThrees.items).toHaveLength(0);
 
     const deleteReq = await GRAPHQL_CLIENT_1.query(`
@@ -1714,7 +1714,7 @@ test(`Test getAllThree as a member of the alternative group.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByAdmins.data.createAllThree.id);
 });
 
@@ -1736,7 +1736,7 @@ test(`Test createAllThree as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
     // set by input
     expect(ownedBy2.data.createAllThree.owner).toEqual('user2@test.com');
@@ -1759,7 +1759,7 @@ test(`Test createAllThree as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2NoEditors, null, 4));
+    logDebug(JSON.stringify(ownedBy2NoEditors, null, 4));
     expect(ownedBy2NoEditors.data.createAllThree).toBeTruthy();
     // set by input
     expect(ownedBy2NoEditors.data.createAllThree.owner).toEqual('user2@test.com');
@@ -1775,7 +1775,7 @@ test(`Test createAllThree as admin.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 
     const deleteReq2 = await GRAPHQL_CLIENT_1.query(`
@@ -1785,7 +1785,7 @@ test(`Test createAllThree as admin.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq2, null, 4));
+    logDebug(JSON.stringify(deleteReq2, null, 4));
     expect(deleteReq2.data.deleteAllThree.id).toEqual(ownedBy2NoEditors.data.createAllThree.id);
 });
 
@@ -1804,7 +1804,7 @@ test(`Test createAllThree as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
     expect(ownedBy2.data.createAllThree.owner).toEqual('user2@test.com');
     expect(ownedBy2.data.createAllThree.editors).toHaveLength(0);
@@ -1825,7 +1825,7 @@ test(`Test createAllThree as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy1, null, 4));
+    logDebug(JSON.stringify(ownedBy1, null, 4));
     expect(ownedBy1.errors.length).toEqual(1);
     expect((ownedBy1.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1836,7 +1836,7 @@ test(`Test createAllThree as owner.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -1855,7 +1855,7 @@ test(`Test createAllThree as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
     expect(ownedBy2.data.createAllThree.owner).toBeNull();
     expect(ownedBy2.data.createAllThree.editors[0]).toEqual('user2@test.com');
@@ -1875,7 +1875,7 @@ test(`Test createAllThree as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2WithDefaultOwner, null, 4));
+    logDebug(JSON.stringify(ownedBy2WithDefaultOwner, null, 4));
     expect(ownedBy2WithDefaultOwner.data.createAllThree).toBeTruthy();
     expect(ownedBy2WithDefaultOwner.data.createAllThree.owner).toEqual('user2@test.com');
     expect(ownedBy2WithDefaultOwner.data.createAllThree.editors[0]).toEqual('user2@test.com');
@@ -1896,7 +1896,7 @@ test(`Test createAllThree as one of a set of editors.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByEditorsUnauthed, null, 4));
+    logDebug(JSON.stringify(ownedByEditorsUnauthed, null, 4));
     expect(ownedByEditorsUnauthed.errors.length).toEqual(1);
     expect((ownedByEditorsUnauthed.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1907,7 +1907,7 @@ test(`Test createAllThree as one of a set of editors.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 
     const deleteReq2 = await GRAPHQL_CLIENT_1.query(`
@@ -1917,7 +1917,7 @@ test(`Test createAllThree as one of a set of editors.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq2, null, 4));
+    logDebug(JSON.stringify(deleteReq2, null, 4));
     expect(deleteReq2.data.deleteAllThree.id).toEqual(
         ownedBy2WithDefaultOwner.data.createAllThree.id
     );
@@ -1939,7 +1939,7 @@ test(`Test createAllThree as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByDevs, null, 4));
+    logDebug(JSON.stringify(ownedByDevs, null, 4));
     expect(ownedByDevs.data.createAllThree).toBeTruthy();
     expect(ownedByDevs.data.createAllThree.owner).toBeNull();
     expect(ownedByDevs.data.createAllThree.editors).toHaveLength(0);
@@ -1961,7 +1961,7 @@ test(`Test createAllThree as a member of a dynamic group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdminsUnauthed, null, 4));
+    logDebug(JSON.stringify(ownedByAdminsUnauthed, null, 4));
     expect(ownedByAdminsUnauthed.errors.length).toEqual(1);
     expect((ownedByAdminsUnauthed.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -1972,7 +1972,7 @@ test(`Test createAllThree as a member of a dynamic group.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByDevs.data.createAllThree.id);
 });
 
@@ -1992,7 +1992,7 @@ test(`Test createAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdmins, null, 4));
+    logDebug(JSON.stringify(ownedByAdmins, null, 4));
     expect(ownedByAdmins.data.createAllThree).toBeTruthy();
     expect(ownedByAdmins.data.createAllThree.owner).toBeNull();
     expect(ownedByAdmins.data.createAllThree.editors).toHaveLength(0);
@@ -2013,7 +2013,7 @@ test(`Test createAllThree as a member of the alternative group.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdminsUnauthed, null, 4));
+    logDebug(JSON.stringify(ownedByAdminsUnauthed, null, 4));
     expect(ownedByAdminsUnauthed.errors.length).toEqual(1);
     expect((ownedByAdminsUnauthed.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -2024,7 +2024,7 @@ test(`Test createAllThree as a member of the alternative group.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByAdmins.data.createAllThree.id);
 });
 
@@ -2047,7 +2047,7 @@ test(`Test updateAllThree and deleteAllThree as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
     // set by input
     expect(ownedBy2.data.createAllThree.owner).toEqual('user2@test.com');
@@ -2070,7 +2070,7 @@ test(`Test updateAllThree and deleteAllThree as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedByTwoUpdate, null, 4));
+    logDebug(JSON.stringify(ownedByTwoUpdate, null, 4));
     expect(ownedByTwoUpdate.data.updateAllThree).toBeTruthy();
     // set by input
     expect(ownedByTwoUpdate.data.updateAllThree.owner).toEqual('user2@test.com');
@@ -2086,7 +2086,7 @@ test(`Test updateAllThree and deleteAllThree as admin.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -2105,7 +2105,7 @@ test(`Test updateAllThree and deleteAllThree as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
     expect(ownedBy2.data.createAllThree.owner).toEqual('user2@test.com');
     expect(ownedBy2.data.createAllThree.editors).toHaveLength(0);
@@ -2126,7 +2126,7 @@ test(`Test updateAllThree and deleteAllThree as owner.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2Update, null, 4));
+    logDebug(JSON.stringify(ownedBy2Update, null, 4));
     expect(ownedBy2Update.data.updateAllThree).toBeTruthy();
     // set by input
     expect(ownedBy2Update.data.updateAllThree.owner).toEqual('user2@test.com');
@@ -2142,7 +2142,7 @@ test(`Test updateAllThree and deleteAllThree as owner.`, async () => {
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -2161,7 +2161,7 @@ test(`Test updateAllThree and deleteAllThree as one of a set of editors.`, async
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createAllThree).toBeTruthy();
     expect(ownedBy2.data.createAllThree.owner).toBeNull();
     expect(ownedBy2.data.createAllThree.editors[0]).toEqual('user2@test.com');
@@ -2182,7 +2182,7 @@ test(`Test updateAllThree and deleteAllThree as one of a set of editors.`, async
         }
     }
     `);
-    console.log(JSON.stringify(ownedByUpdate, null, 4));
+    logDebug(JSON.stringify(ownedByUpdate, null, 4));
     expect(ownedByUpdate.data.updateAllThree).toBeTruthy();
     // set by input
     expect(ownedByUpdate.data.updateAllThree.owner).toBeNull();
@@ -2198,7 +2198,7 @@ test(`Test updateAllThree and deleteAllThree as one of a set of editors.`, async
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedBy2.data.createAllThree.id);
 });
 
@@ -2218,7 +2218,7 @@ test(`Test updateAllThree and deleteAllThree as a member of a dynamic group.`, a
         }
     }
     `);
-    console.log(JSON.stringify(ownedByDevs, null, 4));
+    logDebug(JSON.stringify(ownedByDevs, null, 4));
     expect(ownedByDevs.data.createAllThree).toBeTruthy();
     expect(ownedByDevs.data.createAllThree.owner).toBeNull();
     expect(ownedByDevs.data.createAllThree.editors).toHaveLength(0);
@@ -2239,7 +2239,7 @@ test(`Test updateAllThree and deleteAllThree as a member of a dynamic group.`, a
         }
     }
     `);
-    console.log(JSON.stringify(ownedByUpdate, null, 4));
+    logDebug(JSON.stringify(ownedByUpdate, null, 4));
     expect(ownedByUpdate.data.updateAllThree).toBeTruthy();
     // set by input
     expect(ownedByUpdate.data.updateAllThree.owner).toBeNull();
@@ -2263,7 +2263,7 @@ test(`Test updateAllThree and deleteAllThree as a member of a dynamic group.`, a
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdminsUnauthed, null, 4));
+    logDebug(JSON.stringify(ownedByAdminsUnauthed, null, 4));
     expect(ownedByAdminsUnauthed.errors.length).toEqual(1);
     expect((ownedByAdminsUnauthed.errors[0] as any).errorType).toEqual('Unauthorized');
 
@@ -2274,7 +2274,7 @@ test(`Test updateAllThree and deleteAllThree as a member of a dynamic group.`, a
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByDevs.data.createAllThree.id);
 });
 
@@ -2294,7 +2294,7 @@ test(`Test updateAllThree and deleteAllThree as a member of the alternative grou
         }
     }
     `);
-    console.log(JSON.stringify(ownedByDevs, null, 4));
+    logDebug(JSON.stringify(ownedByDevs, null, 4));
     expect(ownedByDevs.data.createAllThree).toBeTruthy();
     expect(ownedByDevs.data.createAllThree.owner).toBeNull();
     expect(ownedByDevs.data.createAllThree.editors).toHaveLength(0);
@@ -2314,7 +2314,7 @@ test(`Test updateAllThree and deleteAllThree as a member of the alternative grou
         }
     }
     `);
-    console.log(JSON.stringify(ownedByUpdate, null, 4));
+    logDebug(JSON.stringify(ownedByUpdate, null, 4));
     expect(ownedByUpdate.data.updateAllThree).toBeTruthy();
     // set by input
     expect(ownedByUpdate.data.updateAllThree.owner).toBeNull();
@@ -2337,7 +2337,7 @@ test(`Test updateAllThree and deleteAllThree as a member of the alternative grou
         }
     }
     `);
-    console.log(JSON.stringify(ownedByAdminsUnauthed, null, 4));
+    logDebug(JSON.stringify(ownedByAdminsUnauthed, null, 4));
     expect(ownedByAdminsUnauthed.errors.length).toEqual(1);
     expect((ownedByAdminsUnauthed.errors[0] as any).errorType).toEqual(
         'DynamoDB:ConditionalCheckFailedException'
@@ -2358,7 +2358,7 @@ test(`Test updateAllThree and deleteAllThree as a member of the alternative grou
         }
     }
     `);
-    console.log(JSON.stringify(ownedByDevs2, null, 4));
+    logDebug(JSON.stringify(ownedByDevs2, null, 4));
     expect(ownedByDevs2.data.createAllThree).toBeTruthy();
     expect(ownedByDevs2.data.createAllThree.owner).toBeNull();
     expect(ownedByDevs2.data.createAllThree.editors).toHaveLength(0);
@@ -2371,7 +2371,7 @@ test(`Test updateAllThree and deleteAllThree as a member of the alternative grou
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq2, null, 4));
+    logDebug(JSON.stringify(deleteReq2, null, 4));
     expect(deleteReq2.data.deleteAllThree.id).toEqual(ownedByDevs2.data.createAllThree.id);
 
     const deleteReq = await GRAPHQL_CLIENT_1.query(`
@@ -2381,7 +2381,7 @@ test(`Test updateAllThree and deleteAllThree as a member of the alternative grou
             }
         }
     `);
-    console.log(JSON.stringify(deleteReq, null, 4));
+    logDebug(JSON.stringify(deleteReq, null, 4));
     expect(deleteReq.data.deleteAllThree.id).toEqual(ownedByDevs.data.createAllThree.id);
 });
 
@@ -2397,7 +2397,7 @@ test(`Test createTestIdentity as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(ownedBy2, null, 4));
+    logDebug(JSON.stringify(ownedBy2, null, 4));
     expect(ownedBy2.data.createTestIdentity).toBeTruthy();
     expect(ownedBy2.data.createTestIdentity.title).toEqual('Test title');
     expect(ownedBy2.data.createTestIdentity.owner.slice(0, 19)).toEqual('https://cognito-idp');
@@ -2415,7 +2415,7 @@ test(`Test createTestIdentity as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(update, null, 4));
+    logDebug(JSON.stringify(update, null, 4));
     expect(update.data.updateTestIdentity).toBeTruthy();
     expect(update.data.updateTestIdentity.title).toEqual('Test title update');
     expect(update.data.updateTestIdentity.owner.slice(0, 19)).toEqual('https://cognito-idp');
@@ -2430,7 +2430,7 @@ test(`Test createTestIdentity as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(getReq, null, 4));
+    logDebug(JSON.stringify(getReq, null, 4));
     expect(getReq.data.getTestIdentity).toBeTruthy();
     expect(getReq.data.getTestIdentity.title).toEqual('Test title update');
     expect(getReq.data.getTestIdentity.owner.slice(0, 19)).toEqual('https://cognito-idp');
@@ -2450,7 +2450,7 @@ test(`Test createTestIdentity as admin.`, async () => {
     const relevantPost = listResponse.data.listTestIdentitys.items.find(
         p => p.id === getReq.data.getTestIdentity.id
     );
-    console.log(JSON.stringify(listResponse, null, 4));
+    logDebug(JSON.stringify(listResponse, null, 4));
     expect(relevantPost).toBeTruthy();
     expect(relevantPost.title).toEqual('Test title update');
     expect(relevantPost.owner.slice(0, 19)).toEqual('https://cognito-idp');
@@ -2467,7 +2467,7 @@ test(`Test createTestIdentity as admin.`, async () => {
         }
     }
     `);
-    console.log(JSON.stringify(delReq, null, 4));
+    logDebug(JSON.stringify(delReq, null, 4));
     expect(delReq.data.deleteTestIdentity).toBeTruthy();
     expect(delReq.data.deleteTestIdentity.title).toEqual('Test title update');
     expect(delReq.data.deleteTestIdentity.owner.slice(0, 19)).toEqual('https://cognito-idp');
@@ -2487,7 +2487,7 @@ test("Test get and list with 'read' operation set", async () => {
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createOwnerReadProtected.id).toBeDefined();
     expect(response.data.createOwnerReadProtected.content).toEqual('Hello, World!');
     expect(response.data.createOwnerReadProtected.owner).toEqual(USERNAME1);
@@ -2500,7 +2500,7 @@ test("Test get and list with 'read' operation set", async () => {
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.getOwnerReadProtected).toBeNull();
     expect(response2.errors).toHaveLength(1);
 
@@ -2512,7 +2512,7 @@ test("Test get and list with 'read' operation set", async () => {
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.getOwnerReadProtected.id).toBeDefined();
     expect(response3.data.getOwnerReadProtected.content).toEqual('Hello, World!');
     expect(response3.data.getOwnerReadProtected.owner).toEqual(USERNAME1);
@@ -2527,7 +2527,7 @@ test("Test get and list with 'read' operation set", async () => {
     }`,
         {}
     );
-    console.log(response4);
+    logDebug(response4);
     expect(response4.data.listOwnerReadProtecteds.items.length).toBeGreaterThanOrEqual(1);
 
     const response5 = await GRAPHQL_CLIENT_2.query(
@@ -2540,7 +2540,7 @@ test("Test get and list with 'read' operation set", async () => {
     }`,
         {}
     );
-    console.log(response5);
+    logDebug(response5);
     expect(response5.data.listOwnerReadProtecteds.items).toHaveLength(0);
 });
 
@@ -2555,7 +2555,7 @@ test("Test createOwnerCreateUpdateDeleteProtected with 'create' operation set", 
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createOwnerCreateUpdateDeleteProtected.id).toBeDefined();
     expect(response.data.createOwnerCreateUpdateDeleteProtected.content).toEqual('Hello, World!');
     expect(response.data.createOwnerCreateUpdateDeleteProtected.owner).toEqual(USERNAME1);
@@ -2570,7 +2570,7 @@ test("Test createOwnerCreateUpdateDeleteProtected with 'create' operation set", 
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.createOwnerCreateUpdateDeleteProtected).toBeNull();
     expect(response2.errors).toHaveLength(1);
 });
@@ -2586,7 +2586,7 @@ test("Test updateOwnerCreateUpdateDeleteProtected with 'update' operation set", 
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createOwnerCreateUpdateDeleteProtected.id).toBeDefined();
     expect(response.data.createOwnerCreateUpdateDeleteProtected.content).toEqual('Hello, World!');
     expect(response.data.createOwnerCreateUpdateDeleteProtected.owner).toEqual(USERNAME1);
@@ -2606,7 +2606,7 @@ test("Test updateOwnerCreateUpdateDeleteProtected with 'update' operation set", 
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.updateOwnerCreateUpdateDeleteProtected).toBeNull();
     expect(response2.errors).toHaveLength(1);
 
@@ -2625,7 +2625,7 @@ test("Test updateOwnerCreateUpdateDeleteProtected with 'update' operation set", 
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.updateOwnerCreateUpdateDeleteProtected.id).toBeDefined();
     expect(response3.data.updateOwnerCreateUpdateDeleteProtected.content).toEqual('Bye, World!');
     expect(response3.data.updateOwnerCreateUpdateDeleteProtected.owner).toEqual(USERNAME1);
@@ -2642,7 +2642,7 @@ test("Test deleteOwnerCreateUpdateDeleteProtected with 'update' operation set", 
     }`,
         {}
     );
-    console.log(response);
+    logDebug(response);
     expect(response.data.createOwnerCreateUpdateDeleteProtected.id).toBeDefined();
     expect(response.data.createOwnerCreateUpdateDeleteProtected.content).toEqual('Hello, World!');
     expect(response.data.createOwnerCreateUpdateDeleteProtected.owner).toEqual(USERNAME1);
@@ -2661,7 +2661,7 @@ test("Test deleteOwnerCreateUpdateDeleteProtected with 'update' operation set", 
     }`,
         {}
     );
-    console.log(response2);
+    logDebug(response2);
     expect(response2.data.deleteOwnerCreateUpdateDeleteProtected).toBeNull();
     expect(response2.errors).toHaveLength(1);
 
@@ -2679,7 +2679,7 @@ test("Test deleteOwnerCreateUpdateDeleteProtected with 'update' operation set", 
     }`,
         {}
     );
-    console.log(response3);
+    logDebug(response3);
     expect(response3.data.deleteOwnerCreateUpdateDeleteProtected.id).toBeDefined();
     expect(response3.data.deleteOwnerCreateUpdateDeleteProtected.content).toEqual('Hello, World!');
     expect(response3.data.deleteOwnerCreateUpdateDeleteProtected.owner).toEqual(USERNAME1);

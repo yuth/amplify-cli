@@ -4,7 +4,7 @@ import ModelTransformer from 'graphql-dynamodb-transformer';
 import KeyTransformer from 'graphql-key-transformer';
 
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 
 jest.setTimeout(2000000);
 
@@ -58,11 +58,11 @@ beforeAll(async () => {
     const result = await deploy(out, ddbClient);
     server = result.simulator;
 
-    GRAPHQL_ENDPOINT = server.url;
+    GRAPHQL_ENDPOINT = server.url + '/graphql';
     console.log(`Using graphql url: ${GRAPHQL_ENDPOINT}`);
 
     const apiKey = result.config.appSync.apiKey;
-    console.log(apiKey);
+    logDebug(apiKey);
     GRAPHQL_CLIENT = new GraphQLClient(GRAPHQL_ENDPOINT, { 'x-api-key': apiKey });
 });
 
@@ -327,7 +327,7 @@ async function createCustomer(email: string, addresslist: string[], username: st
             input: { email, addresslist, username }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -344,7 +344,7 @@ async function updateCustomer(email: string, addresslist: string[], username: st
             input: { email, addresslist, username }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -361,7 +361,7 @@ async function getCustomer(email: string) {
             email
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -378,7 +378,7 @@ async function createOrder(customerEmail: string, orderId: string) {
             input: { customerEmail, orderId, createdAt: new Date().toISOString() }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -395,7 +395,7 @@ async function updateOrder(customerEmail: string, createdAt: string, orderId: st
             input: { customerEmail, orderId, createdAt }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -412,7 +412,7 @@ async function deleteOrder(customerEmail: string, createdAt: string) {
             input: { customerEmail, createdAt }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -427,7 +427,7 @@ async function getOrder(customerEmail: string, createdAt: string) {
     }`,
         { customerEmail, createdAt }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -451,8 +451,8 @@ async function createItem(
             input
         }
     );
-    console.log(`Running create: ${JSON.stringify(input)}`);
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(`Running create: ${JSON.stringify(input)}`);
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -471,8 +471,8 @@ async function updateItem(orderId: string, status: string, createdAt: string, na
             input
         }
     );
-    console.log(`Running create: ${JSON.stringify(input)}`);
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(`Running create: ${JSON.stringify(input)}`);
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -491,8 +491,8 @@ async function deleteItem(orderId: string, status: string, createdAt: string) {
             input
         }
     );
-    console.log(`Running delete: ${JSON.stringify(input)}`);
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(`Running delete: ${JSON.stringify(input)}`);
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -508,7 +508,7 @@ async function getItem(orderId: string, status: string, createdAt: string) {
     }`,
         { orderId, status, createdAt }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -555,7 +555,7 @@ async function listItem(
     }`,
         { orderId, statusCreatedAt, limit, nextToken }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -579,7 +579,7 @@ async function itemsByStatus(
     }`,
         { status, createdAt, limit, nextToken }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -603,7 +603,7 @@ async function itemsByCreatedAt(
     }`,
         { createdAt, status, limit, nextToken }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -628,8 +628,8 @@ async function createShippingUpdate(
             input
         }
     );
-    console.log(`Running create: ${JSON.stringify(input)}`);
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(`Running create: ${JSON.stringify(input)}`);
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -656,8 +656,8 @@ async function updateShippingUpdate(input: UpdateShippingInput) {
             input
         }
     );
-    console.log(`Running update: ${JSON.stringify(input)}`);
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(`Running update: ${JSON.stringify(input)}`);
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -677,7 +677,7 @@ async function getShippingUpdates(orderId: string) {
     }`,
         { orderId }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -697,6 +697,6 @@ async function getShippingUpdatesWithNameFilter(orderId: string, name: string) {
     }`,
         { orderId, name }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }

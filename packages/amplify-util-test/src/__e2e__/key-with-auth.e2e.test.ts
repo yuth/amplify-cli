@@ -6,7 +6,7 @@ import DynamoDBModelTransformer from 'graphql-dynamodb-transformer';
 import ModelAuthTransformer from 'graphql-auth-transformer';
 import KeyTransformer from 'graphql-key-transformer';
 import { GraphQLClient } from './utils/graphql-client';
-import { deploy, launchDDBLocal, terminateDDB } from './utils/index';
+import { deploy, launchDDBLocal, terminateDDB, logDebug } from './utils/index';
 import * as moment from 'moment';
 
 import {
@@ -105,7 +105,7 @@ beforeAll(async () => {
         const result = await deploy(out, ddbClient);
         server = result.simulator;
 
-        GRAPHQL_ENDPOINT = server.url;
+        GRAPHQL_ENDPOINT = server.url + '/graphql';
         console.log(`Using graphql url: ${GRAPHQL_ENDPOINT}`);
 
         // Verify we have all the details
@@ -267,7 +267,7 @@ async function createOrder(client: GraphQLClient, customerEmail: string, orderId
             input: { customerEmail, orderId }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -284,7 +284,7 @@ async function updateOrder(client: GraphQLClient, customerEmail: string, orderId
             input: { customerEmail, orderId }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -301,7 +301,7 @@ async function deleteOrder(client: GraphQLClient, customerEmail: string, orderId
             input: { customerEmail, orderId }
         }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -316,7 +316,7 @@ async function getOrder(client: GraphQLClient, customerEmail: string, orderId: s
     }`,
         { customerEmail, orderId }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -338,7 +338,7 @@ async function listOrders(
     }`,
         { customerEmail, orderId }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
 
@@ -356,6 +356,6 @@ async function ordersByOrderId(client: GraphQLClient, orderId: string) {
     }`,
         { orderId }
     );
-    console.log(JSON.stringify(result, null, 4));
+    logDebug(JSON.stringify(result, null, 4));
     return result;
 }
