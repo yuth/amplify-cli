@@ -19,8 +19,8 @@ async function downloadIntrospectionSchema(context, apiId, downloadLocation, reg
         },
       );
       const introspectionDir = dirname(downloadLocation);
-      jetpack.dir(introspectionDir);
-      jetpack.write(downloadLocation, schema);
+      fs.ensureDirSync(introspectionDir);
+      fs.writeFileSync(downloadLocation, schema, 'utf8');
       return relative(amplify.getEnvInfo().projectPath, downloadLocation);
     } catch (ex) {
       if (ex.code === 'NotFoundException') {
