@@ -38,9 +38,6 @@ export class OperationServer {
     this.app.post('/graphql', this.handleRequest.bind(this));
     this.app.use('/', express.static(STATIC_ROOT))
     this.server = null;
-    // XXX: Move this to a separate method in the root of server
-    this.secureKey = readFileSync(join(__dirname, '..', '..', 'certs', 'appsync-simulator.key'));
-    this.secureCert = readFileSync(join(__dirname, '..', '..', 'certs', 'appsync-simulator.crt'));
   }
 
   async start() {
