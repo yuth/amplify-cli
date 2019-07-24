@@ -62,7 +62,6 @@ afterAll(async () => {
         await terminateDDB(ddbEmulator, dbPath);
     } catch (e) {
         console.error(e);
-        console.error(e);
         expect(true).toEqual(false);
     }
 });

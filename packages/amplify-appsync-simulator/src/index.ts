@@ -87,11 +87,6 @@ export type AppSyncSimulatorConfig = {
   mappingTemplates?: AppSyncSimulatorMappingTemplate[];
 };
 
-export enum AppSyncSimulatorEventType {
-  BEFORE_RESOLVE = 'BEFORE_RESOLVE',
-  AFTER_RESOLVE = 'AFTER_RESOLVE'
-}
-
 export type AppSyncSimulatorServerConfig = {
   port?: number;
   wsPort?: number;
@@ -110,7 +105,6 @@ export class AmplifyAppSyncSimulator {
   private _eventEmitter: EventEmitter;
   private _config: AppSyncSimulatorConfig;
   constructor(
-    config: AppSyncSimulatorConfig,
     serverConfig: AppSyncSimulatorServerConfig = {
       port: 0,
       wsPort: 0
@@ -122,7 +116,6 @@ export class AmplifyAppSyncSimulator {
 
     try {
       this._server = new AppSyncSimulatorServer(serverConfig, this);
-      this.init(config);
     } catch (e) {
       console.log(e);
       // XXX: Show error message but keep the server config
@@ -230,21 +223,6 @@ export class AmplifyAppSyncSimulator {
     return this.resolvers.get(`${typeName}:${fieldName}`);
   }
 
-  on(event: AppSyncSimulatorEventType, fieldName: string, typeName: string, fn: any) {
-    const eventName = this.getEventName(event, fieldName, typeName);
-    this._eventEmitter.on(eventName, fn);
-  }
-
-  off(event: AppSyncSimulatorEventType, fieldName: string, typeName: string, fn) {
-    const eventName = this.getEventName(event, fieldName, typeName);
-    this._eventEmitter.off(eventName, fn);
-  }
-
-  emit(event: AppSyncSimulatorEventType, fieldName: string, typeName: string, data: any) {
-    const eventName = this.getEventName(event, fieldName, typeName);
-    this._eventEmitter.emit(eventName, data, this);
-  }
-
   get schema() {
     return this._schema;
   }
@@ -258,13 +236,5 @@ export class AmplifyAppSyncSimulator {
   }
   get config() {
     return this._config;
-  }
-
-  private getEventName(
-    prefix: AppSyncSimulatorEventType,
-    fieldName: string,
-    typeName: string
-  ): string {
-    return `${prefix}::${fieldName}->${typeName}`;
   }
 }

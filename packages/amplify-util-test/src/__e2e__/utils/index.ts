@@ -4,6 +4,8 @@ import { processResources } from '../../CFNParser/resource-processor';
 import * as dynamoEmulator from '@conduitvc/dynamodb-emulator';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { getFunctionDetails } from './lambda-helper';
+import { invoke } from '../../utils/lambda/invoke';
 
 export async function launchDDBLocal() {
     let dbPath
@@ -25,7 +27,7 @@ export async function launchDDBLocal() {
     return { emulator, dbPath, client };
 }
 
-export async function deploy(transformerOutput: any, client) {
+export async function deploy(transformerOutput: any, client = null) {
     const stacks = Object.values(transformerOutput.stacks).reduce(
         (prev, stack: any) => {
             return { ...prev, ...stack.Resources };
@@ -33,13 +35,33 @@ export async function deploy(transformerOutput: any, client) {
         { ...transformerOutput.rootStack.Resources }
     );
 
-    let config = processResources(stacks, transformerOutput);
-    await ensureDynamoDBTables(client, config);
-    config = configureDDBDataSource(config, client.config);
+    let config:any = processResources(stacks, transformerOutput);
+    if(client) {
+        await ensureDynamoDBTables(client, config);
+        config = configureDDBDataSource(config, client.config);
+    }
+    configureLambdaDataSource(config);
     const simulator = await runAppSyncSimulator(config);
     return {simulator, config};
 }
-
+async function configureLambdaDataSource(config) {
+    config.dataSources
+        .filter(d => d.type === 'AWS_LAMBDA')
+        .forEach(d => {
+            const arn = d.LambdaFunctionArn;
+            const arnParts = arn.split(':');
+            let functionName = arnParts[arnParts.length - 1];
+            const lambdaConfig = getFunctionDetails(functionName)
+            d.invoke = payload => {
+                logDebug('Invoking lambda with config', lambdaConfig);
+                return invoke({
+                    ...lambdaConfig,
+                    event: payload
+                });
+            };
+        });
+    return config;
+}
 export async function terminateDDB(emulator, dbPath) {
     try {
         if(emulator && emulator.terminate) {

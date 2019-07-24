@@ -1,7 +1,6 @@
 import {
   AmplifyAppSyncSimulator,
   AppSyncSimulatorUnitResolverConfig,
-  AppSyncSimulatorEventType
 } from '..';
 import { Socket } from 'net';
 import { Unauthorized } from '../velocity/util';

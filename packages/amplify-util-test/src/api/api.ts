@@ -11,6 +11,7 @@ import { processResources } from '../CFNParser/resource-processor';
 import { ResolverOverrides } from './resolver-overrides';
 import { ConfigOverrideManager } from '../utils/config-override';
 import { configureDDBDataSource, ensureDynamoDBTables } from '../utils/ddb-utils';
+import { invoke } from '../utils/lambda/invoke';
 
 export class APITest {
     private apiName: string;
@@ -21,36 +22,33 @@ export class APITest {
     private watcher: chokidar.FSWatcher;
     private ddbEmulator;
     private configOverrideManager: ConfigOverrideManager;
+    private lambdaFunctionProvider;
+    private projectRoot: string;
 
     async start(context, port: number = 20002, wsPort: number = 20003) {
         try {
             addCleanupTask(context, async context => {
                 await this.stop(context);
             });
+            // context.amplify
+            this.projectRoot = context.amplify.getEnvInfo().projectPath;
             this.configOverrideManager = ConfigOverrideManager.getInstance(context);
+            this.lambdaFunctionProvider = context.amplify.getPluginInstance(context, 'function');
             this.apiName = await this.getAppSyncAPI(context);
             this.ddbClient = await this.startDynamoDBLocalServer(context);
             const resolverDirectory = await this.getResolverTemplateDirectory(context);
             this.resolverOverrideManager = new ResolverOverrides(resolverDirectory);
-            await this.resolverOverrideManager.start();
-            const appSyncConfig = await this.runTransformer(context);
-            this.appSyncSimulator = new AmplifyAppSyncSimulator(appSyncConfig, {
+            this.appSyncSimulator = new AmplifyAppSyncSimulator({
                 port,
                 wsPort
             });
             await this.appSyncSimulator.start();
+            await this.resolverOverrideManager.start();
+            await this.watch(context);
+            const appSyncConfig = await this.runTransformer(context);
+            this.appSyncSimulator.init(appSyncConfig);
             console.log('AppSync Emulator is running in', this.appSyncSimulator.url);
-            this.watcher = await this.registerWatcher(context);
-            this.watcher
-                .on('add', path => {
-                    this.reload(context, path, 'add');
-                })
-                .on('change', path => {
-                    this.reload(context, path, 'change');
-                })
-                .on('unlink', path => {
-                    this.reload(context, path, 'unlink');
-                });
+
             await this.generateTestFrontendExports(context);
             await this.generateCode(context);
         } catch (e) {
@@ -77,7 +75,7 @@ export class APITest {
         let config: any = processResources(stack, transformerOutput);
         await this.ensureDDBTables(config);
         this.transformerResult = this.configureDDBDataSource(config);
-        this.transformerResult = this.configureLambdaDataSource(config)
+        this.transformerResult = this.configureLambdaDataSource(config);
         const overriddenTemplates = await this.resolverOverrideManager.sync(
             this.transformerResult.mappingTemplates
         );
@@ -149,7 +147,8 @@ export class APITest {
             GraphQLAPIKeyOutput: this.transformerResult.appSync.apiKey,
             region: 'local',
             additionalAuthenticationProviders: [],
-            securityType: this.transformerResult.appSync.authenticationType
+            securityType: this.transformerResult.appSync.authenticationType,
+            testMode: true,
         });
     }
     private async ensureDDBTables(config) {
@@ -159,20 +158,55 @@ export class APITest {
 
     private configureLambdaDataSource(config) {
         config.dataSources
-        .filter(d => d.type === 'AWS_LAMBDA')
-        .forEach(d => {
-            const arn = d.LambdaFunctionArn;
-            const arnParts = arn.split(':')
-            let functionName = arnParts[arnParts.length - 1];
-            if(functionName.endsWith('-${env}')) {
-                functionName = functionName.replace('-${env}', '');
-                const lambdaPath = path.join('amplify', 'backend', functionName, 'src', 'index.js');
-                d.lambdaPath = lambdaPath;
-            } else {
-                throw new Error('Local testing does not support LAMBDA data source that is not provisioned locally');
-            }
-        });
+            .filter(d => d.type === 'AWS_LAMBDA')
+            .forEach(d => {
+                const arn = d.LambdaFunctionArn;
+                const arnParts = arn.split(':');
+                let functionName = arnParts[arnParts.length - 1];
+                if (functionName.endsWith('-${env}')) {
+                    functionName = functionName.replace('-${env}', '');
+                    const lambdaPath = path.join(
+                        this.projectRoot,
+                        'amplify',
+                        'backend',
+                        'function',
+                        functionName,
+                        'src'
+                    );
+                    if (!fs.existsSync(path.join(lambdaPath, 'index.js'))) {
+                        throw new Error(
+                            `Lambda function ${functionName} does not exist in your project`
+                        );
+                    }
+                    d.invoke = payload => {
+                        return invoke({
+                            packageFolder: lambdaPath,
+                            handler: 'handler',
+                            fileName: 'index.js',
+                            event: payload
+                        });
+                    };
+                } else {
+                    throw new Error(
+                        'Local testing does not support LAMBDA data source that is not provisioned locally'
+                    );
+                }
+            });
         return config;
+    }
+
+    private async watch(context) {
+        this.watcher = await this.registerWatcher(context);
+        this.watcher
+            .on('add', path => {
+                this.reload(context, path, 'add');
+            })
+            .on('change', path => {
+                this.reload(context, path, 'change');
+            })
+            .on('unlink', path => {
+                this.reload(context, path, 'unlink');
+            });
     }
 
     private configureDDBDataSource(config) {
@@ -236,6 +270,7 @@ export class APITest {
             additionalAuthenticationProviders: string[];
             GraphQLAPIKeyOutput?: string;
             region?: string;
+            testMode: boolean;
         }
     ) {
         const currentMeta = await getAmplifyMeta(context);
@@ -252,6 +287,7 @@ export class APITest {
                     aws_appsync_authenticationType: localAppSyncDetails.securityType,
                     GraphQLAPIKeyOutput: localAppSyncDetails.GraphQLAPIKeyOutput
                 },
+                testMode: localAppSyncDetails.testMode,
                 lastPushTimeStamp: new Date()
             };
         }

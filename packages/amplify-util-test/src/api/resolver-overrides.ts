@@ -27,7 +27,6 @@ export class ResolverOverrides {
                     .filter(this.isTemplateFile.bind(this))
                     .forEach(f => {
                         this.updateContentMap(f);
-                        this.overrides.add(this.getRelativePath(f));
                     });
             }
         })
@@ -44,10 +43,7 @@ export class ResolverOverrides {
         const filesToWrite: Map<string, string> = new Map();
         const filesToDelete: Set<string> = new Set();
         const result: { path: string; content: string }[] = transformerResolvers.map(resolver => {
-            const r = {
-                path: resolver.path,
-                content: ''
-            };
+            const r = { ...resolver };
 
             // Step 1: Check if the file is in the override map and if it really is
             // different from transformer generated file or its here because it was not
@@ -136,7 +132,7 @@ export class ResolverOverrides {
     private updateContentMap(filePath: string) {
         const relativePath = this.getRelativePath(filePath);
         const content = fs.readFileSync(filePath).toString();
-        if (this.contentMap.get(relativePath) !== content) {
+        if (content.trim() !== '' && this.contentMap.get(relativePath) !== content) {
             this.contentMap.set(relativePath, content);
             this.overrides.add(relativePath);
             return true;

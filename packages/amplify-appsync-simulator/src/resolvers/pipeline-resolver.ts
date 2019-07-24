@@ -1,7 +1,6 @@
 import {
   AmplifyAppSyncSimulator,
   AppSyncSimulatorUnitResolverConfig,
-  AppSyncSimulatorEventType,
   AppSyncSimulatorPipelineResolverConfig
 } from '..';
 
@@ -31,17 +30,6 @@ export class AppSyncPipelineResolver {
   }
 
   async resolve(source, args, context, info) {
-    this.simulatorContext.emit(
-      AppSyncSimulatorEventType.BEFORE_RESOLVE,
-      this.config.fieldName,
-      this.config.typeName,
-      {
-        source,
-        args,
-        context,
-        info
-      }
-    );
     const requestMappingTemplate = this.simulatorContext.getMappingTemplate(
       this.config.requestMappingTemplateLocation
     );
@@ -66,23 +54,10 @@ export class AppSyncPipelineResolver {
       });
       return p;
     }, Promise.resolve({prevResult: result, stash}))
-    .then(({prevResult}) => {
-      result = prevResult;
+    .then(({ prevResult: lastResult }) => {
+      result = lastResult;
     });
-
-    this.simulatorContext.emit(
-      AppSyncSimulatorEventType.AFTER_RESOLVE,
-      this.config.fieldName,
-      this.config.typeName,
-      {
-        source,
-        args,
-        context,
-        info,
-        result
-      }
-    );
-    return responseMappingTemplate.render({ source, arguments: args, result }, context, info)
+    return responseMappingTemplate.render({ source, arguments: args, result, prevResult: result }, context, info)
       .result;
   }
 }
