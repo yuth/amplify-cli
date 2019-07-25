@@ -172,9 +172,15 @@ export class StorageServer {
     ensureFileSync(directoryPath);
     console.log("orig1",request.headers);
     console.log("request",request.body);
+<<<<<<< HEAD
     //var new_data= stripChunkSignaturev2(request.body);
     //console.log('final',new_data);
     writeFile(directoryPath,request.body, function(err) {
+=======
+    var new_data= stripChunkSignaturev2(request.body);
+    //console.log('final',new_data);
+    writeFile(directoryPath,new_data, function(err) {
+>>>>>>> 37c66c9bfd6cd290470b5343d9ff578e70012faa
       if(err) {
           return console.log(err);
       }
