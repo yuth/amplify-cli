@@ -172,15 +172,10 @@ export class StorageServer {
     ensureFileSync(directoryPath);
     console.log("orig1",request.headers);
     console.log("request",request.body);
-<<<<<<< HEAD
+
     //var new_data= stripChunkSignaturev2(request.body);
     //console.log('final',new_data);
     writeFile(directoryPath,request.body, function(err) {
-=======
-    var new_data= stripChunkSignaturev2(request.body);
-    //console.log('final',new_data);
-    writeFile(directoryPath,new_data, function(err) {
->>>>>>> 37c66c9bfd6cd290470b5343d9ff578e70012faa
       if(err) {
           return console.log(err);
       }
@@ -234,7 +229,7 @@ export class StorageServer {
     console.log("test",data);
     return Buffer.from(String(data));
   }
-*/
+
   function stripChunkSignature(buf : Buffer){
     let str = buf.toString();
     var regex = /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm;
@@ -289,7 +284,6 @@ export class StorageServer {
     buf  = buf.slice(offset[0]);
     console.log("final2",buf.toString());
     // remove it from original buffer
-    */
     return new_buf;
     
   }
@@ -316,7 +310,6 @@ export class StorageServer {
       }
     }
     return new_buf;
-    
   }
   */
 
