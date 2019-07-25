@@ -221,59 +221,87 @@ exports.StorageServer = StorageServer;
     console.log("test",data);
     return Buffer.from(String(data));
   }
-*/
-function stripChunkSignature(buf) {
+
+  function stripChunkSignature(buf : Buffer){
     let str = buf.toString();
     var regex = /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm;
-    var regex_list = [/^[A-Fa-f0-9]/gm, /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm];
+    var regex_list = [/^[A-Fa-f0-9]/gm , /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm];
     let m;
     while ((m = regex.exec(str)) !== null) {
-        // This is necessary to avoid infinite loops with zero-width matches
-        if (m.index === regex.lastIndex) {
-            regex.lastIndex++;
-        }
-        // The result can be accessed through the `m`-variable.
-        str = str.replace(regex, '');
-        //str = str.replace(/\n|\r/gm, '');
-        str = str.trim();
-        console.log("str", str);
+      // This is necessary to avoid infinite loops with zero-width matches
+      if (m.index === regex.lastIndex) {
+          regex.lastIndex++;
+      }
+      
+      // The result can be accessed through the `m`-variable.
+      str = str.replace(regex,'');
+      //str = str.replace(/\n|\r/gm, '');
+      str = str.trim();
+      console.log("str",str);
     }
+
     return Buffer.from(str);
-}
-function stripChunkSignaturev2(buf) {
-    var content_size = [];
-    var sig_size = [];
-    var new_data = buf;
+  }
+  function stripChunkSignaturev2(buf : Buffer){
+    var content_size=[];
+    var sig_size=[];
+    var new_data=buf;
     let str = buf.toString();
-    console.log("check", buf);
+    console.log("check",buf);
     var regex1 = /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm;
     //var regex_list = [/^[A-Fa-f0-9]/gm , /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm];
     let m;
-    let offset = [];
-    let start = [];
+    let offset=[];
+    let start=[]
     while ((m = regex1.exec(str)) !== null) {
-        // This is necessary to avoid infinite loops with zero-width matches
-        if (m.index === regex1.lastIndex) {
-            regex1.lastIndex++;
-        }
-        m.forEach((match, groupIndex, index) => {
-            start.push(str.indexOf(match));
-            offset.push(Buffer.from(match).byteLength);
-            console.log(`Found match, group ${groupIndex}: ${match}`);
-            //buf = buf.slice(start+offset);
-        });
+      // This is necessary to avoid infinite loops with zero-width matches
+      if (m.index === regex1.lastIndex) {
+        regex1.lastIndex++;
+      }
+      m.forEach((match, groupIndex ,index) => {
+        start.push(str.indexOf(match));
+        offset.push(Buffer.from(match).byteLength);
+        console.log(`Found match, group ${groupIndex}: ${match}`);
+        //buf = buf.slice(start+offset);
+      });
     }
-    console.log('start', start);
-    console.log('offet', offset);
+    
+    console.log('start',start);
+    console.log('offet',offset);
     //buf  = buf.slice(0,start[1]);
     //buf  = buf.slice(offset[0]+1);
-    var new_buf = buf.slice(86, 85 + 11044);
+    var new_buf= buf.slice(86,85+11044);
     /*
     console.log("final1",buf.toString());
     buf  = buf.slice(offset[0]);
     console.log("final2",buf.toString());
     // remove it from original buffer
-    */
     return new_buf;
-}
+    
+  }
+
+
+/*
+  function stripChunkSignaturev3(buf : Buffer){
+    const result = [];
+    let ch = [];
+    let str = '';
+    let skip: boolean;
+    for(let i of buf.entries()) {
+      let foo = [];
+      
+      const char = i.toString();
+      if(char === '\n') {
+        skip = false;
+      }
+      if(char === ';') {
+        skip = true;
+      }
+      if(!skip) {
+        result.append()
+      }
+    }
+    return new_buf;
+  }
+  */
 //# sourceMappingURL=operations.js.map
