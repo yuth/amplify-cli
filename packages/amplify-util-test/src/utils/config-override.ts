@@ -19,13 +19,11 @@ export class ConfigOverrideManager {
         await context.amplify.onCategoryOutputsChange(context, null, {
             ...meta,
             ...this.overrides,
-            testMode: true
         });
     }
 
     async restoreFrontendExports(context) {
         const meta = await getAmplifyMeta(context);
-        console.log("updateed meta",meta);
         await context.amplify.onCategoryOutputsChange(context, null, meta);
     }
 
