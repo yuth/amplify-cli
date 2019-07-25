@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { getAmplifyMeta, addCleanupTask } from '../utils';
 import { ConfigOverrideManager } from '../utils/config-override';
+import { readJsonFile } from '../../../amplify-cli/src/extensions/amplify-helpers/read-json-file';
 
 
 export class StorageTest {
@@ -22,8 +23,9 @@ export class StorageTest {
         const resourceName = Object.keys(existingStorage)[0]; 
         const parametersFilePath = path.join(backendPath,'storage',resourceName,'parameters.json');
         const metaData = context.amplify.readJsonFile(parametersFilePath);
-        console.log("metadata",metaData);
-        const route = path.join('/' ,metaData.bucketName +'-test'  , '/');
+        const localEnvFilePath = context.amplify.pathManager.getLocalEnvFilePath();
+        const localEnvInfo = readJsonFile(localEnvFilePath);
+        const route = path.join('/' ,metaData.bucketName +'-'+localEnvInfo.envName, '/');
         let localDirS3 = this.createLocalStorage(backendPath,resourceName);
         const port = 20005; // port for S3
         const wsPort = 20006; 
@@ -51,7 +53,8 @@ export class StorageTest {
     private async generateTestFrontendExports(context) {
         await this.generateFrontendExports(context, {
             endpoint: this.storageSimulator.url,
-            name: this.storageName
+            name: this.storageName,
+            testMode: true
         });
     }
 
@@ -61,6 +64,7 @@ export class StorageTest {
     localStorageDetails?: {
         endpoint: string;
         name:string;
+        testMode: boolean;
     }
     ) {
         const currentMeta = await getAmplifyMeta(context);
@@ -74,6 +78,7 @@ export class StorageTest {
                     ...storageMeta.output,
                     StorageEndpointOutput: localStorageDetails.endpoint,
                 },
+	    	testMode: localStorageDetails.testMode,
                 lastPushTimeStamp: new Date()
             };
         } 
