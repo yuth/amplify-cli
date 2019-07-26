@@ -11,7 +11,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const cors = require("cors");
 const path_1 = require("path");
-const http_1 = require("http");
 const fs_extra_1 = require("fs-extra");
 const xml = require("xml");
 const bodyParser = require("body-parser");
@@ -21,8 +20,7 @@ const serveStatic = require("serve-static");
 const glob = require("glob");
 const o2x = require("object-to-xml");
 const uuid = require("uuid");
-const directoryPath = path_1.join(__dirname, 'bucket'); // get bucket througb parameters remove afterwards
-//console.log(directoryPath);
+const etag = require("etag");
 var corsOptions = {
     maxAge: 20000,
     exposedHeaders: ['x-amz-server-side-encryption', 'x-amz-request-id', 'x-amz-id-2', 'ETag']
@@ -55,7 +53,7 @@ class StorageServer {
         if (this.server) {
             throw new Error('Server is already running');
         }
-        this.server = http_1.createServer({}, this.app).listen(this.config.port);
+        this.server = this.app.listen(this.config.port);
         return e2p(this.server, 'listening').then(() => {
             this.connection = this.server.address();
             //this.url = `http://${getLocalIpAddress()}:${this.connection.port}`;
@@ -77,7 +75,6 @@ class StorageServer {
             request.url = (decodeURIComponent(request.url));
             var str2 = this.route.slice(0, -1) + '';
             const temp = request.url.split(str2);
-            console.log("temp", temp);
             if (request.query.prefix !== undefined)
                 request.params.path = path_1.join(request.query.prefix, temp[0]);
             else {
@@ -111,11 +108,29 @@ class StorageServer {
         return __awaiter(this, void 0, void 0, function* () {
             // fill in  this content
             console.log("enter get");
-            fs_extra_1.readFile(path_1.join(this.localDirectoryPath, request.params.path), (err, data) => {
-                if (err)
-                    throw err;
-                response.send(data);
-            });
+            const filePath = path_1.join(this.localDirectoryPath, request.params.path);
+            if (fs_extra_1.existsSync(filePath)) {
+                fs_extra_1.readFile(filePath, (err, data) => {
+                    if (err) {
+                        console.log("error");
+                    }
+                    response.send(data);
+                });
+            }
+            else {
+                console.log(response.header);
+                response.status(404);
+                response.send(o2x({
+                    '?xml version="1.0" encoding="utf-8"?': null,
+                    Error: {
+                        "Code": "NoSuchKey",
+                        "Message": "The specified key does not exist.",
+                        "Key": request.params.path,
+                        "RequestId": "4AABFB4269C7999F",
+                        "HostId": "Qr5oAa1wcgBKO72YAmS3qNLLtXXJacpprsNx7pqP7kjCd64uVRj5MPRGj3TIfIZEsDgBrAwzC7Q="
+                    }
+                }));
+            }
         });
     }
     handleRequestList(request, response) {
@@ -131,9 +146,13 @@ class StorageServer {
             let files = glob.sync(dirPath + '/**/*');
             for (let file in files) {
                 if (!fs_extra_1.statSync(files[file]).isDirectory()) {
-                    object[key].push({ "Key": files[file].split(dirPath)[1],
+                    object[key].push({
+                        "Key": request.params.path + files[file].split(dirPath)[1],
+                        "LastModified": fs_extra_1.statSync(files[file]).mtime,
+                        "Size": fs_extra_1.statSync(files[file]).size,
+                        "ETag": etag(files[file])
                     });
-                    console.log(files[file].split(dirPath)[1]);
+                    console.log(request.params.path + files[file].split(dirPath)[1]);
                 }
             }
             response.set('Content-Type', 'text/xml');
@@ -147,11 +166,17 @@ class StorageServer {
         return __awaiter(this, void 0, void 0, function* () {
             // fill in  this content
             console.log("enter delete");
-            fs_extra_1.unlink(path_1.join(this.localDirectoryPath, request.params.path), (err) => {
-                if (err)
-                    throw err;
-                response.send(xml(convert.json2xml(JSON.stringify(request.params.id + 'was deleted'))));
-            });
+            const filePath = path_1.join(this.localDirectoryPath, request.params.path);
+            if (fs_extra_1.existsSync(filePath)) {
+                fs_extra_1.unlink(filePath, (err) => {
+                    if (err)
+                        throw err;
+                    response.send(xml(convert.json2xml(JSON.stringify(request.params.id + 'was deleted'))));
+                });
+            }
+            else {
+                response.sendStatus(204);
+            }
         });
     }
     handleRequestPut(request, response) {
@@ -160,19 +185,14 @@ class StorageServer {
             console.log("put entered");
             const directoryPath = path_1.join(String(this.localDirectoryPath), String(request.params.path));
             fs_extra_1.ensureFileSync(directoryPath);
-            console.log("orig1", request.headers);
-            console.log("request", request.body);
-            //var new_data= stripChunkSignaturev2(request.body);
-            //console.log('final',new_data);
-            fs_extra_1.writeFile(directoryPath, request.body, function (err) {
-                if (err) {
-                    return console.log(err);
-                }
-                console.log("The file was saved!");
-            });
+            //console.log("orig1", request);
+            //var new_data = stripChunkSignaturev2(request.body);
+            //console.log('final',new_data.toString());
+            fs_extra_1.writeFileSync(directoryPath, request.body);
+            response.send(xml(convert.json2xml(JSON.stringify('upload success'))));
+            //response.end();
             // get the data from the file and convert it into exact format
             //response.header("Access-Control-Expose-Headers", "Etag");
-            response.send(xml(convert.json2xml(JSON.stringify('upload success'))));
         });
     }
     handleRequestPost(request, response) {
@@ -210,98 +230,35 @@ class StorageServer {
     }
 }
 exports.StorageServer = StorageServer;
-/*
-  function stripChunkSignature(data : String){
-    var regex_list = [/^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/ ,/^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/] ;
-    var new_data = data;
-    for(let regex in regex_list){
-      new_data = new_data.replace(regex,'');
-      console.log('test1',data);
-    }
-    console.log("test",data);
-    return Buffer.from(String(data));
-  }
-
-  function stripChunkSignature(buf : Buffer){
+function stripChunkSignaturev2(buf) {
     let str = buf.toString();
-    var regex = /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm;
-    var regex_list = [/^[A-Fa-f0-9]/gm , /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm];
-    let m;
-    while ((m = regex.exec(str)) !== null) {
-      // This is necessary to avoid infinite loops with zero-width matches
-      if (m.index === regex.lastIndex) {
-          regex.lastIndex++;
-      }
-      
-      // The result can be accessed through the `m`-variable.
-      str = str.replace(regex,'');
-      //str = str.replace(/\n|\r/gm, '');
-      str = str.trim();
-      console.log("str",str);
-    }
-
-    return Buffer.from(str);
-  }
-  function stripChunkSignaturev2(buf : Buffer){
-    var content_size=[];
-    var sig_size=[];
-    var new_data=buf;
-    let str = buf.toString();
-    console.log("check",buf);
     var regex1 = /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm;
-    //var regex_list = [/^[A-Fa-f0-9]/gm , /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm];
     let m;
-    let offset=[];
-    let start=[]
+    let offset = [];
+    let chunk_size = [];
+    let arr = [];
     while ((m = regex1.exec(str)) !== null) {
-      // This is necessary to avoid infinite loops with zero-width matches
-      if (m.index === regex1.lastIndex) {
-        regex1.lastIndex++;
-      }
-      m.forEach((match, groupIndex ,index) => {
-        start.push(str.indexOf(match));
-        offset.push(Buffer.from(match).byteLength);
-        console.log(`Found match, group ${groupIndex}: ${match}`);
-        //buf = buf.slice(start+offset);
-      });
+        // This is necessary to avoid infinite loops with zero-width matches
+        if (m.index === regex1.lastIndex) {
+            regex1.lastIndex++;
+        }
+        m.forEach((match, groupIndex, index) => {
+            offset.push(Buffer.from(match).byteLength);
+            var temp = match.split(';')[0];
+            chunk_size.push(parseInt(temp, 16));
+            console.log(`Found match, group ${groupIndex}: ${match}`);
+        });
     }
-    
-    console.log('start',start);
-    console.log('offet',offset);
-    //buf  = buf.slice(0,start[1]);
-    //buf  = buf.slice(offset[0]+1);
-    var new_buf= buf.slice(86,85+11044);
-    /*
-    console.log("final1",buf.toString());
-    buf  = buf.slice(offset[0]);
-    console.log("final2",buf.toString());
-    // remove it from original buffer
-    return new_buf;
-    
-  }
-
-
-/*
-  function stripChunkSignaturev3(buf : Buffer){
-    const result = [];
-    let ch = [];
-    let str = '';
-    let skip: boolean;
-    for(let i of buf.entries()) {
-      let foo = [];
-      
-      const char = i.toString();
-      if(char === '\n') {
-        skip = false;
-      }
-      if(char === ';') {
-        skip = true;
-      }
-      if(!skip) {
-        result.append()
-      }
+    var start = 0;
+    console.log('chunk_size', chunk_size);
+    console.log('offet', offset);
+    for (let i = 0; i < offset.length - 1; i++) {
+        console.log("i = ", i);
+        start = start + offset[i] + 2;
+        console.log("start= ", start);
+        arr.push(buf.slice(start, start + chunk_size[i]));
+        start = start + chunk_size[i] + 2;
     }
-    return new_buf;
-  }
-  */
+    return Buffer.concat(arr);
+}
 //# sourceMappingURL=operations.js.map
