@@ -15,7 +15,7 @@ export class StorageTest {
     async start(context) {
          // loading s3 resource config form parameters.json
         const existingStorage = context.amplify.getProjectDetails().amplifyMeta.storage;
-        console.log("existingStorage",existingStorage);
+        //console.log("existingStorage",existingStorage);
         if (existingStorage === undefined || Object.keys(existingStorage).length === 0) {
             return context.print.warning('Storage has not yet been added to this project.');
         }
@@ -106,13 +106,13 @@ export class StorageTest {
      fs.mkdirSync(directoryPath);
      }
   
-     console.log(directoryPath);
+     //console.log(directoryPath);
   
      const localPath = path.join(directoryPath,resourceName);
      if (!fs.existsSync(localPath)){
       fs.mkdirSync(localPath);
       }
-      console.log(localPath);
+      //console.log(localPath);
       return localPath;
     }
 }

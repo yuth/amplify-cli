@@ -29,7 +29,7 @@ class StorageServer {
     constructor(config) {
         this.config = config;
         this.localDirectoryPath = config.localDirS3;
-        console.log("path file", this.localDirectoryPath);
+        //console.log("path file", this.localDirectoryPath);
         this.app = express();
         this.app.use(express.json());
         this.app.use(cors(corsOptions));
@@ -41,8 +41,8 @@ class StorageServer {
         this.app.use(serveStatic(this.localDirectoryPath), this.handleRequestAll.bind(this));
         this.server = null;
         this.route = config.route;
-        console.log("config object = ", config);
-        console.log("route path = ", this.route + ':path');
+        //console.log("config object = ", config);
+        //console.log("route path = ", this.route + ':path');
         //this.app.get(this.route +':path', this.handleRequestGet.bind(this));
         //this.app.put(this.route +':path', this.handleRequestPut.bind(this));
         //this.app.put(this.route+'/*', this.handleRequestPut.bind(this));
@@ -83,6 +83,7 @@ class StorageServer {
                 else // change for IOS as no bucket name is present in the original url
                     request.params.path = temp[0].split('?')[0];
             }
+            // if no prefix is provided
             if (request.params.path === '/') {
                 request.params.path = '';
             }
@@ -158,7 +159,7 @@ class StorageServer {
             let keyCount = 0;
             // getting folders recursively
             const dirPath = path_1.normalize(path_1.join(this.localDirectoryPath, request.params.path) + '/');
-            console.log("dirPath", dirPath);
+            //console.log("dirPath", dirPath);
             let files = glob.sync(dirPath + '/**/*');
             for (let file in files) {
                 if (delimiter !== '' && checkfile(file, prefix, delimiter)) {
@@ -177,7 +178,7 @@ class StorageServer {
                         "ETag": etag(files[file]),
                         "StorageClass": 'STANDARD'
                     });
-                    console.log(request.params.path + files[file].split(dirPath)[1]);
+                    //console.log(request.params.path + files[file].split(dirPath)[1]);
                     keyCount = keyCount + 1;
                 }
             }
@@ -260,6 +261,7 @@ class StorageServer {
     }
 }
 exports.StorageServer = StorageServer;
+// removing chunk siognature from request payload if present
 function stripChunkSignaturev2(buf) {
     let str = buf.toString();
     var regex1 = /^[A-Fa-f0-9]+;chunk-signature=[0-9a-f]{64}/gm;
@@ -282,6 +284,7 @@ function stripChunkSignaturev2(buf) {
     var start = 0;
     //console.log('chunk_size', chunk_size);
     //console.log('offet', offset);
+    //if no chunk signature is present
     if (offset.length === 0) {
         return buf;
     }
@@ -294,6 +297,7 @@ function stripChunkSignaturev2(buf) {
     }
     return Buffer.concat(arr);
 }
+// check for the delimiter in the file for list object request
 function checkfile(file, prefix, delimiter) {
     if (delimiter === '') {
         return true;

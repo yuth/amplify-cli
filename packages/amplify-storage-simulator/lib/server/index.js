@@ -8,10 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const operations_1 = require("./operations");
+const S3server_1 = require("./S3server");
 class StorageSimulatorServer {
     constructor(config) {
-        this.storageServer = new operations_1.StorageServer(config);
+        this.storageServer = new S3server_1.StorageServer(config);
     }
     start() {
         return __awaiter(this, void 0, void 0, function* () {

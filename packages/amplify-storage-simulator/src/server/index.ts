@@ -1,4 +1,4 @@
-import { StorageServer } from './operations';
+import { StorageServer } from './S3server';
 
 import {StorageSimulatorServerConfig } from '../index';
 

@@ -11,7 +11,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const server_1 = require("./server");
 class AmplifyStorageSimulator {
     constructor(serverConfig) {
-        console.log("config", serverConfig);
         this._serverConfig = serverConfig;
         try {
             this._server = new server_1.StorageSimulatorServer(serverConfig);

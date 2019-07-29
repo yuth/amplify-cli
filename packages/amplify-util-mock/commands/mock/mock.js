@@ -1,5 +1,5 @@
 module.exports = {
-  name: 'test',
+  name: 'mock',
   run: async function(context) {
     if (context.parameters.options.help) {
       const header = `amplify ${this.name} [subcommand]\nDescriptions:
