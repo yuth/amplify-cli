@@ -103,7 +103,6 @@ function getCurrentAWSConfig(context) {
 }
 
 function getCustomConfigs(cloudAWSConfig, currentAWSConfig) {
-
   const customConfigs = {};
   Object.keys(currentAWSConfig).forEach((key) => {
     if (!cloudAWSConfig[key]) {

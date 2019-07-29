@@ -202,8 +202,8 @@ function getCognitoConfig(cognitoResources, projectRegion) {
 
 function getS3Config(s3Resources) {
   const s3Resource = s3Resources[0];
-    const testMode = s3Resource.testMode || false;
-    const result =  {
+  const testMode = s3Resource.testMode || false;
+  const result = {
     S3TransferUtility: {
       Default: {
         Bucket: s3Resource.output.BucketName,

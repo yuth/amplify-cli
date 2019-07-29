@@ -4,7 +4,6 @@
   "description": "An S3 simulator to test S3 APIs",
   "main": "lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "watch": "tsc -w",
     "start": "node lib/test/test.js"
