@@ -83,6 +83,9 @@ class StorageServer {
                 else // change for IOS as no bucket name is present in the original url
                     request.params.path = temp[0].split('?')[0];
             }
+            if (request.params.path === '/') {
+                request.params.path = '';
+            }
             console.log("path", request.params.path);
             console.log("request", request.method);
             if (request.method === 'PUT') {
@@ -118,7 +121,6 @@ class StorageServer {
                 });
             }
             else {
-                console.log(response.header);
                 response.status(404);
                 response.send(o2x({
                     '?xml version="1.0" encoding="utf-8"?': null,
@@ -126,8 +128,8 @@ class StorageServer {
                         "Code": "NoSuchKey",
                         "Message": "The specified key does not exist.",
                         "Key": request.params.path,
-                        "RequestId": "4AABFB4269C7999F",
-                        "HostId": "Qr5oAa1wcgBKO72YAmS3qNLLtXXJacpprsNx7pqP7kjCd64uVRj5MPRGj3TIfIZEsDgBrAwzC7Q="
+                        "RequestId": "",
+                        "HostId": ""
                     }
                 }));
             }
@@ -137,28 +139,63 @@ class StorageServer {
         return __awaiter(this, void 0, void 0, function* () {
             // fill in  this content
             console.log("enter list");
-            var object = {};
-            var key = 'Contents';
-            object[key] = [];
+            let ListBucketResult = {};
+            let key1 = 'Contents';
+            ListBucketResult[key1] = [];
+            let commonPrefixes = {};
+            let key2 = 'CommonPrefixes';
+            ListBucketResult[key2] = [];
+            let maxKeys;
+            let prefix = request.query.prefix || '';
+            if (request.query.maxKeys !== undefined) {
+                maxKeys = Math.min(request.query.maxKeys, 1000);
+            }
+            else {
+                maxKeys = 1000;
+            }
+            let delimiter = request.query.delimiter || '';
+            let startAfter = request.query.startAfter || '';
+            let keyCount = 0;
             // getting folders recursively
-            const dirPath = path_1.join(this.localDirectoryPath, request.params.path);
+            const dirPath = path_1.normalize(path_1.join(this.localDirectoryPath, request.params.path) + '/');
             console.log("dirPath", dirPath);
             let files = glob.sync(dirPath + '/**/*');
             for (let file in files) {
+                if (delimiter !== '' && checkfile(file, prefix, delimiter)) {
+                    ListBucketResult[key2].push({
+                        'prefix': request.params.path + files[file].split(dirPath)[1]
+                    });
+                }
                 if (!fs_extra_1.statSync(files[file]).isDirectory()) {
-                    object[key].push({
+                    if (keyCount === maxKeys) {
+                        break;
+                    }
+                    ListBucketResult[key1].push({
                         "Key": request.params.path + files[file].split(dirPath)[1],
-                        "LastModified": fs_extra_1.statSync(files[file]).mtime,
+                        "LastModified": new Date(fs_extra_1.statSync(files[file]).mtime).toISOString(),
                         "Size": fs_extra_1.statSync(files[file]).size,
-                        "ETag": etag(files[file])
+                        "ETag": etag(files[file]),
+                        "StorageClass": 'STANDARD'
                     });
                     console.log(request.params.path + files[file].split(dirPath)[1]);
+                    keyCount = keyCount + 1;
                 }
+            }
+            ListBucketResult["Name"] = this.route.split('/')[1];
+            ListBucketResult["Prefix"] = request.query.prefix || '';
+            ListBucketResult["KeyCount"] = keyCount;
+            ListBucketResult["MaxKeys"] = maxKeys;
+            ListBucketResult["Delimiter"] = delimiter;
+            if (keyCount === maxKeys) {
+                ListBucketResult["IsTruncated"] = true;
+            }
+            else {
+                ListBucketResult["IsTruncated"] = false;
             }
             response.set('Content-Type', 'text/xml');
             response.send(o2x({
                 '?xml version="1.0" encoding="utf-8"?': null,
-                object
+                ListBucketResult
             }));
         });
     }
@@ -185,23 +222,17 @@ class StorageServer {
             console.log("put entered");
             const directoryPath = path_1.join(String(this.localDirectoryPath), String(request.params.path));
             fs_extra_1.ensureFileSync(directoryPath);
-            //console.log("orig1", request);
-            //var new_data = stripChunkSignaturev2(request.body);
-            //console.log('final',new_data.toString());
-            fs_extra_1.writeFileSync(directoryPath, request.body);
+            var new_data = stripChunkSignaturev2(request.body);
+            fs_extra_1.writeFileSync(directoryPath, new_data);
             response.send(xml(convert.json2xml(JSON.stringify('upload success'))));
-            //response.end();
-            // get the data from the file and convert it into exact format
-            //response.header("Access-Control-Expose-Headers", "Etag");
         });
     }
     handleRequestPost(request, response) {
         return __awaiter(this, void 0, void 0, function* () {
             // fill in  this content
             console.log("post entered");
-            console.log("request", request.query);
+            const directoryPath = path_1.join(String(this.localDirectoryPath), String(request.params.path));
             if (request.query.uploads !== undefined) {
-                console.log("uploads");
                 this.uploadId = uuid();
                 //response.set('Content-Type', 'text/xml');
                 response.send(o2x({
@@ -214,7 +245,6 @@ class StorageServer {
                 }));
             }
             if (request.query.uploadId === this.uploadId) {
-                console.log("uploadsId");
                 response.set('Content-Type', 'text/xml');
                 response.send(o2x({
                     '?xml version="1.0" encoding="utf-8"?': null,
@@ -222,7 +252,7 @@ class StorageServer {
                         "Location": request.url,
                         "Bucket": this.route,
                         "Key": request.params.path,
-                        "Etag": "33a64df551425fcc55e4d42a148795d9f25f89d4" //hardcoded etag chnage with request etag
+                        "Etag": etag(directoryPath)
                     }
                 }));
             }
@@ -250,15 +280,33 @@ function stripChunkSignaturev2(buf) {
         });
     }
     var start = 0;
-    console.log('chunk_size', chunk_size);
-    console.log('offet', offset);
+    //console.log('chunk_size', chunk_size);
+    //console.log('offet', offset);
+    if (offset.length === 0) {
+        return buf;
+    }
     for (let i = 0; i < offset.length - 1; i++) {
-        console.log("i = ", i);
+        //console.log("i = ", i);
         start = start + offset[i] + 2;
-        console.log("start= ", start);
+        //console.log("start= ", start);
         arr.push(buf.slice(start, start + chunk_size[i]));
         start = start + chunk_size[i] + 2;
     }
     return Buffer.concat(arr);
+}
+function checkfile(file, prefix, delimiter) {
+    if (delimiter === '') {
+        return true;
+    }
+    else {
+        const temp = file.split(String(prefix))[1].split(String(delimiter));
+        //console.log("temp",temp);
+        if (temp[1] === undefined) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
 }
 //# sourceMappingURL=operations.js.map

@@ -78,7 +78,7 @@ export class StorageTest {
                     ...storageMeta.output,
                     StorageEndpointOutput: localStorageDetails.endpoint,
                 },
-	    	testMode: localStorageDetails.testMode,
+	    	    testMode: localStorageDetails.testMode,
                 lastPushTimeStamp: new Date()
             };
         } 
