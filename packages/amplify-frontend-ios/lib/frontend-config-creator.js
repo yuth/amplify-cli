@@ -103,6 +103,7 @@ function getCurrentAWSConfig(context) {
 }
 
 function getCustomConfigs(cloudAWSConfig, currentAWSConfig) {
+
   const customConfigs = {};
   Object.keys(currentAWSConfig).forEach((key) => {
     if (!cloudAWSConfig[key]) {
@@ -215,8 +216,8 @@ function getCognitoConfig(cognitoResources, projectRegion) {
 
 function getS3Config(s3Resources) {
   const s3Resource = s3Resources[0];
-
-  return {
+  const testMode = s3Resource.testMode || false;
+  const result = {
     S3TransferUtility: {
       Default: {
         Bucket: s3Resource.output.BucketName,
@@ -224,6 +225,10 @@ function getS3Config(s3Resources) {
       },
     },
   };
+  if (testMode) {
+    result.S3TransferUtility.Default.DangerouslyConnectToHTTPEndpointForTesting = true;
+  }
+  return result;
 }
 
 function getPinpointConfig(pinpointResources) {

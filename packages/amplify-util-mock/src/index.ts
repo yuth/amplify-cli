@@ -1,6 +1,4 @@
-
-import * as api from './api';
 export { mockAllCategories } from './mockAll';
-export {
-    api
-};
+import * as api from './api';
+import * as storage from './storage';
+export { api, storage };

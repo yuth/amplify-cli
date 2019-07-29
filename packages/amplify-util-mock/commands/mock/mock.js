@@ -11,6 +11,10 @@ module.exports = {
           name: 'api',
           description: 'Run GraphQL API test server',
         },
+        {
+          name: 'storage',
+          description: 'Run Storage test server',
+        }
       ];
       context.amplify.showHelp(header, commands);
       return;
