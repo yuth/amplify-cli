@@ -104,16 +104,11 @@ export class StorageTest {
     // create local storage for S3 on disk which is fixes as the test folder
     private createLocalStorage(context, resourceName: string) {
         const directoryPath = path.join(getMockDataDirectory(context), 'S3'); // get bucket through parameters remove afterwards
-        if (!fs.existsSync(directoryPath)) {
-            fs.mkdirSync(directoryPath);
-        }
+        fs.ensureDirSync(directoryPath)
 
         //console.log(directoryPath);
-
         const localPath = path.join(directoryPath, resourceName);
-        if (!fs.existsSync(localPath)) {
-            fs.mkdirSync(localPath);
-        }
+        fs.ensureDirSync(localPath);
         //console.log(localPath);
         return localPath;
     }
