@@ -14,7 +14,7 @@ export async function start(context) {
     if (mockableResources.length) {
         if (resourceToBePushed.length) {
             context.print.info(
-                'S3 Mocking needs Auth resources to be pushed to the cloud. Please run `amplify auth push` before running storage mock'
+                'Storage Mocking needs Auth resources to be pushed to the cloud. Please run `amplify auth push` before running storage mock'
             );
             return Promise.resolve(false);
         }
