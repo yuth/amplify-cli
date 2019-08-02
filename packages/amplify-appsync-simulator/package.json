@@ -4,7 +4,6 @@
   "description": "An AppSync Simulator to test AppSync API.",
   "main": "lib/index.js",
   "scripts": {
-    "test": "jest",
     "test-ci": "jest --ci -i",
     "copy-assets":"rm -rf ./public && cp -R ../amplify-graphiql-explorer/build ./public",
     "build": "yarn copy-assets && tsc",
@@ -43,7 +42,6 @@
     "amplify-velocity-template": "^0.0.1"
   },
   "devDependencies": {
-    "@conduitvc/dynamodb-emulator": "^0.5.3",
     "@types/cors": "^2.8.5",
     "@types/express": "^4.17.0",
     "@types/graphql": "^14.2.2",

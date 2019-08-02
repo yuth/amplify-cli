@@ -1,13 +1,13 @@
 import * as fs from 'fs-extra';
-import * as dynamoEmulator from '@conduitvc/dynamodb-emulator';
+import * as dynamoEmulator from 'amplify-dynamodb-simulator';
 import { AmplifyAppSyncSimulator, AmplifyAppSyncSimulatorConfig } from 'amplify-appsync-simulator';
-import { add, generate, isCodegenConfigured } from 'amplify-codegen';
+import { add, generate, isCodegenConfigured, switchToSDLSchema } from 'amplify-codegen';
 import * as path from 'path';
 import * as chokidar from 'chokidar';
 
 import { getAmplifyMeta, addCleanupTask, getMockDataDirectory } from '../utils';
 import { runTransformer } from './run-graphql-transformer';
-import { processResources } from '../CFNParser/resource-processor';
+import { processAppSyncResources } from '../CFNParser';
 import { ResolverOverrides } from './resolver-overrides';
 import { ConfigOverrideManager } from '../utils/config-override';
 import { configureDDBDataSource, ensureDynamoDBTables } from '../utils/ddb-utils';
@@ -46,10 +46,11 @@ export class APITest {
             await this.watch(context);
             const appSyncConfig: AmplifyAppSyncSimulatorConfig = await this.runTransformer(context);
             this.appSyncSimulator.init(appSyncConfig);
-            console.log('AppSync Emulator is running in', this.appSyncSimulator.url);
 
             await this.generateTestFrontendExports(context);
             await this.generateCode(context);
+
+            console.log('AppSync Emulator is running in', this.appSyncSimulator.url);
         } catch (e) {
             console.error('Failed to start API test server \n', e);
         }
@@ -71,7 +72,7 @@ export class APITest {
 
     private async runTransformer(context) {
         const { transformerOutput, stack } = await runTransformer(context);
-        let config: any = processResources(stack, transformerOutput);
+        let config: any = processAppSyncResources(stack, transformerOutput);
         await this.ensureDDBTables(config);
         this.transformerResult = this.configureDDBDataSource(config);
         this.transformerResult = this.configureLambdaDataSource(config);
@@ -98,6 +99,7 @@ export class APITest {
         if (!isCodegenConfigured(context)) {
             await add(context);
         } else {
+            switchToSDLSchema(context, this.apiName);
             await generate(context);
         }
     }

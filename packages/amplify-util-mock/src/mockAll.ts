@@ -1,6 +1,6 @@
 import { start as startAppSyncServer } from './api';
 import { start as startS3Server } from './storage'
-const MOCK_SUPPORTED_CATEGORY = ['AppSync', 'S3'];
+const MOCK_SUPPORTED_CATEGORY = ['AppSync', 'S3', 'Lambda'];
 export async function mockAllCategories(context: any) {
     const resources = await context.amplify.getResourceStatus();
     const mockableResources = resources.allResources.filter(
