@@ -7,10 +7,10 @@ export class JavaMap {
   constructor(obj, mapper) {
     this.mapper = mapper;
     this.map = new Map();
-    this.toJSON = this.toJSON.bind(this);
     Object.entries(obj).forEach(([key, value]) => {
       this.map.set(key, value);
     });
+    
   }
 
   clear() {
@@ -28,11 +28,14 @@ export class JavaMap {
   entrySet() {
     const entries = Array.from(this.map.entries()).map(([key, value]) =>
       createMapProxy(
-        new JavaMap({
-          key,
-          value
-        }, this.mapper)
-      )
+        new JavaMap(
+          {
+            key,
+            value,
+          },
+          this.mapper,
+        ),
+      ),
     );
 
     return new JavaArray(entries, this.mapper);
@@ -63,8 +66,9 @@ export class JavaMap {
     return saveValue;
   }
 
-  putAll(map) {
-    Array.from(map.map.entries()).forEach(([key, value]) => {
+  putAll(map: object| JavaMap) {
+    map = toJSON(map);
+    Object.entries(map).forEach(([key, value]) => {
       this.put(key, value);
     });
   }
@@ -90,9 +94,9 @@ export class JavaMap {
     return Array.from(this.map.entries()).reduce(
       (sum, [key, value]) => ({
         ...sum,
-        [key]: toJSON(value)
+        [key]: toJSON(value),
       }),
-      {}
+      {},
     );
   }
 }
@@ -106,10 +110,10 @@ export function createMapProxy(map) {
       return map[prop];
     },
     set(obj, prop, val) {
-      if(typeof val !== 'function') {
+      if (typeof val !== 'function') {
         map.map.set(prop, val);
       }
       return true;
-    }
+    },
   });
 }
