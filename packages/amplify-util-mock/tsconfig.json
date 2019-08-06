@@ -9,9 +9,7 @@
         "sourceRoot": "src",
         "lib": [
             "es2017",
-            "dom",
-            "esnext.asynciterable",
-            "dom"
+            "esnext.asynciterable"
         ],
         "skipLibCheck": true
     },
