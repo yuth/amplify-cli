@@ -3,8 +3,8 @@ module.exports = {
   name: 'storage',
   run: async function(context) {
     if (context.parameters.options.help) {
-      const header = `amplify test ${this.name} \nDescriptions:
-      Test Storage locally`
+      const header = `amplify mock ${this.name} \nDescriptions:
+      Mock Storage locally`
       context.amplify.showHelp(header, []);
       return;
     }

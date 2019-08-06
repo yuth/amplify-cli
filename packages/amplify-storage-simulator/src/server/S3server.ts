@@ -86,7 +86,6 @@ export class StorageServer {
   private async handleRequestAll(request, response) {
     // parsing the path and the request parameters
     request.url = decodeURIComponent(request.url);
-    //var str2 = this.route.slice(0, -1) + '';
     const temp = request.url.split(this.route);
     request.params.path = "";
 
@@ -249,6 +248,7 @@ export class StorageServer {
     writeFileSync(directoryPath, new_data);
     response.send(xml(convert.json2xml(JSON.stringify("upload success"))));
   }
+
   private async handleRequestPost(request, response) {
     const directoryPath = normalize(
       join(String(this.localDirectoryPath), String(request.params.path))

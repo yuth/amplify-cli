@@ -42,7 +42,7 @@ export class StorageTest {
     this.bucketName = `${storageParams.bucketName}-${localEnvInfo.envName}`;
     const route = path.join("/", this.bucketName);
 
-    let localDirS3 = this.createLocalStorage(context, resourceName);
+    let localDirS3 = this.createLocalStorage(context, `${storageParams.bucketName}`);
 
     try {
       addCleanupTask(context, async context => {
@@ -119,10 +119,8 @@ export class StorageTest {
     const directoryPath = path.join(getMockDataDirectory(context), "S3"); // get bucket through parameters remove afterwards
     fs.ensureDirSync(directoryPath);
 
-    //console.log(directoryPath);
     const localPath = path.join(directoryPath, resourceName);
     fs.ensureDirSync(localPath);
-    //console.log(localPath);
     return localPath;
   }
 }

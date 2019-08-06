@@ -143,7 +143,7 @@ describe("Test put api", () => {
     const params = {
       Bucket: bucket, // pass your bucket name
       Key: "2.png",
-      Prefix: "upload", // file will be saved as testBucket/contacts.csv
+      Prefix: "upload", 
       Body: buffer
     };
     const data = await s3client.upload(params).promise();
@@ -156,7 +156,7 @@ describe("Test put api", () => {
   test("put text", async () => {
     const params = {
       Bucket: bucket, // pass your bucket name
-      Key: "upload/abc.txt", // file will be saved as testBucket/contacts.csv
+      Key: "upload/abc.txt", 
       Body: buf1
     };
     const data = await s3client.upload(params).promise();
@@ -169,7 +169,7 @@ describe("Test put api", () => {
   test(" multipart upload", async () => {
     const params = {
       Bucket: bucket, // pass your bucket name
-      Key: "upload/long_image.jpg", // file will be saved as testBucket/contacts.csv
+      Key: "upload/long_image.jpg", 
       Body: buf2
     };
     const data = await s3client.upload(params).promise();
