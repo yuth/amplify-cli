@@ -423,4 +423,6 @@ workflows:
   build_test_deploy:
     jobs:
       - build
-      - integration_test_js
+      - integration_test_js:
+          requires:
+            - build
