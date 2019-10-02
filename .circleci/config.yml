@@ -423,61 +423,6 @@ workflows:
   build_test_deploy:
     jobs:
       - build
-      - test:
-          requires:
-            - build
-          filters:
-            only:
-              - master
-      - graphql_e2e_tests:
-          filters:
-            branches:
-              only:
-                - master
-                - graphql_e2e_testing
-          requires:
-            - build
-            - integration_test_ios
-            - mock_e2e_tests
-      - mock_e2e_tests:
-          requires:
-            - build
-          filters:
-            only:
-              - master
-      - integration_test:
-          filters:
-            branches:
-              only:
-                - master
-                - beta
-          requires:
-            - build
-            - integration_test_ios
-            - mock_e2e_tests
-      - amplify_e2e_tests:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - build
-            - integration_test_ios
-            - mock_e2e_tests
-      - deploy:
-          requires:
-            - build
-            - test
-            - integration_test
-            - graphql_e2e_tests
-            - amplify_e2e_tests
-            - mock_e2e_tests
-          filters:
-            branches:
-              only:
-                - release
-                - master
-                - beta
       - integration_test_js:
           filters:
             branches:
@@ -488,12 +433,3 @@ workflows:
             - build
             # - test
             # - mock_e2e_tests
-      - integration_test_ios:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - build
-            - test
-            - mock_e2e_tests

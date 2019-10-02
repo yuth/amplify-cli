@@ -32,8 +32,9 @@ export function gitCloneSampleApp(
 
 export function setupCypress(cwd: string) {
     return new Promise((resolve, reject) => {
-        if (fs.existsSync(cws)) {
-            reject(`Can't setup cypress in  ${cwd} as the directory does not exist`)
+        if (fs.existsSync(cwd)) {
+            console.log('\n\n\n\n Directory does not exist', cwd);
+            return reject(`Can't setup cypress in  ${cwd} as the directory does not exist`)
         }
         exec('CYPRESS_INSTALL_BINARY=0 npm install', {cwd: cwd}, function(err: Error) {
             if (err) {
