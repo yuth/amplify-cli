@@ -423,13 +423,4 @@ workflows:
   build_test_deploy:
     jobs:
       - build
-      - integration_test_js:
-          filters:
-            branches:
-              only:
-                - master
-                - js-ui-test
-          requires:
-            - build
-            # - test
-            # - mock_e2e_tests
+      - integration_test_js
