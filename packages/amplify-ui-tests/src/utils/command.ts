@@ -1,3 +1,4 @@
+import * as fs from 'fs-extra';
 import * as nexpect from 'nexpect';
 import { isCI, getProjectMeta, getAwsCLIPath } from '.';
 import { exec } from 'child_process';
@@ -31,8 +32,13 @@ export function gitCloneSampleApp(
 
 export function setupCypress(cwd: string) {
     return new Promise((resolve, reject) => {
+        if (fs.existsSync(cws)) {
+            reject(`Can't setup cypress in  ${cwd} as the directory does not exist`)
+        }
         exec('CYPRESS_INSTALL_BINARY=0 npm install', {cwd: cwd}, function(err: Error) {
             if (err) {
+                console.log("error when setting up cypress");
+                console.log(err);
                 reject(err);
             } else {
                 resolve();
@@ -71,9 +77,8 @@ export function runCypressTest(
     return new Promise((resolve) => {
         nexpect
             .spawn('yarn', options, {cwd, stripColors: true, verbose})
-            .wait('All specs passed!')
-            .run(function(err: Error) {
-                if (err) {
+            .run(function(err: Error, output: string[], exitCode: string|number) {
+                if (err || exitCode !== 0) {
                     isPassed = false;
                 }
                 resolve(isPassed);

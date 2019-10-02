@@ -3,7 +3,7 @@ import * as nexpect from 'nexpect';
 import { getCLIPath, isCI } from '../utils';
 const defaultSettings = {
   name: '\r',
-  envName: 'integtest',
+  envName: 'uitest',
   editor: '\r',
   appType: '\r',
   framework: '\r',

@@ -426,6 +426,9 @@ workflows:
       - test:
           requires:
             - build
+          filters:
+            only:
+              - master
       - graphql_e2e_tests:
           filters:
             branches:
@@ -439,6 +442,9 @@ workflows:
       - mock_e2e_tests:
           requires:
             - build
+          filters:
+            only:
+              - master
       - integration_test:
           filters:
             branches:
@@ -477,10 +483,11 @@ workflows:
             branches:
               only:
                 - master
+                - js-ui-test
           requires:
             - build
-            - test
-            - mock_e2e_tests
+            # - test
+            # - mock_e2e_tests
       - integration_test_ios:
           filters:
             branches:
