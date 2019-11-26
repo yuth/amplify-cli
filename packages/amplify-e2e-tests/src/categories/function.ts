@@ -2,14 +2,15 @@ import * as nexpect from 'nexpect';
 import { join } from 'path';
 import * as fs from 'fs';
 
-import { getCLIPath, isCI, getEnvVars } from '../utils';
+import { getCLIPath, isCI, getEnvVars, writeStdOutToDisk } from '../utils';
 const defaultSettings = {
   projectName: 'CLI Function test',
 };
 
 export function addHelloWorldFunction(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addHelloWorldFunction.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'function'], { cwd, stripColors: true, verbose })
       .wait('Provide a friendly name for your resource to be used as a label')
       .sendline('\r')
@@ -22,8 +23,8 @@ export function addHelloWorldFunction(cwd: string, settings: any, verbose: boole
       .wait('Do you want to edit the local lambda function now')
       .sendline('n')
       .sendEof()
-      // tslint:disable-next-line
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -34,14 +35,16 @@ export function addHelloWorldFunction(cwd: string, settings: any, verbose: boole
 }
 
 export function functionBuild(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'functionBuild.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['function', 'build'], { cwd, stripColors: true, verbose })
       .wait('Are you sure you want to continue building the resources?')
       .sendline('Y')
       .sendEof()
-      // tslint:disable-next-line
-      .run(function(err: Error) {
+
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {

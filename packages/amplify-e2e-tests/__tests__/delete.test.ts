@@ -18,7 +18,7 @@ describe('amplify delete', () => {
   let projRoot: string;
   beforeEach(async () => {
     jest.setTimeout(1000 * 60 * 60); // 1 hour
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('delete');
   });
 
   afterEach(() => {

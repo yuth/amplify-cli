@@ -6,13 +6,13 @@ import { createNewProjectDir, deleteProjectDir } from '../../src/utils';
 describe('amplify add api', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('api.key.migration');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 
   afterEach(async () => {
-    await deleteProject(projRoot);
-    deleteProjectDir(projRoot);
+    // /await deleteProject(projRoot);
+    // deleteProjectDir(projRoot);
   });
 
   it('init project, run invalid migration trying to add an LSI, and wait for error', async () => {

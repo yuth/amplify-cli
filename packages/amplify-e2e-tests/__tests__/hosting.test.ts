@@ -8,7 +8,7 @@ import * as path from 'path';
 describe('amplify add hosting', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('hosting');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

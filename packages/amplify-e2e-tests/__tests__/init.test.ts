@@ -12,7 +12,7 @@ import { access } from 'fs';
 describe('amplify init', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('init');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

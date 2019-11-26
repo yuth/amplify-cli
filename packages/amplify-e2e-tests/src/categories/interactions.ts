@@ -2,14 +2,15 @@ import * as nexpect from 'nexpect';
 import { join } from 'path';
 import * as fs from 'fs';
 
-import { getCLIPath, isCI, getEnvVars } from '../utils';
+import { getCLIPath, isCI, getEnvVars, writeStdOutToDisk } from '../utils';
 const defaultSettings = {
   projectName: 'CLI Interaction test',
 };
 
 export function addSampleInteraction(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addSampleInteraction.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'interactions'], { cwd, stripColors: true, verbose })
       .wait('Provide a friendly resource name that will be used to label this category')
       .sendline('\r')
@@ -22,6 +23,7 @@ export function addSampleInteraction(cwd: string, settings: any, verbose: boolea
       .sendEof()
       // tslint:disable-next-line
       .run(function(err: Error) {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {

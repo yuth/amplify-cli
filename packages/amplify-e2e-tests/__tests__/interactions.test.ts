@@ -6,7 +6,7 @@ import { createNewProjectDir, deleteProjectDir, getProjectMeta, getBot } from '.
 describe('amplify add interactions', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('interaction');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

@@ -7,7 +7,7 @@ import { addAuthWithDefault } from '../src/categories/auth';
 describe('amplify add predictions', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('prediction');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

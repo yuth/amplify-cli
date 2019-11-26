@@ -6,7 +6,7 @@ import { createNewProjectDir, deleteProjectDir, getProjectMeta, getFunction } fr
 describe('amplify add function', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('functions');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

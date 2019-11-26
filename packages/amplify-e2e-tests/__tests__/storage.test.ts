@@ -14,7 +14,7 @@ import { createNewProjectDir, deleteProjectDir, getProjectMeta, getDDBTable, che
 describe('amplify add/update storage(S3)', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('storage');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

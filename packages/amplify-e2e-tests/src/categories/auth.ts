@@ -2,11 +2,12 @@ import * as nexpect from 'nexpect';
 import { join } from 'path';
 import * as fs from 'fs';
 
-import { getCLIPath, isCI, getEnvVars } from '../utils';
+import { getCLIPath, isCI, getEnvVars, writeStdOutToDisk } from '../utils';
 
 export function addAuthWithDefault(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthWithDefault.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'auth'], { cwd, stripColors: true, verbose })
       .wait('Do you want to use the default authentication')
       .sendline('\r')
@@ -15,8 +16,8 @@ export function addAuthWithDefault(cwd: string, settings: any, verbose: boolean 
       .wait('Do you want to configure advanced settings?')
       .sendline('\r')
       .sendEof()
-      // tslint:disable-next-line
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -27,8 +28,9 @@ export function addAuthWithDefault(cwd: string, settings: any, verbose: boolean 
 }
 
 export function addAuthWithGroupTrigger(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthWithGroupTrigger.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'auth'], { cwd, stripColors: true, verbose })
       .wait('Do you want to use the default authentication and security configuration?')
       .send('\r')
@@ -48,7 +50,8 @@ export function addAuthWithGroupTrigger(cwd: string, settings: any, verbose: boo
       .wait('Do you want to edit your add-to-group function now?')
       .send('n')
       .send('\r')
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -59,8 +62,9 @@ export function addAuthWithGroupTrigger(cwd: string, settings: any, verbose: boo
 }
 
 export function addAuthViaAPIWithTrigger(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthViaAPIWithTrigger.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'api'], { cwd, stripColors: true, verbose })
       .wait('Please select from one of the below mentioned services:')
       .send('\r')
@@ -100,7 +104,8 @@ export function addAuthViaAPIWithTrigger(cwd: string, settings: any, verbose: bo
       .wait('Do you want to edit the schema now?')
       .send('n')
       .send('\r')
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -111,8 +116,9 @@ export function addAuthViaAPIWithTrigger(cwd: string, settings: any, verbose: bo
 }
 
 export function addAuthWithCustomTrigger(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthWithCustomTrigger';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'auth'], { cwd, stripColors: true, verbose })
       .wait('Do you want to use the default authentication and security configuration?')
       .send('j')
@@ -179,7 +185,8 @@ export function addAuthWithCustomTrigger(cwd: string, settings: any, verbose: bo
       .wait('Do you want to edit your custom function now?')
       .send('n')
       .send('\r')
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -190,8 +197,9 @@ export function addAuthWithCustomTrigger(cwd: string, settings: any, verbose: bo
 }
 
 export function updateAuthWithoutCustomTrigger(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'updateAuthWithoutCustomTrigger.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['update', 'auth'], { cwd, stripColors: true, verbose })
       .wait('What do you want to do?')
       .send('j')
@@ -233,7 +241,8 @@ export function updateAuthWithoutCustomTrigger(cwd: string, settings: any, verbo
       .send('jjj')
       .send(' ')
       .send('\r')
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -244,8 +253,9 @@ export function updateAuthWithoutCustomTrigger(cwd: string, settings: any, verbo
 }
 
 export function addAuthWithRecaptchaTrigger(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthWithRecaptchaTrigger.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'auth'], { cwd, stripColors: true, verbose })
       .wait('Do you want to use the default authentication and security configuration?')
       .send('\r')
@@ -271,7 +281,8 @@ export function addAuthWithRecaptchaTrigger(cwd: string, settings: any, verbose:
       .wait('Do you want to edit your captcha-verify function now?')
       .send('n')
       .send('\r')
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -282,6 +293,7 @@ export function addAuthWithRecaptchaTrigger(cwd: string, settings: any, verbose:
 }
 
 export function addAuthWithDefaultSocial(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthWithDefaultSocial.log';
   return new Promise((resolve, reject) => {
     const { FACEBOOK_APP_ID, FACEBOOK_APP_SECRET, GOOGLE_APP_ID, GOOGLE_APP_SECRET, AMAZON_APP_ID, AMAZON_APP_SECRET }: any = getEnvVars();
 
@@ -308,7 +320,7 @@ export function addAuthWithDefaultSocial(cwd: string, settings: any, verbose: bo
     if (missingVars.length > 0) {
       throw new Error(`.env file is missing the following key/values: ${missingVars.join(', ')} `);
     }
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'auth'], { cwd, stripColors: true, verbose })
       .wait('Do you want to use the default authentication and security configuration?')
       // j = down arrow
@@ -353,7 +365,8 @@ export function addAuthWithDefaultSocial(cwd: string, settings: any, verbose: bo
       .send(AMAZON_APP_SECRET)
       .send('\r')
       .sendEof()
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -364,8 +377,9 @@ export function addAuthWithDefaultSocial(cwd: string, settings: any, verbose: bo
 }
 
 export function addAuthWithMaxOptions(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'addAuthWithMaxOptions.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'auth'], { cwd, stripColors: true, verbose })
       .wait('Do you want to use the default authentication and security configuration?')
       .send('j')
@@ -550,7 +564,8 @@ export function addAuthWithMaxOptions(cwd: string, settings: any, verbose: boole
       .send('n')
       .send('\r')
       .sendEof()
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {

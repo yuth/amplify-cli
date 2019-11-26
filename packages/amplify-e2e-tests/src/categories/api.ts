@@ -3,7 +3,7 @@ import { join } from 'path';
 import { updateSchema } from '../utils';
 import * as fs from 'fs';
 
-import { getCLIPath, isCI } from '../utils';
+import { getCLIPath, isCI, writeStdOutToDisk } from '../utils';
 const defaultSettings = {
   projectName: 'CLIIntegTestApi',
 };
@@ -22,8 +22,9 @@ function getSchemaPath(schemaName: string): string {
 }
 
 export function addApiWithoutSchema(cwd: string, verbose: boolean = !isCI()) {
+  const outputFileName = 'apiAddWithoutSchema.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'api'], { cwd, stripColors: true, verbose })
       .wait('Please select from one of the below mentioned services:')
       .sendline('\r')
@@ -49,7 +50,8 @@ export function addApiWithoutSchema(cwd: string, verbose: boolean = !isCI()) {
       .wait(
         '"amplify publish" will build all your local backend and frontend resources (if you have hosting category added) and provision it in the cloud'
       )
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -60,9 +62,10 @@ export function addApiWithoutSchema(cwd: string, verbose: boolean = !isCI()) {
 }
 
 export function addApiWithSchema(cwd: string, schemaFile: string, verbose: boolean = !isCI()) {
+  const outputFileName = 'apiAddWithoutSchema.log';
   const schemaPath = getSchemaPath(schemaFile);
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'api'], { cwd, stripColors: true, verbose })
       .wait('Please select from one of the below mentioned services:')
       .sendline('\r')
@@ -84,7 +87,8 @@ export function addApiWithSchema(cwd: string, schemaFile: string, verbose: boole
       .wait(
         '"amplify publish" will build all your local backend and frontend resources (if you have hosting category added) and provision it in the cloud'
       )
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
@@ -101,8 +105,9 @@ export function updateApiSchema(cwd: string, projectName: string, schemaName: st
 }
 
 export function updateApiWithMultiAuth(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'updateApi.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['update', 'api'], { cwd, stripColors: true, verbose })
       .wait('Please select from one of the below mentioned services:')
       .sendline('')
@@ -138,7 +143,8 @@ export function updateApiWithMultiAuth(cwd: string, settings: any, verbose: bool
       .sendline('2000')
       .wait(/.*Successfully updated resource.*/)
       .sendEof()
-      .run(function(err: Error) {
+      .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {

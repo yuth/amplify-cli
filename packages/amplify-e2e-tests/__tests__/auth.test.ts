@@ -20,7 +20,7 @@ const defaultsSettings = {
 describe('amplify add auth...', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('auth');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

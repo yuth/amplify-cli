@@ -18,7 +18,7 @@ import { TRANSFORM_CURRENT_VERSION, TRANSFORM_BASE_VERSION, writeTransformerConf
 describe('amplify add api', () => {
   let projRoot: string;
   beforeEach(() => {
-    projRoot = createNewProjectDir();
+    projRoot = createNewProjectDir('api');
     jest.setTimeout(1000 * 60 * 60); // 1 hour
   });
 

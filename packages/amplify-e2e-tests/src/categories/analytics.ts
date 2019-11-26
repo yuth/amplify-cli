@@ -1,9 +1,10 @@
 import * as nexpect from 'nexpect';
-import { getCLIPath, isCI } from '../utils';
+import { getCLIPath, isCI, writeStdOutToDisk } from '../utils';
 
 export function addAnalytics(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'analyticsAdd.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['add', 'analytics'], { cwd, stripColors: true, verbose })
       .wait('Provide your pinpoint resource name:')
       .sendline('$')
@@ -16,15 +17,20 @@ export function addAnalytics(cwd: string, settings: any, verbose: boolean = !isC
       .wait(`Successfully added resource ${settings.rightName} locally`)
       .sendEof()
       .run((err: Error) => {
-        if (!err) resolve();
-        else reject(err);
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
+        if (!err) {
+          resolve();
+        } else {
+          reject(err);
+        }
       });
   });
 }
 
 export function removeAnalytics(cwd: string, settings: any, verbose: boolean = !isCI()) {
+  const outputFileName = 'analyticsRemove.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['remove', 'analytics'], { cwd, stripColors: true, verbose })
       .wait('Choose the resource you would want to remove')
       .send('j')
@@ -35,8 +41,12 @@ export function removeAnalytics(cwd: string, settings: any, verbose: boolean = !
       .wait('Successfully removed resource')
       .sendEof()
       .run((err: Error) => {
-        if (!err) resolve();
-        else reject(err);
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
+        if (!err) {
+          resolve();
+        } else {
+          reject(err);
+        }
       });
   });
 }

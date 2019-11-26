@@ -1,7 +1,7 @@
 import * as nexpect from 'nexpect';
 import { join } from 'path';
 
-import { getCLIPath, isCI } from '../utils';
+import { getCLIPath, isCI, writeStdOutToDisk } from '../utils';
 const defaultSettings = {
   name: '\r',
   envName: 'integtest',
@@ -18,8 +18,9 @@ const defaultSettings = {
 
 export default function initJSProjectWithProfile(cwd: string, settings: Object, verbose: Boolean = isCI() ? false : true) {
   const s = { ...defaultSettings, ...settings };
+  const outputFileName = 'initJSProjectWithProfile.log';
   return new Promise((resolve, reject) => {
-    nexpect
+    const context = nexpect
       .spawn(getCLIPath(), ['init'], { cwd, stripColors: true, verbose })
       .wait('Enter a name for the project')
       .sendline(s.name)
@@ -46,6 +47,7 @@ export default function initJSProjectWithProfile(cwd: string, settings: Object, 
       .sendline(s.profileName)
       .wait('Try "amplify add api" to create a backend API and then "amplify publish" to deploy everything')
       .run((err: Error) => {
+        writeStdOutToDisk(outputFileName, cwd, context.stdout);
         if (!err) {
           resolve();
         } else {
