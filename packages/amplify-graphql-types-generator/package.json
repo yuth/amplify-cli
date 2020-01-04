@@ -54,7 +54,7 @@
     "babylon": "^6.18.0",
     "change-case": "^3.0.1",
     "common-tags": "^1.4.0",
-    "core-js": "^2.5.0",
+    "core-js": "^3.6.1",
     "glob": "^7.1.4",
     "graphql": "^0.13.2",
     "inflected": "^2.0.2",
