@@ -38,7 +38,7 @@
     "@types/node-fetch": "1.6.7",
     "@types/yargs": "12.0.1",
     "jest": "^23.1.0",
-    "jest-matcher-utils": "^23.6.0",
+    "jest-matcher-utils": "^24.9.0",
     "ts-jest": "^22.4.6",
     "tslint": "^5.18.0",
     "typescript": "~3.6.4"
