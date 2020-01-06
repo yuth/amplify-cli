@@ -9,7 +9,7 @@
     "@graphql-codegen/java-common": "~1.8.2",
     "@graphql-codegen/visitor-plugin-common": "~1.8.1",
     "auto-bind": "^2.1.1",
-    "chalk": "^2.4.2",
+    "chalk": "^3.0.0",
     "change-case": "^3.1.0",
     "graphql-tag": "^2.10.1",
     "graphql-toolkit": "^0.5.17",
