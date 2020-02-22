@@ -1,14 +1,24 @@
-import { GraphQLResolveInfo, SelectionNode } from 'graphql';
+import { GraphQLResolveInfo, SelectionNode, FragmentDefinitionNode } from 'graphql';
 import { print } from 'graphql/language/printer';
 
-const getSelectionSet = (nodes: readonly SelectionNode[], prefix: string = null) => {
+export const getSelectionSetAsList = (
+  nodes: readonly SelectionNode[],
+  fragments: Record<string, FragmentDefinitionNode>,
+  prefix: string = null,
+) => {
   return nodes.reduce((selectionSetList: string[], node) => {
     if (node.kind == 'Field') {
-      const name = prefix ? `${prefix}/${node.name.value}` : node.name.value;
+      const nameOrAlias = node.alias ? node.alias.value : node.name.value;
+      const name = prefix ? `${prefix}/${nameOrAlias}` : nameOrAlias;
       selectionSetList.push(name);
       if (node.selectionSet) {
-        selectionSetList.push(...getSelectionSet(node.selectionSet.selections, name));
+        selectionSetList.push(...getSelectionSetAsList(node.selectionSet.selections, fragments, name));
       }
+    } else if (node.kind === 'FragmentSpread') {
+      const fragment = fragments[node.name.value];
+      selectionSetList.push(...getSelectionSetAsList(fragment.selectionSet.selections, fragments, prefix));
+    } else if (node.kind === 'InlineFragment') {
+      selectionSetList.push(...getSelectionSetAsList(node.selectionSet.selections, fragments, prefix));
     }
 
     return selectionSetList;
@@ -23,13 +33,13 @@ export function createInfo(info: GraphQLResolveInfo) {
   if (fieldNode && fieldNode.selectionSet) {
     const query = print(fieldNode);
     selectionSetGraphQL = query.substr(query.indexOf('{'));
-    selectionSetList = getSelectionSet(fieldNode.selectionSet.selections);
+    selectionSetList = getSelectionSetAsList(fieldNode.selectionSet.selections, info.fragments, undefined);
   }
 
   return {
     fieldName: info.fieldName,
     variables: info.variableValues,
-    parentTypeName: info.parentType,
+    parentTypeName: info.parentType.name,
     selectionSetList,
     selectionSetGraphQL,
   };
