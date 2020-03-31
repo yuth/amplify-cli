@@ -3,15 +3,11 @@ import e2p from 'event-to-promise';
 import express from 'express';
 import { execute, parse, specifiedRules, validate } from 'graphql';
 import { address as getLocalIpAddress } from 'ip';
-import jwtDecode from 'jwt-decode';
 import { join } from 'path';
 import portfinder from 'portfinder';
 import { AmplifyAppSyncSimulator } from '..';
-import {
-  AmplifyAppSyncAuthenticationProviderOIDCConfig,
-  AmplifyAppSyncSimulatorAuthenticationType,
-  AppSyncSimulatorServerConfig,
-} from '../type-definition';
+import { AppSyncSimulatorServerConfig } from '../type-definition';
+import { extractJwtToken, getAuthorizationMode, extractHeader } from '../utils/auth-helpers';
 import { exposeGraphQLErrors } from '../utils/expose-graphql-errors';
 import { SubscriptionServer } from './subscription';
 
@@ -21,7 +17,7 @@ const MAX_PORT = 9999;
 
 const STATIC_ROOT = join(__dirname, '..', '..', 'public');
 export class OperationServer {
-  private app;
+  private app: express.Application;
   private server;
   private connection;
   private port: number;
@@ -71,16 +67,16 @@ export class OperationServer {
     }
   }
 
-  private handleAPIInfoRequest(request, response) {
+  private handleAPIInfoRequest(request: express.Request, response: express.Response) {
     return response.send(this.simulatorContext.appSyncConfig);
   }
 
-  private async handleRequest(request, response) {
+  private async handleRequest(request: express.Request, response: express.Response) {
     try {
       const { headers } = request;
       let requestAuthorizationMode;
       try {
-        requestAuthorizationMode = this.checkAuthorization(request);
+        requestAuthorizationMode = getAuthorizationMode(headers, this.simulatorContext.appSyncConfig);
       } catch (e) {
         return response.status(401).send({
           errors: [
@@ -110,8 +106,8 @@ export class OperationServer {
       const {
         definitions: [{ operation: queryType }],
       } = doc as any; // Remove casting
-      const authorization = headers.Authorization || headers.authorization;
-      const jwt = (authorization && this.extractJwtToken(authorization)) || {};
+      const authorization = extractHeader(headers, 'Authorization');
+      const jwt = (authorization && extractJwtToken(authorization)) || {};
       const context = { jwt, requestAuthorizationMode, request, appsyncErrors: [] };
       switch (queryType) {
         case 'query':
@@ -145,86 +141,5 @@ export class OperationServer {
         errorMessage: e.message,
       });
     }
-  }
-
-  private checkAuthorization(request): AmplifyAppSyncSimulatorAuthenticationType {
-    const appSyncConfig = this.simulatorContext.appSyncConfig;
-    const { headers } = request;
-
-    const apiKey = this.extractHeader(headers, 'x-api-key');
-    const authorization = this.extractHeader(headers, 'Authorization');
-    const jwtToken = this.extractJwtToken(authorization);
-    const allowedAuthTypes = this.getAllowedAuthTypes();
-    const isApiKeyAllowed = allowedAuthTypes.includes(AmplifyAppSyncSimulatorAuthenticationType.API_KEY);
-    const isIamAllowed = allowedAuthTypes.includes(AmplifyAppSyncSimulatorAuthenticationType.AWS_IAM);
-    const isCupAllowed = allowedAuthTypes.includes(AmplifyAppSyncSimulatorAuthenticationType.AMAZON_COGNITO_USER_POOLS);
-    const isOidcAllowed = allowedAuthTypes.includes(AmplifyAppSyncSimulatorAuthenticationType.OPENID_CONNECT);
-
-    if (isApiKeyAllowed) {
-      if (apiKey) {
-        if (appSyncConfig.apiKey === apiKey) {
-          return AmplifyAppSyncSimulatorAuthenticationType.API_KEY;
-        }
-
-        throw new Error('UnauthorizedException: Invalid API key');
-      }
-    }
-
-    if (authorization) {
-      if (isIamAllowed) {
-        const isSignatureV4Token = authorization.startsWith('AWS4-HMAC-SHA256');
-        if (isSignatureV4Token) {
-          return AmplifyAppSyncSimulatorAuthenticationType.AWS_IAM;
-        }
-      }
-
-      if (isCupAllowed) {
-        const isCupToken = jwtToken.iss.startsWith('https://cognito-idp.');
-        if (isCupToken) {
-          return AmplifyAppSyncSimulatorAuthenticationType.AMAZON_COGNITO_USER_POOLS;
-        }
-      }
-
-      if (isOidcAllowed) {
-        const isOidcToken = this.hasValidOidcIssuer(jwtToken);
-        if (isOidcToken) {
-          return AmplifyAppSyncSimulatorAuthenticationType.OPENID_CONNECT;
-        }
-      }
-
-      throw new Error('UnauthorizedException: Invalid JWT token');
-    }
-
-    throw new Error('UnauthorizedException: Missing authorization');
-  }
-
-  private extractHeader(headers, name) {
-    const headerName = Object.keys(headers).find(header => header.toLowerCase() === name.toLowerCase());
-    return headerName && headers[headerName];
-  }
-
-  private extractJwtToken(authorization) {
-    try {
-      return jwtDecode(authorization);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  private getAllowedAuthTypes(): AmplifyAppSyncSimulatorAuthenticationType[] {
-    const appSyncConfig = this.simulatorContext.appSyncConfig;
-    const allAuthTypes = [appSyncConfig.defaultAuthenticationType, ...appSyncConfig.additionalAuthenticationProviders];
-    return allAuthTypes.map(c => c.authenticationType).filter(c => c);
-  }
-
-  private hasValidOidcIssuer(token): boolean {
-    const appSyncConfig = this.simulatorContext.appSyncConfig;
-    const allAuthTypes = [appSyncConfig.defaultAuthenticationType, ...appSyncConfig.additionalAuthenticationProviders];
-
-    const oidcIssuers = allAuthTypes
-      .filter(authType => authType.authenticationType === AmplifyAppSyncSimulatorAuthenticationType.OPENID_CONNECT)
-      .map((auth: AmplifyAppSyncAuthenticationProviderOIDCConfig) => auth.openIDConnectConfig.Issuer);
-
-    return oidcIssuers.length > 0 && oidcIssuers.includes(token.iss);
   }
 }

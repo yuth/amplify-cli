@@ -118,10 +118,6 @@ export class SubscriptionServer {
 
     while (true) {
       let { value: payload } = await asyncIterator.next();
-      if (!this.shouldPublishSubscription(payload, variables)) {
-        continue;
-      }
-
       log.info(`Publishing payload for topic ${topicId}`);
       log.log('Payload:');
       log.log(inspect(payload));
@@ -248,38 +244,5 @@ export class SubscriptionServer {
       variableValues: variables,
       contextValue: context,
     });
-  }
-
-  private shouldPublishSubscription(payload, variables) {
-    if (payload == null || (typeof payload === 'object' && payload.data == null)) {
-      log.warn('Subscription payload is null; Publishing will be skipped');
-      return false;
-    }
-
-    const variableEntries = Object.entries(variables || {});
-
-    if (!variableEntries.length) {
-      return true;
-    }
-
-    const data = Object.entries(payload.data || {});
-    const payloadData = data.length ? data[0].pop() : null;
-
-    if (!payloadData) {
-      return false;
-    }
-    // every variable key/value pair must match corresponding payload key/value pair
-    const variableResult = variableEntries.every(([variableKey, variableValue]) => payloadData[variableKey] === variableValue);
-
-    if (!variableResult) {
-      log.warn('Subscription payload did not match variables');
-      log.warn('Payload:');
-      log.warn(inspect(payload));
-      log.warn('Variables:');
-      log.warn(inspect(variables));
-      return false;
-    }
-
-    return true;
   }
 }
