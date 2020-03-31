@@ -7,6 +7,7 @@ import nanoid from 'nanoid';
 import { TrieListener } from './trie-listener';
 import { Client } from './client';
 import { EventEmitter } from 'events';
+import { Server } from 'http';
 
 export type MQTTServerOptions = {
   id?: string;
@@ -261,7 +262,7 @@ export class MQTTServer extends EventEmitter {
           this.emit('closed');
           callback();
         });
-      }
+      },
     );
   }
 
@@ -270,7 +271,7 @@ export class MQTTServer extends EventEmitter {
       callback(null, packet);
     }
   }
-  attachHttpServer(server, path) {
+  attachHttpServer(server: Server, path?: string) {
     const opt: { server: any; path?: string } = { server: server };
     if (path) {
       opt.path = path;
