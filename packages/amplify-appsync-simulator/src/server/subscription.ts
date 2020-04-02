@@ -1,4 +1,4 @@
-import { subscribe, DocumentNode, ExecutionResult, ExecutableDefinitionNode, FieldNode } from 'graphql';
+import { subscribe, DocumentNode, ExecutionResult, ExecutableDefinitionNode, FieldNode, execute } from 'graphql';
 import crypto from 'crypto';
 import { inspect } from 'util';
 import { createServer as createHTTPServer, Server } from 'http';
@@ -112,7 +112,7 @@ export class SubscriptionServer {
       this.register(reg.document, reg.variables, reg.context);
     }
 
-    const { asyncIterator, topicId, variables } = reg;
+    const { asyncIterator, topicId } = reg;
 
     while (true) {
       let { value: payload } = await asyncIterator.next();
