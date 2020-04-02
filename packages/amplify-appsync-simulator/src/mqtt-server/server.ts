@@ -1,5 +1,5 @@
 import Connection from 'mqtt-connection';
-import ws from 'websocket-stream';
+import ws from 'ws';
 import steed from 'steed';
 import pino from 'pino';
 import extend from 'extend';
@@ -276,8 +276,9 @@ export class MQTTServer extends EventEmitter {
       opt.path = path;
     }
 
-    const wss = ws.createServer(opt);
-    wss.on('stream', stream => {
+    const wss = new ws.Server(opt);
+    wss.on('connection', socket => {
+      const stream = ws.createWebSocketStream(socket, {});
       const conn = new Connection(stream);
       new Client(conn, this);
     });
