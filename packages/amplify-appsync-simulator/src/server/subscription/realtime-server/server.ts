@@ -1,9 +1,19 @@
-import { DocumentNode } from 'graphql';
-import * as WebSocket from 'ws';
-import { Server as WebSocketServer, ServerOptions, MessageEvent } from 'ws';
+import { DocumentNode, parse } from 'graphql';
+import { ExecutionResult, ExecutionResultDataDefault } from 'graphql/execution/execute';
 import { IncomingMessage } from 'http';
+import * as WebSocket from 'ws';
+import { Server as WebSocketServer, ServerOptions } from 'ws';
+import {
+  GQLMessageConnectionAck,
+  GQLMessageConnectionInit,
+  GQLMessageSubscriptionStart,
+  GQLMessageSubscriptionStop,
+  isSubscriptionConnectionInitMessage,
+  isSubscriptionStartMessage,
+  isSubscriptionStopMessage,
+} from './message-type-guards';
 import { MESSAGE_TYPES } from './message-types';
-import { GQLMessageConnectionInit, GQLMessageSubscriptionStart, isSubscriptionConnectionInitMessage } from './message-type-guards';
+import { decodeHeaderFromQueryParam } from './utils';
 
 const PROTOCOL = 'graphql-ws';
 const KEEP_ALIVE_TIMEOUT = 4 * 60 * 1000; // Wait time between Keep Alive Message
@@ -12,26 +22,27 @@ const CONNECTION_TIMEOUT_DURATION = 5 * 60 * 1000;
 
 export type RealtimeSubscription = {
   id: string;
-  // socket: WebSocketStream;
-  subscription: {
-    type: 'WebSocket';
-    context: any;
-    variables: Record<string, any>;
-    asyncIterator: AsyncIterator<any>;
-    document: DocumentNode;
-  };
+  variables: Record<string, any>;
+  asyncIterator: AsyncIterator<any>;
+  document: DocumentNode;
 };
 
 export type ConnectionContext = {
   socket: WebSocket;
   request: IncomingMessage;
-  subscriptions: Record<string, RealtimeSubscription>;
+  subscriptions: Map<string, RealtimeSubscription>;
+  pingIntervalHandle?: NodeJS.Timeout;
   isConnectionInitialized: boolean;
 };
 
 export type RealTimeServerOptions = {
-  onConnectHandler?: (message: GQLMessageConnectionInit, header: Record<string, string[]>) => void;
-  onSubscribeHandler: (message: GQLMessageSubscriptionStart) => void;
+  onConnectHandler?: (message: ConnectionContext, header: Record<string, any>) => void;
+  onSubscribeHandler: (
+    query: DocumentNode,
+    variable: Record<string, any>,
+    headers: Record<string, any>,
+    request: IncomingMessage,
+  ) => Promise<AsyncIterableIterator<ExecutionResult<ExecutionResultDataDefault>> | ExecutionResult<ExecutionResultDataDefault>>;
   keepAlive?: number;
   connectionTimeoutDuration?: number;
 };
@@ -50,6 +61,7 @@ export class RealTimeServer {
   constructor(options: RealTimeServerOptions, server?: ServerOptions) {
     this.connections = new Set();
     this.options = { ...DEFAULT_OPTIONS, ...options };
+    this.onSocketConnection = this.onSocketConnection.bind(this);
     if (server) {
       this.attachWebServer(server);
     }
@@ -77,47 +89,68 @@ export class RealTimeServer {
 
   private onClose(connectionContext: ConnectionContext): void {
     Object.keys(connectionContext.subscriptions).forEach(subscriptionId => {
-      this.unSubscribe(connectionContext, subscriptionId);
+      this.stopAsyncIterator(connectionContext, subscriptionId);
     });
+    if (connectionContext.pingIntervalHandle) {
+      clearInterval(connectionContext.pingIntervalHandle);
+      connectionContext.pingIntervalHandle = null;
+    }
     this.connections.delete(connectionContext);
   }
 
-  private unSubscribe(connectionContext: ConnectionContext, id: string): void {
-    if (connectionContext.subscriptions && connectionContext.subscriptions[id]) {
-      if (connectionContext.subscriptions[id].subscription.asyncIterator) {
-        connectionContext.subscriptions[id].subscription.asyncIterator.return();
+  private onUnsubscribe(connectionContext: ConnectionContext, messageOrSubscriptionId: GQLMessageSubscriptionStop): void {
+    const { id } = messageOrSubscriptionId;
+    this.stopAsyncIterator(connectionContext, id);
+    this.sendMessage(connectionContext, id, MESSAGE_TYPES.GQL_COMPLETE, {});
+  }
+
+  private stopAsyncIterator(connectionContext: ConnectionContext, id: string): void {
+    if (connectionContext.subscriptions && connectionContext.subscriptions.has(id)) {
+      const subscription = connectionContext.subscriptions.get(id);
+      if (subscription.asyncIterator) {
+        subscription.asyncIterator.return();
       }
 
-      delete connectionContext.subscriptions[id];
+      connectionContext.subscriptions.delete(id);
     }
   }
 
   private onSocketConnection(socket: WebSocket, request: IncomingMessage): void {
     (socket as any).upgradeReq = request;
-    if (typeof socket.protocol === 'undefined' || socket.protocol !== PROTOCOL) {
+    try {
+      if (typeof socket.protocol === 'undefined' || socket.protocol !== PROTOCOL) {
+        throw new Error('Invalid protocol');
+      }
+      const connectionContext: ConnectionContext = {
+        request,
+        socket,
+        subscriptions: new Map(),
+        isConnectionInitialized: false,
+      };
+      const headers = decodeHeaderFromQueryParam(request);
+
+      this.options.onConnectHandler(connectionContext, headers);
+
+      this.connections.add(connectionContext);
+
+      const onMessage = message => {
+        this.onMessage(connectionContext, message);
+      };
+
+      const onClose = (error?: Error | string) => {
+        socket.off('message', onMessage);
+        socket.off('close', onClose);
+        socket.off('error', onClose);
+        this.onSocketDisconnection(connectionContext, error);
+      };
+
+      socket.on('message', onMessage);
+      socket.on('close', onClose);
+      socket.on('error', onClose);
+    } catch (e) {
       socket.close(1002); // protocol error
       return;
     }
-    const connectionContext: ConnectionContext = {
-      request,
-      socket,
-      subscriptions: {},
-      isConnectionInitialized: false,
-    };
-    this.connections.add(connectionContext);
-    const onMessage = message => {
-      this.onMessage(connectionContext, message);
-    };
-    const onClose = (error?: Error | string) => {
-      socket.off('message', onMessage);
-      socket.off('close', onClose);
-      socket.off('error', onClose);
-      this.onSocketDisconnection(connectionContext, error);
-    };
-
-    socket.on('message', onMessage);
-    socket.on('close', onClose);
-    socket.on('error', onClose);
   }
 
   private onSocketDisconnection(connectionContext: ConnectionContext, error?: Error | string): void {
@@ -131,7 +164,30 @@ export class RealTimeServer {
     }
   }
 
-  private onMessage(connectionContext: ConnectionContext, message: any) {}
+  private onMessage(connectionContext: ConnectionContext, rawMessage: string) {
+    const message = JSON.parse(rawMessage);
+    try {
+      switch (message.type) {
+        case MESSAGE_TYPES.GQL_CONNECTION_INIT:
+          if (isSubscriptionConnectionInitMessage(message)) {
+            return this.onConnectionInit(connectionContext, message);
+          }
+          break;
+        case MESSAGE_TYPES.GQL_START:
+          if (isSubscriptionStartMessage(message)) {
+            return this.onSubscriptionStart(connectionContext, message);
+          }
+          break;
+        case MESSAGE_TYPES.GQL_STOP:
+          if (isSubscriptionStopMessage(message)) {
+            return this.onUnsubscribe(connectionContext, message);
+          }
+      }
+      throw new Error('Invalid message');
+    } catch (e) {
+      this.sendError(connectionContext, '', { errors: [{ message: e.message }] });
+    }
+  }
 
   private sendMessage(connectionContext: ConnectionContext, subscriptionId: string, type: MESSAGE_TYPES, data: any): void {
     const message = {
@@ -141,8 +197,6 @@ export class RealTimeServer {
     };
     if (connectionContext.socket.readyState === WebSocket.OPEN) {
       connectionContext.socket.send(JSON.stringify(message));
-    } else {
-      throw new Error('Cant send message to a closed connection');
     }
   }
   private sendError(
@@ -156,45 +210,65 @@ export class RealTimeServer {
     }
     this.sendMessage(connectionContext, subscriptionId, type, errorPayload);
   }
-  private sendPing(connectionContext: ConnectionContext): void {
-    this.sendMessage(connectionContext, undefined, MESSAGE_TYPES.GQL_CONNECTION_KEEP_ALIVE, undefined);
+  private setupPing(connectionContext: ConnectionContext): void {
+    connectionContext.pingIntervalHandle = setInterval(() => {
+      this.sendMessage(connectionContext, undefined, MESSAGE_TYPES.GQL_CONNECTION_KEEP_ALIVE, undefined);
+    }, this.options.keepAlive);
   }
 
-  private async onConnectionInit(connectionContext: ConnectionContext, message): void {
+  private onConnectionInit(connectionContext: ConnectionContext, message: GQLMessageConnectionInit): void {
     connectionContext.isConnectionInitialized = true;
-    try {
-      if (isSubscriptionConnectionInitMessage(message)) {
-      } else {
-        const error = new Error('Malformed message');
-        error.name = 'MalformedMessage';
-        throw error;
-      }
-      this.sendMessage(connectionContext, undefined, MESSAGE_TYPES.GQL_CONNECTION_ACK, undefined);
-      this.sendPing(connectionContext);
-      // Regular keep alive messages if keepAlive is set
-      const pingTimer = setInterval(() => {
-        if (connectionContext.socket.readyState === WebSocket.OPEN) {
-          this.sendPing(connectionContext);
-        } else {
-          clearInterval(pingTimer);
-        }
-      }, KEEP_ALIVE_TIMEOUT);
-    } catch (e) {
-      this.sendError(connectionContext, '', {
-        errors: [
-          {
-            errorType: e.name,
-            message: e.message,
-          },
-        ],
-      });
+    const response: GQLMessageConnectionAck = {
+      type: MESSAGE_TYPES.GQL_CONNECTION_ACK,
+      payload: {
+        connectionTimeout: this.options.connectionTimeoutDuration,
+      },
+    };
+    this.sendMessage(connectionContext, undefined, response.type, response.payload);
+    this.setupPing(connectionContext);
+
+    // Regular keep alive messages if keepAlive is set
+    this.setupPing(connectionContext);
+  }
+
+  private async onSubscriptionStart(connectionContext: ConnectionContext, message: GQLMessageSubscriptionStart): Promise<void> {
+    const id = message.id;
+    const data = JSON.parse(message.payload.data);
+    const query = parse(data.query);
+    const variables = data.variables;
+    const headers = message.payload.extensions.authorization;
+    if (connectionContext.subscriptions && connectionContext.subscriptions.has(id)) {
+      this.stopAsyncIterator(connectionContext, id);
+    }
+    const asyncIterator = await this.options.onSubscribeHandler(query, variables, headers, connectionContext.request);
+    if ((asyncIterator as ExecutionResult).errors) {
+      const error = {
+        errors: (asyncIterator as ExecutionResult).errors,
+        data: (asyncIterator as ExecutionResult).data || null,
+      };
+      this.sendError(connectionContext, id, error, MESSAGE_TYPES.GQL_ERROR);
+    } else {
+      const subscription: RealtimeSubscription = {
+        id,
+        asyncIterator: asyncIterator as AsyncIterableIterator<any>,
+        document: query,
+        variables,
+      };
+      connectionContext.subscriptions.set(id, subscription);
+      this.sendMessage(connectionContext, id, MESSAGE_TYPES.GQL_START_ACK, {});
+      this.attachAsyncIterator(connectionContext, subscription);
     }
   }
 
-  private onConnectionTermination(connectionContext: ConnectionContext): void {
-    connectionContext.socket.close();
-  }
-  private onSubscriptionStart(connectionContext: ConnectionContext, message): void {
-    this.onNewSubscription();
+  private async attachAsyncIterator(connectionContext: ConnectionContext, sub: RealtimeSubscription): Promise<void> {
+    const { asyncIterator, id } = sub;
+    while (true) {
+      const { value, done } = await asyncIterator.next();
+      if (done) {
+        break;
+      }
+      console.log(value);
+      this.sendMessage(connectionContext, id, MESSAGE_TYPES.GQL_DATA, value);
+    }
   }
 }

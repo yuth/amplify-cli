@@ -1,7 +1,7 @@
-import { subscribe, DocumentNode, ExecutionResult, ExecutableDefinitionNode, FieldNode, execute } from 'graphql';
+import { subscribe, DocumentNode, ExecutionResult, ExecutableDefinitionNode, FieldNode, execute, parse } from 'graphql';
 import crypto from 'crypto';
 import { inspect } from 'util';
-import { createServer as createHTTPServer, Server } from 'http';
+import { createServer as createHTTPServer, Server, IncomingMessage } from 'http';
 import e2p from 'event-to-promise';
 import portfinder from 'portfinder';
 import chalk from 'chalk';
@@ -12,6 +12,10 @@ import { address as getLocalIpAddress } from 'ip';
 
 import { AmplifyAppSyncSimulator } from '..';
 import { AppSyncSimulatorServerConfig } from '../type-definition';
+import { getAuthorizationMode, extractJwtToken } from '../utils/auth-helpers';
+import { RealTimeServer, ConnectionContext } from './subscription/realtime-server/server';
+import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
+import { runSubscription } from '../utils/graphql-runner/subscriptions';
 
 const MINUTE = 1000 * 60;
 const CONNECTION_TIME_OUT = 2 * MINUTE; // 2 mins
@@ -35,6 +39,8 @@ export class SubscriptionServer {
   private mqttIteratorTimeout: Map<string, NodeJS.Timer>;
   private mqttWebSocketServer: Server;
   private mqttServer: MQTTServer;
+  private realtimeServer: RealTimeServer;
+  private realtimeSocketServer: Server;
   url: string;
   private port: number;
 
@@ -58,6 +64,37 @@ export class SubscriptionServer {
     this.mqttServer.on('subscribed', this.afterSubscription.bind(this));
 
     this.mqttServer.on('unsubscribed', this.afterMQTTClientUnsubscribe.bind(this));
+
+    this.realtimeSocketServer = createHTTPServer();
+    this.realtimeServer = new RealTimeServer(
+      {
+        onSubscribeHandler: (
+          doc: DocumentNode,
+          variable: Record<string, any>,
+          headers: Record<string, any>,
+          request: IncomingMessage,
+          operationName?: string,
+        ) => {
+          const ipAddress = request.socket.remoteAddress;
+          const jwt = extractJwtToken(headers.authorization);
+          const requestAuthorizationMode = getAuthorizationMode(headers, this.appSyncServerContext.appSyncConfig);
+          const executionContext: AppSyncGraphQLExecutionContext = {
+            jwt,
+            sourceIp: ipAddress,
+            headers,
+            requestAuthorizationMode,
+          };
+          return runSubscription(this.appSyncServerContext.schema, doc, variable, operationName, executionContext);
+        },
+        onConnectHandler: (message: ConnectionContext, headers: Record<string, any>) => {
+          this.checkAuthorization(headers);
+        },
+      },
+      {
+        server: this.realtimeSocketServer,
+        path: '/realtime',
+      },
+    );
   }
 
   async start() {
@@ -68,6 +105,9 @@ export class SubscriptionServer {
       });
     }
     const server = this.mqttWebSocketServer.listen(this.port);
+    this.realtimeSocketServer.listen(20004);
+    this.realtimeServer.start();
+
     return await e2p(server, 'listening').then(() => {
       const address = server.address() as AddressInfo;
       this.url = `ws://${getLocalIpAddress()}:${address.port}/`;
@@ -250,12 +290,18 @@ export class SubscriptionServer {
     };
   }
 
-  subscribeToGraphQL(document: DocumentNode, variables: object, context: any) {
+  subscribeToGraphQL(document: DocumentNode, variables: object, context: any, operationName?: string) {
     return subscribe({
       schema: this.appSyncServerContext.schema,
       document,
       variableValues: variables,
       contextValue: context,
+      operationName,
     });
+  }
+
+  private checkAuthorization(headers: Record<string, string>): boolean {
+    getAuthorizationMode(headers, this.appSyncServerContext.appSyncConfig);
+    return true;
   }
 }

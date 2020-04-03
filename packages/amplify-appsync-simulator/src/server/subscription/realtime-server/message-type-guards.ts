@@ -23,10 +23,7 @@ export type GQLMessageSubscriptionStart = GQLMessageGeneric & {
   type: MESSAGE_TYPES.GQL_START;
   id: string;
   payload: {
-    data: {
-      query: string;
-      variables?: Record<string, any>;
-    };
+    data: string;
     extensions: {
       authorization: {
         Authorization: string;
@@ -70,7 +67,13 @@ export function isSubscriptionStartMessage(message: any): message is GQLMessageS
   if (!message) return false;
   if (message.type !== MESSAGE_TYPES.GQL_START) return false;
   if (!message.id) return false;
-  if (!(message.payload && message.payload.data && message.payload.data && message.payload.data.query)) return false;
+  if (!(message.payload && message.payload.data)) return false;
+  try {
+    const dataJson = JSON.parse(message.payload.data);
+    if (!dataJson.query) return false;
+  } catch (e) {
+    return false;
+  }
   if (!(message.payload && message.payload.extensions && message.payload.extensions.authorization)) return false;
 
   return true;
