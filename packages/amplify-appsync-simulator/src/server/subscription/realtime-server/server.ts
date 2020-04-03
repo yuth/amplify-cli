@@ -88,8 +88,8 @@ export class RealTimeServer {
   }
 
   private onClose(connectionContext: ConnectionContext): void {
-    Object.keys(connectionContext.subscriptions).forEach(subscriptionId => {
-      this.stopAsyncIterator(connectionContext, subscriptionId);
+    connectionContext.subscriptions.forEach(subscriptionId => {
+      this.stopAsyncIterator(connectionContext, subscriptionId.id);
     });
     if (connectionContext.pingIntervalHandle) {
       clearInterval(connectionContext.pingIntervalHandle);
