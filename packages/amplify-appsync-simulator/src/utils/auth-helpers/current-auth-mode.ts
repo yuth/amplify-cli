@@ -1,5 +1,5 @@
 import { AmplifyAppSyncAPIConfig, AmplifyAppSyncSimulatorAuthenticationType } from '../../type-definition';
-import { extractHeader, getAllowedAuthTypes, isValidOIDCToken } from './helpers';
+import { extractHeader, getAllowedAuthTypes, isValidOIDCToken, extractJwtToken } from './helpers';
 
 export function getAuthorizationMode(
   headers: Record<string, string | string[]>,
@@ -8,7 +8,7 @@ export function getAuthorizationMode(
   const apiKey = extractHeader(headers, 'x-api-key');
   const rawAuthHeader = extractHeader(headers, 'Authorization');
   const authorization = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
-  const jwtToken = this.extractJwtToken(authorization);
+  const jwtToken = extractJwtToken(authorization);
   const allowedAuthTypes = getAllowedAuthTypes(appSyncConfig);
   const isApiKeyAllowed = allowedAuthTypes.includes(AmplifyAppSyncSimulatorAuthenticationType.API_KEY);
   const isIamAllowed = allowedAuthTypes.includes(AmplifyAppSyncSimulatorAuthenticationType.AWS_IAM);
@@ -33,23 +33,24 @@ export function getAuthorizationMode(
       }
     }
 
-    if (isCupAllowed) {
-      const isCupToken = jwtToken.iss.startsWith('https://cognito-idp.');
-      if (isCupToken) {
-        return AmplifyAppSyncSimulatorAuthenticationType.AMAZON_COGNITO_USER_POOLS;
+    if (jwtToken) {
+      if (isCupAllowed) {
+        const isCupToken = jwtToken.iss.startsWith('https://cognito-idp.');
+        if (isCupToken) {
+          return AmplifyAppSyncSimulatorAuthenticationType.AMAZON_COGNITO_USER_POOLS;
+        }
+      }
+
+      if (isOidcAllowed) {
+        const isOidcToken = isValidOIDCToken(jwtToken, [
+          appSyncConfig.defaultAuthenticationType,
+          ...appSyncConfig.additionalAuthenticationProviders,
+        ]);
+        if (isOidcToken) {
+          return AmplifyAppSyncSimulatorAuthenticationType.OPENID_CONNECT;
+        }
       }
     }
-
-    if (isOidcAllowed) {
-      const isOidcToken = isValidOIDCToken(jwtToken, [
-        appSyncConfig.defaultAuthenticationType,
-        ...appSyncConfig.additionalAuthenticationProviders,
-      ]);
-      if (isOidcToken) {
-        return AmplifyAppSyncSimulatorAuthenticationType.OPENID_CONNECT;
-      }
-    }
-
     throw new Error('UnauthorizedException: Invalid JWT token');
   }
 

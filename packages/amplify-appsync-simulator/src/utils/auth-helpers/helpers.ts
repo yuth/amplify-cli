@@ -22,7 +22,7 @@ export function extractJwtToken(authorization: string): JWTToken {
   try {
     return jwtDecode(authorization);
   } catch (_) {
-    return null;
+    return undefined;
   }
 }
 
