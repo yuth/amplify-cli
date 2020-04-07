@@ -6,4 +6,6 @@ export const getOperationType = (document: DocumentNode, operationName?: string)
   if (operationAST) {
     return operationAST.operation;
   }
+
+  throw new Error('Could not get operation from the document');
 };

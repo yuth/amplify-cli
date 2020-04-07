@@ -12,7 +12,7 @@ import { address as getLocalIpAddress } from 'ip';
 
 import { AmplifyAppSyncSimulator } from '..';
 import { AppSyncSimulatorServerConfig } from '../type-definition';
-import { getAuthorizationMode, extractJwtToken } from '../utils/auth-helpers';
+import { getAuthorizationMode, extractJwtToken, extractHeader } from '../utils/auth-helpers';
 import { RealTimeServer, ConnectionContext } from './subscription/realtime-server/server';
 import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { runSubscription } from '../utils/graphql-runner/subscriptions';
@@ -30,7 +30,7 @@ export type GraphQLClientSubscription = {
   context: any;
   variables: Record<string, any>;
   topicId: string;
-  asyncIterator: AsyncIterator<any>;
+  asyncIterator: AsyncIterableIterator<any>;
   document: DocumentNode;
   isRegistered: boolean;
 };
@@ -76,13 +76,15 @@ export class SubscriptionServer {
           operationName?: string,
         ) => {
           const ipAddress = request.socket.remoteAddress;
-          const jwt = extractJwtToken(headers.authorization);
+          const authorization = extractHeader(headers, 'Authorization');
+          const jwt = extractJwtToken(authorization);
           const requestAuthorizationMode = getAuthorizationMode(headers, this.appSyncServerContext.appSyncConfig);
           const executionContext: AppSyncGraphQLExecutionContext = {
             jwt,
             sourceIp: ipAddress,
             headers,
             requestAuthorizationMode,
+            appsyncErrors: [],
           };
           return runSubscription(this.appSyncServerContext.schema, doc, variable, operationName, executionContext);
         },
@@ -146,13 +148,12 @@ export class SubscriptionServer {
       log.error(`Client (${chalk.bold(clientId)}) tried to subscribe to non-existent topic ${topic}`);
       return;
     }
+    const { asyncIterator, topicId } = reg;
 
     if (!reg.isRegistered) {
       // turn the subscription back on
-      this.register(reg.document, reg.variables, reg.context);
+      this.register(reg.document, reg.variables, reg.context, asyncIterator);
     }
-
-    const { asyncIterator, topicId } = reg;
 
     while (true) {
       let { value: payload } = await asyncIterator.next();
@@ -203,7 +204,7 @@ export class SubscriptionServer {
     this.clientRegistry.delete(clientId);
   }
 
-  async register(document: DocumentNode, variables: Record<string, any>, context) {
+  async register(document: DocumentNode, variables: Record<string, any>, context, asyncIterator: AsyncIterableIterator<ExecutionResult>) {
     const connection = context.request.connection;
     const remoteAddress = `${connection.remoteAddress}:${connection.remotePort}`;
     const clientId = crypto
@@ -228,14 +229,6 @@ export class SubscriptionServer {
 
     log.info(`Client (${chalk.bold(clientId)}) registered for topic ${topicId}`);
 
-    const asyncIterator = await this.subscribeToGraphQL(document, variables, context);
-
-    if ((asyncIterator as ExecutionResult).errors) {
-      return {
-        errors: context.appsyncErrors || (asyncIterator as ExecutionResult).errors,
-        data: (asyncIterator as ExecutionResult).data || null,
-      };
-    }
     const registration: GraphQLClientSubscription = {
       type: 'MQTT',
       context,
@@ -288,16 +281,6 @@ export class SubscriptionServer {
         },
       },
     };
-  }
-
-  subscribeToGraphQL(document: DocumentNode, variables: object, context: any, operationName?: string) {
-    return subscribe({
-      schema: this.appSyncServerContext.schema,
-      document,
-      variableValues: variables,
-      contextValue: context,
-      operationName,
-    });
   }
 
   private checkAuthorization(headers: Record<string, string>): boolean {

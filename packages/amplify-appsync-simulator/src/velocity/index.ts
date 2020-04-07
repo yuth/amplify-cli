@@ -75,10 +75,8 @@ export class VelocityTemplate {
     info: GraphQLResolveInfo,
   ): any {
     const { source, arguments: argument, result, stash, prevResult, error } = ctxValues;
-
-    const {
-      jwt: { iss: issuer, sub, 'cognito:username': cognitoUserName, username },
-    } = requestContext;
+    const { jwt } = requestContext;
+    const { iss: issuer, sub, 'cognito:username': cognitoUserName, username } = jwt || {};
 
     const util = createUtil([], new Date(Date.now()), info);
     const args = convertToJavaTypes(argument);

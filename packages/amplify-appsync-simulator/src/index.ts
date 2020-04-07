@@ -18,7 +18,7 @@ import {
   AmplifyAppSyncAPIConfig,
   AppSyncSimulatorMappingTemplate,
 } from './type-definition';
-import { filterSubscriptions } from './utils/filter-subscriptions';
+import { filterSubscriptions } from './utils/graphql-runner/subscriptions-filter';
 export * from './type-definition';
 
 const DEFAULT_SCHEMA = `
@@ -165,8 +165,8 @@ export class AmplifyAppSyncSimulator {
   get pubsub(): PubSub {
     return this._pubsub;
   }
-  asyncIterator(trigger: string) {
-    return withFilter(() => this._pubsub.asyncIterator(trigger), filterSubscriptions);
+  asyncIterator(trigger: string): AsyncIterator<any> {
+    return withFilter(() => this._pubsub.asyncIterator(trigger), filterSubscriptions)();
   }
 
   get url(): string {

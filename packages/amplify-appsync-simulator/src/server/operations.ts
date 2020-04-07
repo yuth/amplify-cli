@@ -1,14 +1,17 @@
 import cors from 'cors';
 import e2p from 'event-to-promise';
 import express from 'express';
-import { execute, parse, specifiedRules, validate } from 'graphql';
+import { ExecutionResult, parse } from 'graphql';
 import { address as getLocalIpAddress } from 'ip';
 import { join } from 'path';
 import portfinder from 'portfinder';
 import { AmplifyAppSyncSimulator } from '..';
 import { AppSyncSimulatorServerConfig } from '../type-definition';
-import { extractJwtToken, getAuthorizationMode, extractHeader } from '../utils/auth-helpers';
-import { exposeGraphQLErrors } from '../utils/expose-graphql-errors';
+import { extractHeader, extractJwtToken, getAuthorizationMode } from '../utils/auth-helpers';
+import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
+import { getOperationType } from '../utils/graphql-runner/helpers';
+import { runQueryOrMutation } from '../utils/graphql-runner/query-and-mutation';
+import { runSubscription } from '../utils/graphql-runner/subscriptions';
 import { SubscriptionServer } from './subscription';
 
 const MAX_BODY_SIZE = '10mb';
@@ -97,43 +100,40 @@ export class OperationServer {
           error: 'No schema available',
         });
       }
-      const validationErrors = validate(this.simulatorContext.schema, doc, specifiedRules);
-      if (validationErrors.length) {
-        return response.send({
-          errors: validationErrors,
-        });
-      }
-      const {
-        definitions: [{ operation: queryType }],
-      } = doc as any; // Remove casting
       const authorization = extractHeader(headers, 'Authorization');
-      const jwt = (authorization && extractJwtToken(authorization)) || {};
-      const context = { jwt, requestAuthorizationMode, request, appsyncErrors: [] };
-      switch (queryType) {
+      const jwt = authorization && extractJwtToken(authorization);
+      const sourceIp = request.connection.remoteAddress;
+      const context: AppSyncGraphQLExecutionContext = {
+        jwt,
+        requestAuthorizationMode,
+        sourceIp,
+        headers: request.headers,
+        appsyncErrors: [],
+      };
+      switch (getOperationType(doc)) {
         case 'query':
         case 'mutation':
-          const results: any = await execute(this.simulatorContext.schema, doc, null, context, variables, operationName);
-          const errors = [...(results.errors || []), ...context.appsyncErrors];
-          if (errors.length > 0) {
-            results.errors = exposeGraphQLErrors(errors);
-          }
-          return response.send({ data: null, ...results });
+          const gqlResult = await runQueryOrMutation(this.simulatorContext.schema, doc, variables, operationName, context);
+          return response.send(gqlResult);
 
         case 'subscription':
-          const result = await execute(this.simulatorContext.schema, doc, null, context, variables, operationName);
-          if (context.appsyncErrors.length) {
-            const errors = exposeGraphQLErrors(context.appsyncErrors);
-            return response.send({
-              errors,
-            });
+          const iterator = await runSubscription(this.simulatorContext.schema, doc, variables, operationName, context);
+          if ((iterator as ExecutionResult).errors) {
+            return response.send(iterator);
           }
-          const subscription = await this.subscriptionServer.register(doc, variables, context);
+          const subscription = await this.subscriptionServer.register(
+            doc,
+            variables,
+            { ...context, request },
+            iterator as AsyncIterableIterator<ExecutionResult>,
+          );
           return response.send({
             ...subscription,
-            ...result,
           });
+          break;
+
         default:
-          throw new Error(`unknown operation type: ${queryType}`);
+          throw new Error(`unknown operation`);
       }
     } catch (e) {
       console.log('Error while executing GraphQL statement', e);
