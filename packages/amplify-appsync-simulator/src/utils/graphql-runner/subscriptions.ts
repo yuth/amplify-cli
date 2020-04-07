@@ -4,13 +4,17 @@ import { AppSyncGraphQLExecutionContext } from './index';
 import { runQueryOrMutation } from './query-and-mutation';
 import { getOperationType } from './helpers';
 
+export type SubscriptionResult = ExecutionResult & {
+  asyncIterator: AsyncIterableIterator<ExecutionResult>;
+};
+
 export async function runSubscription(
   schema: GraphQLSchema,
   document: DocumentNode,
   variables: Record<string, any>,
   operationName: string | undefined,
   context: AppSyncGraphQLExecutionContext,
-): Promise<AsyncIterableIterator<ExecutionResult> | ExecutionResult> {
+): Promise<SubscriptionResult | ExecutionResult> {
   const operationType = getOperationType(document);
   if (operationType !== 'subscription') {
     const error = new Error(`Expected operation type subscription, received ${operationType}`);
@@ -37,5 +41,5 @@ export async function runSubscription(
     };
   }
 
-  return subscriptionResult;
+  return { asyncIterator: subscriptionResult as AsyncIterableIterator<ExecutionResult>, ...result };
 }

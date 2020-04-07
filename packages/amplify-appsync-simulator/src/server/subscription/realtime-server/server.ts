@@ -36,7 +36,7 @@ export type ConnectionContext = {
 };
 
 export type RealTimeServerOptions = {
-  onConnectHandler?: (message: ConnectionContext, header: Record<string, any>) => void;
+  onConnectHandler?: (message: ConnectionContext, header: Record<string, any>) => Promise<void> | void;
   onSubscribeHandler: (
     query: DocumentNode,
     variable: Record<string, any>,
@@ -48,7 +48,7 @@ export type RealTimeServerOptions = {
 };
 
 const DEFAULT_OPTIONS: Partial<RealTimeServerOptions> = {
-  onConnectHandler: () => {},
+  onConnectHandler: async () => {},
   keepAlive: KEEP_ALIVE_TIMEOUT,
   connectionTimeoutDuration: CONNECTION_TIMEOUT_DURATION,
 };
@@ -115,7 +115,7 @@ export class RealTimeServer {
     }
   }
 
-  private onSocketConnection(socket: WebSocket, request: IncomingMessage): void {
+  private async onSocketConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {
     (socket as any).upgradeReq = request;
     try {
       if (typeof socket.protocol === 'undefined' || socket.protocol !== PROTOCOL) {
@@ -129,7 +129,7 @@ export class RealTimeServer {
       };
       const headers = decodeHeaderFromQueryParam(request);
 
-      this.options.onConnectHandler(connectionContext, headers);
+      await this.options.onConnectHandler(connectionContext, headers);
 
       this.connections.add(connectionContext);
 
@@ -267,7 +267,6 @@ export class RealTimeServer {
       if (done) {
         break;
       }
-      console.log(value);
       this.sendMessage(connectionContext, id, MESSAGE_TYPES.GQL_DATA, value);
     }
   }

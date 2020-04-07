@@ -11,7 +11,7 @@ import { extractHeader, extractJwtToken, getAuthorizationMode } from '../utils/a
 import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { getOperationType } from '../utils/graphql-runner/helpers';
 import { runQueryOrMutation } from '../utils/graphql-runner/query-and-mutation';
-import { runSubscription } from '../utils/graphql-runner/subscriptions';
+import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
 import { SubscriptionServer } from './subscription';
 
 const MAX_BODY_SIZE = '10mb';
@@ -117,18 +117,19 @@ export class OperationServer {
           return response.send(gqlResult);
 
         case 'subscription':
-          const iterator = await runSubscription(this.simulatorContext.schema, doc, variables, operationName, context);
-          if ((iterator as ExecutionResult).errors) {
-            return response.send(iterator);
+          const subscriptionResult = await runSubscription(this.simulatorContext.schema, doc, variables, operationName, context);
+          if ((subscriptionResult as ExecutionResult).errors) {
+            return response.send(subscriptionResult);
           }
           const subscription = await this.subscriptionServer.register(
             doc,
             variables,
             { ...context, request },
-            iterator as AsyncIterableIterator<ExecutionResult>,
+            (subscriptionResult as SubscriptionResult).asyncIterator,
           );
           return response.send({
             ...subscription,
+            ...subscriptionResult,
           });
           break;
 

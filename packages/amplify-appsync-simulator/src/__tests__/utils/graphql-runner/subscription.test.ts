@@ -1,6 +1,6 @@
 import { GraphQLSchema, parse, subscribe } from 'graphql';
 
-import { runSubscription } from '../../../utils/graphql-runner/subscriptions';
+import { runSubscription, SubscriptionResult } from '../../../utils/graphql-runner/subscriptions';
 import { runQueryOrMutation } from '../../../utils/graphql-runner/query-and-mutation';
 import { makeExecutableSchema } from 'graphql-tools';
 import { AppSyncGraphQLExecutionContext } from '../../../utils/graphql-runner';
@@ -62,8 +62,8 @@ describe('runSubscription', () => {
       }
     `);
 
-    const iterator = await runSubscription(schema, doc, variables, undefined, executionContext);
-    expect(typeof iterator[Symbol.asyncIterator]).toEqual('function');
+    const result = await runSubscription(schema, doc, variables, undefined, executionContext);
+    expect(typeof (result as SubscriptionResult).asyncIterator[Symbol.asyncIterator]).toEqual('function');
     expect(subscriptionSubscribe).toHaveBeenCalled();
     expect(subscriptionSubscribe.mock.calls[0][2]).toEqual(executionContext);
   });

@@ -15,7 +15,7 @@ import { AppSyncSimulatorServerConfig } from '../type-definition';
 import { getAuthorizationMode, extractJwtToken, extractHeader } from '../utils/auth-helpers';
 import { RealTimeServer, ConnectionContext } from './subscription/realtime-server/server';
 import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
-import { runSubscription } from '../utils/graphql-runner/subscriptions';
+import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
 
 const MINUTE = 1000 * 60;
 const CONNECTION_TIME_OUT = 2 * MINUTE; // 2 mins
@@ -68,7 +68,7 @@ export class SubscriptionServer {
     this.realtimeSocketServer = createHTTPServer();
     this.realtimeServer = new RealTimeServer(
       {
-        onSubscribeHandler: (
+        onSubscribeHandler: async (
           doc: DocumentNode,
           variable: Record<string, any>,
           headers: Record<string, any>,
@@ -86,9 +86,19 @@ export class SubscriptionServer {
             requestAuthorizationMode,
             appsyncErrors: [],
           };
-          return runSubscription(this.appSyncServerContext.schema, doc, variable, operationName, executionContext);
+          const subscriptionResult = await runSubscription(
+            this.appSyncServerContext.schema,
+            doc,
+            variable,
+            operationName,
+            executionContext,
+          );
+          if ((subscriptionResult as SubscriptionResult).asyncIterator) {
+            return (subscriptionResult as SubscriptionResult).asyncIterator;
+          }
+          return subscriptionResult;
         },
-        onConnectHandler: (message: ConnectionContext, headers: Record<string, any>) => {
+        onConnectHandler: async (message: ConnectionContext, headers: Record<string, any>) => {
           this.checkAuthorization(headers);
         },
       },
