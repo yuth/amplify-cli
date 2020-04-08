@@ -70,6 +70,12 @@ export class RealTimeServer {
   attachWebServer(serverOptions: ServerOptions): void {
     this.webSocketServer = new WebSocketServer(serverOptions || {});
   }
+
+  onConnectionUpgrade(request, socket, head) {
+    this.webSocketServer.handleUpgrade(request, socket, head, ws => {
+      this.webSocketServer.emit('connection', ws, request);
+    });
+  }
   start() {
     if (!this.webSocketServer) {
       throw new Error('No server is attached');

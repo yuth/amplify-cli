@@ -1,21 +1,19 @@
-import { subscribe, DocumentNode, ExecutionResult, ExecutableDefinitionNode, FieldNode, execute, parse } from 'graphql';
-import crypto from 'crypto';
-import { inspect } from 'util';
-import { createServer as createHTTPServer, Server, IncomingMessage } from 'http';
-import e2p from 'event-to-promise';
-import portfinder from 'portfinder';
 import chalk from 'chalk';
-
-import { Server as CoreHTTPServer, AddressInfo } from 'net';
-import { Server as MQTTServer } from './subscription/mqtt-server';
+import crypto from 'crypto';
+import e2p from 'event-to-promise';
+import { DocumentNode, ExecutableDefinitionNode, ExecutionResult, FieldNode } from 'graphql';
+import { createServer as createHTTPServer, IncomingMessage, Server } from 'http';
 import { address as getLocalIpAddress } from 'ip';
-
+import { AddressInfo } from 'net';
+import portfinder from 'portfinder';
+import { inspect } from 'util';
 import { AmplifyAppSyncSimulator } from '..';
 import { AppSyncSimulatorServerConfig } from '../type-definition';
-import { getAuthorizationMode, extractJwtToken, extractHeader } from '../utils/auth-helpers';
-import { RealTimeServer, ConnectionContext } from './subscription/realtime-server/server';
+import { extractHeader, extractJwtToken, getAuthorizationMode } from '../utils/auth-helpers';
 import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
+import { Server as MQTTServer } from './subscription/mqtt-server';
+import { ConnectionContext, RealTimeServer } from './subscription/realtime-server/server';
 
 const MINUTE = 1000 * 60;
 const CONNECTION_TIME_OUT = 2 * MINUTE; // 2 mins
@@ -26,7 +24,6 @@ const MAX_PORT = 9999;
 const log = console;
 
 export type GraphQLClientSubscription = {
-  type: 'MQTT' | 'WebSocket';
   context: any;
   variables: Record<string, any>;
   topicId: string;
@@ -66,47 +63,6 @@ export class SubscriptionServer {
     this.mqttServer.on('unsubscribed', this.afterMQTTClientUnsubscribe.bind(this));
 
     this.realtimeSocketServer = createHTTPServer();
-    this.realtimeServer = new RealTimeServer(
-      {
-        onSubscribeHandler: async (
-          doc: DocumentNode,
-          variable: Record<string, any>,
-          headers: Record<string, any>,
-          request: IncomingMessage,
-          operationName?: string,
-        ) => {
-          const ipAddress = request.socket.remoteAddress;
-          const authorization = extractHeader(headers, 'Authorization');
-          const jwt = extractJwtToken(authorization);
-          const requestAuthorizationMode = getAuthorizationMode(headers, this.appSyncServerContext.appSyncConfig);
-          const executionContext: AppSyncGraphQLExecutionContext = {
-            jwt,
-            sourceIp: ipAddress,
-            headers,
-            requestAuthorizationMode,
-            appsyncErrors: [],
-          };
-          const subscriptionResult = await runSubscription(
-            this.appSyncServerContext.schema,
-            doc,
-            variable,
-            operationName,
-            executionContext,
-          );
-          if ((subscriptionResult as SubscriptionResult).asyncIterator) {
-            return (subscriptionResult as SubscriptionResult).asyncIterator;
-          }
-          return subscriptionResult;
-        },
-        onConnectHandler: async (message: ConnectionContext, headers: Record<string, any>) => {
-          this.checkAuthorization(headers);
-        },
-      },
-      {
-        server: this.realtimeSocketServer,
-        path: '/realtime',
-      },
-    );
   }
 
   async start() {
@@ -117,8 +73,6 @@ export class SubscriptionServer {
       });
     }
     const server = this.mqttWebSocketServer.listen(this.port);
-    this.realtimeSocketServer.listen(20004);
-    this.realtimeServer.start();
 
     return await e2p(server, 'listening').then(() => {
       const address = server.address() as AddressInfo;
@@ -240,7 +194,6 @@ export class SubscriptionServer {
     log.info(`Client (${chalk.bold(clientId)}) registered for topic ${topicId}`);
 
     const registration: GraphQLClientSubscription = {
-      type: 'MQTT',
       context,
       document,
       variables,
@@ -291,10 +244,5 @@ export class SubscriptionServer {
         },
       },
     };
-  }
-
-  private checkAuthorization(headers: Record<string, string>): boolean {
-    getAuthorizationMode(headers, this.appSyncServerContext.appSyncConfig);
-    return true;
   }
 }

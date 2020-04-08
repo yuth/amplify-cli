@@ -1,10 +1,8 @@
 import cors from 'cors';
-import e2p from 'event-to-promise';
 import express from 'express';
 import { ExecutionResult, parse } from 'graphql';
-import { address as getLocalIpAddress } from 'ip';
+import { Server } from 'http';
 import { join } from 'path';
-import portfinder from 'portfinder';
 import { AmplifyAppSyncSimulator } from '..';
 import { AppSyncSimulatorServerConfig } from '../type-definition';
 import { extractHeader, extractJwtToken, getAuthorizationMode } from '../utils/auth-helpers';
@@ -12,18 +10,18 @@ import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { getOperationType } from '../utils/graphql-runner/helpers';
 import { runQueryOrMutation } from '../utils/graphql-runner/query-and-mutation';
 import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
+import { AppSyncSimulatorSubscriptionServer } from './realtime';
 import { SubscriptionServer } from './subscription';
 
 const MAX_BODY_SIZE = '10mb';
-const BASE_PORT = 8900;
-const MAX_PORT = 9999;
 
 const STATIC_ROOT = join(__dirname, '..', '..', 'public');
 export class OperationServer {
-  private app: express.Application;
-  private server;
+  private _app: express.Application;
+  private server: Server;
   private connection;
   private port: number;
+  private subscriptionHandler: AppSyncSimulatorSubscriptionServer;
   url: string;
 
   constructor(
@@ -32,43 +30,18 @@ export class OperationServer {
     private subscriptionServer: SubscriptionServer,
   ) {
     this.port = config.port;
-    this.app = express();
-    this.app.use(express.json({ limit: MAX_BODY_SIZE }));
-    this.app.use(cors());
-    this.app.post('/graphql', this.handleRequest.bind(this));
-    this.app.get('/api-config', this.handleAPIInfoRequest.bind(this));
-    this.app.use('/', express.static(STATIC_ROOT));
+    this._app = express();
+    this._app.use(express.json({ limit: MAX_BODY_SIZE }));
+    this._app.use(cors());
+    this._app.post('/graphql', this.handleRequest.bind(this));
+    this._app.get('/api-config', this.handleAPIInfoRequest.bind(this));
+    this._app.use('/', express.static(STATIC_ROOT));
     this.server = null;
   }
 
-  async start() {
-    if (this.server) {
-      throw new Error('Server is already running');
-    }
+  async start() {}
 
-    if (!this.port) {
-      this.port = await portfinder.getPortPromise({
-        startPort: BASE_PORT,
-        stopPort: MAX_PORT,
-      });
-    }
-
-    this.server = this.app.listen(this.port);
-
-    return await e2p(this.server, 'listening').then(() => {
-      this.connection = this.server.address();
-      this.url = `http://${getLocalIpAddress()}:${this.connection.port}`;
-      return this.server;
-    });
-  }
-
-  stop() {
-    if (this.server) {
-      this.server.close();
-      this.server = null;
-      this.connection = null;
-    }
-  }
+  stop() {}
 
   private handleAPIInfoRequest(request: express.Request, response: express.Response) {
     return response.send(this.simulatorContext.appSyncConfig);
@@ -142,5 +115,8 @@ export class OperationServer {
         errorMessage: e.message,
       });
     }
+  }
+  get app() {
+    return this._app;
   }
 }
