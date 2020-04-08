@@ -35,7 +35,7 @@ export type ConnectionContext = {
   isConnectionInitialized: boolean;
 };
 
-export type RealTimeServerOptions = {
+export type WebsocketSubscriptionServerOptions = {
   onConnectHandler?: (message: ConnectionContext, header: Record<string, any>) => Promise<void> | void;
   onSubscribeHandler: (
     query: DocumentNode,
@@ -47,18 +47,18 @@ export type RealTimeServerOptions = {
   connectionTimeoutDuration?: number;
 };
 
-const DEFAULT_OPTIONS: Partial<RealTimeServerOptions> = {
+const DEFAULT_OPTIONS: Partial<WebsocketSubscriptionServerOptions> = {
   onConnectHandler: async () => {},
   keepAlive: KEEP_ALIVE_TIMEOUT,
   connectionTimeoutDuration: CONNECTION_TIMEOUT_DURATION,
 };
 
-export class RealTimeServer {
-  private options: RealTimeServerOptions;
+export class WebsocketSubscriptionServer {
+  private options: WebsocketSubscriptionServerOptions;
   private connections: Set<ConnectionContext>;
   private webSocketServer: WebSocketServer;
 
-  constructor(options: RealTimeServerOptions, server?: ServerOptions) {
+  constructor(options: WebsocketSubscriptionServerOptions, server?: ServerOptions) {
     this.connections = new Set();
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.onSocketConnection = this.onSocketConnection.bind(this);

@@ -6,7 +6,7 @@ import { Server, createServer } from 'http';
 import portFinder from 'portfinder';
 import e2p from 'event-to-promise';
 import { address as getLocalIpAddress } from 'ip';
-import { AppSyncSimulatorSubscriptionServer } from './realtime';
+import { AppSyncSimulatorSubscriptionServer } from './websocket-subscription';
 
 const BASE_PORT = 8900;
 const MAX_PORT = 9999;
@@ -22,7 +22,7 @@ export class AppSyncSimulatorServer {
     this.subscriptionServer = new SubscriptionServer(config, simulatorContext);
     this.operationServer = new OperationServer(config, simulatorContext, this.subscriptionServer);
     this.httpServer = createServer(this.operationServer.app);
-    this.realTimeSubscriptionServer = new AppSyncSimulatorSubscriptionServer(simulatorContext, this.httpServer, '/subscription');
+    this.realTimeSubscriptionServer = new AppSyncSimulatorSubscriptionServer(simulatorContext, this.httpServer, '/graphql');
   }
 
   async start(): Promise<void> {

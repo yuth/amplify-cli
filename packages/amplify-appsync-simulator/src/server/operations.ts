@@ -10,7 +10,7 @@ import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { getOperationType } from '../utils/graphql-runner/helpers';
 import { runQueryOrMutation } from '../utils/graphql-runner/query-and-mutation';
 import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
-import { AppSyncSimulatorSubscriptionServer } from './realtime';
+import { AppSyncSimulatorSubscriptionServer } from './websocket-subscription';
 import { SubscriptionServer } from './subscription';
 
 const MAX_BODY_SIZE = '10mb';

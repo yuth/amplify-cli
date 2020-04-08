@@ -4,16 +4,16 @@ import { extractHeader, extractJwtToken, getAuthorizationMode } from '../utils/a
 import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
 import { AmplifyAppSyncSimulator } from '..';
-import { ConnectionContext, RealTimeServer } from './subscription/realtime-server/server';
+import { ConnectionContext, WebsocketSubscriptionServer } from './subscription/websocket-server/server';
 
 export class AppSyncSimulatorSubscriptionServer {
-  private realtimeServer: RealTimeServer;
+  private realtimeServer: WebsocketSubscriptionServer;
   constructor(
     private appSyncServerContext: AmplifyAppSyncSimulator,
     private server: Server,
     private subscriptionPath: string = '/subscribe',
   ) {
-    this.realtimeServer = new RealTimeServer(
+    this.realtimeServer = new WebsocketSubscriptionServer(
       {
         onSubscribeHandler: this.onSubscribe.bind(this),
         onConnectHandler: this.onConnectHandler.bind(this),

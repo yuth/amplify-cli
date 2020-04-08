@@ -13,7 +13,7 @@ import { extractHeader, extractJwtToken, getAuthorizationMode } from '../utils/a
 import { AppSyncGraphQLExecutionContext } from '../utils/graphql-runner';
 import { runSubscription, SubscriptionResult } from '../utils/graphql-runner/subscriptions';
 import { Server as MQTTServer } from './subscription/mqtt-server';
-import { ConnectionContext, RealTimeServer } from './subscription/realtime-server/server';
+import { ConnectionContext, WebsocketSubscriptionServer } from './subscription/websocket-server/server';
 
 const MINUTE = 1000 * 60;
 const CONNECTION_TIME_OUT = 2 * MINUTE; // 2 mins
@@ -36,7 +36,7 @@ export class SubscriptionServer {
   private mqttIteratorTimeout: Map<string, NodeJS.Timer>;
   private mqttWebSocketServer: Server;
   private mqttServer: MQTTServer;
-  private realtimeServer: RealTimeServer;
+  private realtimeServer: WebsocketSubscriptionServer;
   private realtimeSocketServer: Server;
   url: string;
   private port: number;
