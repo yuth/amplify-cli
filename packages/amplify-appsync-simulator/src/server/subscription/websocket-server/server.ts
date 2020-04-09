@@ -20,7 +20,7 @@ const KEEP_ALIVE_TIMEOUT = 4 * 60 * 1000; // Wait time between Keep Alive Messag
 // Max time the client will wait for Keep Alive message before disconnecting. Sent to the client as part of connection ack
 const CONNECTION_TIMEOUT_DURATION = 5 * 60 * 1000;
 
-export type RealtimeSubscription = {
+export type WebsocketSubscription = {
   id: string;
   variables: Record<string, any>;
   asyncIterator: AsyncIterator<any>;
@@ -30,13 +30,13 @@ export type RealtimeSubscription = {
 export type ConnectionContext = {
   socket: WebSocket;
   request: IncomingMessage;
-  subscriptions: Map<string, RealtimeSubscription>;
+  subscriptions: Map<string, WebsocketSubscription>;
   pingIntervalHandle?: NodeJS.Timeout;
   isConnectionInitialized: boolean;
 };
 
 export type WebsocketSubscriptionServerOptions = {
-  onConnectHandler?: (message: ConnectionContext, header: Record<string, any>) => Promise<void> | void;
+  onConnectHandler?: (connectionContext: ConnectionContext, header: Record<string, any>) => Promise<void> | void;
   onSubscribeHandler: (
     query: DocumentNode,
     variable: Record<string, any>,
@@ -133,7 +133,7 @@ export class WebsocketSubscriptionServer {
         subscriptions: new Map(),
         isConnectionInitialized: false,
       };
-      const headers = decodeHeaderFromQueryParam(request);
+      const headers = decodeHeaderFromQueryParam(request.url);
 
       await this.options.onConnectHandler(connectionContext, headers);
 
@@ -254,7 +254,7 @@ export class WebsocketSubscriptionServer {
       };
       this.sendError(connectionContext, id, error, MESSAGE_TYPES.GQL_ERROR);
     } else {
-      const subscription: RealtimeSubscription = {
+      const subscription: WebsocketSubscription = {
         id,
         asyncIterator: asyncIterator as AsyncIterableIterator<any>,
         document: query,
@@ -266,7 +266,7 @@ export class WebsocketSubscriptionServer {
     }
   }
 
-  private async attachAsyncIterator(connectionContext: ConnectionContext, sub: RealtimeSubscription): Promise<void> {
+  private async attachAsyncIterator(connectionContext: ConnectionContext, sub: WebsocketSubscription): Promise<void> {
     const { asyncIterator, id } = sub;
     while (true) {
       const { value, done } = await asyncIterator.next();
