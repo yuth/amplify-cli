@@ -6,6 +6,7 @@ const analyzeProject = require('./attach-backend-steps/a20-analyzeProject');
 const initFrontend = require('./attach-backend-steps/a30-initFrontend');
 const generateFiles = require('./attach-backend-steps/a40-generateFiles');
 const { postPullCodeGenCheck } = require('./amplify-service-helper');
+const { initializeEnv } = require('./initialize-env');
 
 const backupAmplifyDirName = 'amplify-backup';
 
@@ -46,6 +47,15 @@ async function onSuccess(context) {
   if (!inputParams.yes) {
     const confirmKeepCodebase = await context.amplify.confirmPrompt.run('Do you plan on modifying this backend?', true);
     if (confirmKeepCodebase) {
+      const currentAmplifyMetafilePath = context.amplify.pathManager.getCurrentAmplifyMetaFilePath();
+
+      let currentAmplifyMeta = {};
+
+      if (fs.existsSync(currentAmplifyMetafilePath)) {
+        currentAmplifyMeta = context.amplify.readJsonFile(currentAmplifyMetafilePath);
+      }
+      debugger;
+      await initializeEnv(context, currentAmplifyMeta);
       const { envName } = context.exeInfo.localEnvInfo;
       context.print.info('');
       context.print.success(`Successfully pulled backend environment ${envName} from the cloud.`);
@@ -58,6 +68,14 @@ async function onSuccess(context) {
       context.print.info(`Run 'amplify pull' to sync upstream changes.`);
       context.print.info('');
     }
+  } else {
+    let currentAmplifyMeta = {};
+
+    if (fs.existsSync(currentAmplifyMetafilePath)) {
+      currentAmplifyMeta = context.amplify.readJsonFile(currentAmplifyMetafilePath);
+    }
+    const currentAmplifyMetafilePath = context.amplify.pathManager.getCurrentAmplifyMetaFilePath();
+    await initializeEnv(context, currentAmplifyMeta);
   }
 
   removeBackupAmplifyFolder();

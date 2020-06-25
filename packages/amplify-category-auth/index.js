@@ -207,7 +207,7 @@ async function checkRequirements(requirements, context) {
 
 async function initEnv(context) {
   const { amplify } = context;
-  const { resourcesToBeCreated, resourcesToBeDeleted, resourcesToBeUpdated } = await amplify.getResourceStatus('auth');
+  const { resourcesToBeCreated, resourcesToBeDeleted, resourcesToBeUpdated, allResources } = await amplify.getResourceStatus('auth');
   let toBeCreated = [];
   let toBeDeleted = [];
   let toBeUpdated = [];
@@ -226,7 +226,8 @@ async function initEnv(context) {
     amplify.removeResourceParameters(context, 'auth', authResource.resourceName);
   });
 
-  const tasks = toBeCreated.concat(toBeUpdated);
+  // const tasks = toBeCreated.concat(toBeUpdated);
+  const tasks = allResources;
 
   const authTasks = tasks.map(authResource => {
     const { resourceName } = authResource;
