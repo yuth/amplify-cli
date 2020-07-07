@@ -1,4 +1,4 @@
-import { buildASTSchema, concatAST, DocumentNode, GraphQLObjectType, parse, Source } from 'graphql';
+import { buildASTSchema, concatAST, DocumentNode, GraphQLObjectType, parse, Source, GraphQLResolveInfo } from 'graphql';
 import { makeExecutableSchema } from 'graphql-tools';
 import { AmplifyAppSyncSimulator } from '..';
 import { AppSyncSimulatorPipelineResolverConfig, AppSyncSimulatorUnitResolverConfig } from '../type-definition';
@@ -61,12 +61,12 @@ export function generateResolvers(
         },
         ...(typeName === 'Subscription'
           ? {
-              subscribe: (source, args, context, info) => {
+              subscribe: (source, args: Record<string, any>, context: Record<string, any>, info: GraphQLResolveInfo) => {
                 // Connect time error. Not allowing subscription
                 if (context.appsyncErrors.length) {
                   throw new Error('Subscription failed');
                 }
-                return simulatorContext.asyncIterator(fieldName);
+                return simulatorContext.asyncIterator(fieldName, args, context, info);
               },
             }
           : {}),
@@ -120,7 +120,8 @@ function generateDefaultSubscriptions(
         .reduce((acc, sub) => {
           const resolver = {
             resolve: data => data,
-            subscribe: () => simulatorContext.asyncIterator(sub),
+            subscribe: (source, args: Record<string, any>, context: Record<string, any>, info: GraphQLResolveInfo) =>
+              simulatorContext.asyncIterator(sub, args, context, info),
           };
           return { ...acc, [sub]: resolver };
         }, {});

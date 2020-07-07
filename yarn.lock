@@ -4727,6 +4727,15 @@ aws-appsync-auth-link@^1.0.1:
     aws-sdk "^2.518.0"
     debug "2.6.9"
 
+aws-appsync-auth-link@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/aws-appsync-auth-link/-/aws-appsync-auth-link-2.0.2.tgz#3d528e78c9b8905cb49ee35fbaa9bc7c0b9a86f5"
+  integrity sha512-wwIwc/UIFkqB1L8VHez1DvWtUZAKfS8mtTbp4aCwH4G1bXBC3eMUfrPEq80un3/wENPCl1byFeoT20jBifEIWA==
+  dependencies:
+    apollo-link "^1.2.3"
+    aws-sdk "^2.518.0"
+    debug "2.6.9"
+
 aws-appsync-subscription-link@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/aws-appsync-subscription-link/-/aws-appsync-subscription-link-1.0.1.tgz#4e6f36df49cbb23f6ba23a531b51b807ab035cc9"
@@ -4736,6 +4745,19 @@ aws-appsync-subscription-link@^1.0.1:
     apollo-link-context "^1.0.9"
     apollo-link-http "^1.3.1"
     apollo-link-retry "^2.2.5"
+    debug "2.6.9"
+    url "^0.11.0"
+
+aws-appsync-subscription-link@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/aws-appsync-subscription-link/-/aws-appsync-subscription-link-2.2.0.tgz#280677403d28f99cabf17a074941e19177e6301e"
+  integrity sha512-s+OpXiVJm9UzyVhxHpIfa1YYYHU9O/uLnwAGskUVBBo47pSuGHiSgALhjaTKRvomq9Jfb19PNPwjLDxvXDLEYA==
+  dependencies:
+    apollo-link "^1.2.3"
+    apollo-link-context "^1.0.9"
+    apollo-link-http "^1.3.1"
+    apollo-link-retry "^2.2.5"
+    aws-appsync-auth-link "^2.0.2"
     debug "2.6.9"
     url "^0.11.0"
 
@@ -4753,6 +4775,29 @@ aws-appsync@^2.0.2:
     apollo-link-retry "2.2.5"
     aws-appsync-auth-link "^1.0.1"
     aws-appsync-subscription-link "^1.0.1"
+    aws-sdk "2.518.0"
+    debug "2.6.9"
+    graphql "0.13.0"
+    redux "^3.7.2"
+    redux-thunk "^2.2.0"
+    setimmediate "^1.0.5"
+    url "^0.11.0"
+    uuid "3.x"
+
+aws-appsync@^3.0.4:
+  version "3.0.4"
+  resolved "https://registry.yarnpkg.com/aws-appsync/-/aws-appsync-3.0.4.tgz#af41e50eeaf63f7136440f90136e6b7eea3f9ab0"
+  integrity sha512-tKWoo48t6tNe0qWW7RjIDnVpsFUWB9T/S3UEhHFJBowS8oEg5b+mrN6l0QYFUkNLGVcFA5wwRTvTaxOkPpJ5sQ==
+  dependencies:
+    "@redux-offline/redux-offline" "2.5.2-native.0"
+    apollo-cache-inmemory "1.3.12"
+    apollo-client "2.4.6"
+    apollo-link "1.2.3"
+    apollo-link-context "1.0.9"
+    apollo-link-http "1.3.1"
+    apollo-link-retry "2.2.5"
+    aws-appsync-auth-link "^2.0.2"
+    aws-appsync-subscription-link "^2.2.0"
     aws-sdk "2.518.0"
     debug "2.6.9"
     graphql "0.13.0"

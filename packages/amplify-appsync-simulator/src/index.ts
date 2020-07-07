@@ -1,4 +1,4 @@
-import { Source, GraphQLSchema } from 'graphql';
+import { Source, GraphQLSchema, GraphQLResolveInfo } from 'graphql';
 import slash from 'slash';
 import { generateResolvers } from './schema';
 import { VelocityTemplate } from './velocity';
@@ -119,7 +119,7 @@ export class AmplifyAppSyncSimulator {
   }
 
   stop() {
-    this._server.stop();
+    return this._server.stop();
   }
 
   getMappingTemplate(path: string): VelocityTemplate {
@@ -156,8 +156,13 @@ export class AmplifyAppSyncSimulator {
   get pubsub(): PubSub {
     return this._pubsub;
   }
-  asyncIterator(trigger: string): AsyncIterator<any> {
-    return withFilter(() => this._pubsub.asyncIterator(trigger), filterSubscriptions)();
+  asyncIterator(
+    trigger: string,
+    variables: Record<string, any>,
+    context: Record<string, any>,
+    info: GraphQLResolveInfo,
+  ): AsyncIterator<any> {
+    return withFilter(() => this._pubsub.asyncIterator(trigger), filterSubscriptions)(undefined, variables, context, info);
   }
 
   get url(): string {

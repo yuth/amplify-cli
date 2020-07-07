@@ -55,10 +55,10 @@ export class AppSyncSimulatorServer {
     });
   }
 
-  stop() {
-    this._subscriptionServer.stop();
-    this._realTimeSubscriptionServer.stop();
-    this._httpServer.close();
+  async stop() {
+    await this._subscriptionServer.stop();
+    await this._realTimeSubscriptionServer.stop();
+    await this._httpServer.close();
   }
   get url() {
     return {
