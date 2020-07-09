@@ -58,11 +58,22 @@ export class Transformer implements ITransformer {
    */
   before?: (acc: TransformerContext) => void;
 
+  validate?: (acc: TransformerContext) => void;
+
   /**
-   * A finalizer that is called once after a transformation.
-   * Finalizers are called in reverse order as they are declared.
+   * Create additional  resources after validation before updating schema or generating resolvers
    */
-  after?: (acc: TransformerContext) => void;
+  prepare?: (acc: TransformerContext) => void;
+
+  /**
+   * Update the schema with additional queries and input types
+   */
+  transformSchema?: (acc: TransformerContext) => void;
+
+  /**
+   * generate resolvers
+   */
+  generateResolvers?: (acc: TransformerContext) => void;
 
   /**
    * A transformer implements a single function per location that its directive can be applied.
@@ -86,7 +97,7 @@ export class Transformer implements ITransformer {
     parent: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode,
     definition: FieldDefinitionNode,
     directive: DirectiveNode,
-    acc: TransformerContext
+    acc: TransformerContext,
   ) => void;
 
   /**

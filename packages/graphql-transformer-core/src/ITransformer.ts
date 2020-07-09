@@ -28,12 +28,6 @@ export interface ITransformer {
   before?: (acc: TransformerContext) => void;
 
   /**
-   * A finalizer that is called once after a transformation.
-   * Finalizers are called in reverse order as they are declared.
-   */
-  after?: (acc: TransformerContext) => void;
-
-  /**
    * A transformer implements a single function per location that its directive can be applied.
    * This method handles transforming directives on objects type definitions. This includes type
    * extensions.
@@ -55,7 +49,7 @@ export interface ITransformer {
     parent: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode,
     definition: FieldDefinitionNode,
     directive: DirectiveNode,
-    acc: TransformerContext
+    acc: TransformerContext,
   ) => void;
 
   /**
@@ -99,4 +93,30 @@ export interface ITransformer {
    * This method handles transforming directives on input value definitions.
    */
   inputValue?: (definition: InputValueDefinitionNode, directive: DirectiveNode, acc: TransformerContext) => void;
+
+  /**
+   *  Validate the schema after individual transformers finishes parsing the AST
+   */
+  validate?: (acc: TransformerContext) => void;
+
+  /**
+   * Create additional  resources after validation before updating schema or generating resolvers
+   */
+  prepare?: (acc: TransformerContext) => void;
+
+  /**
+   * Update the schema with additional queries and input types
+   */
+  transformSchema?: (acc: TransformerContext) => void;
+
+  /**
+   * generate resolvers
+   */
+  generateResolvers?: (acc: TransformerContext) => void;
+
+  /**
+   * A finalizer that is called once after a transformation.
+   * Finalizers are called in reverse order as they are declared.
+   */
+  after?: (acc: TransformerContext) => void;
 }

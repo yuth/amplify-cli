@@ -1,5 +1,11 @@
 import { DeletionPolicy, AppSync } from 'cloudform-types';
-import { DirectiveNode, ObjectTypeDefinitionNode, InputObjectTypeDefinitionNode, FieldDefinitionNode } from 'graphql';
+import {
+  DirectiveNode,
+  ObjectTypeDefinitionNode,
+  InputObjectTypeDefinitionNode,
+  FieldDefinitionNode,
+  InterfaceTypeDefinitionNode,
+} from 'graphql';
 import {
   blankObject,
   makeConnectionField,
@@ -33,6 +39,14 @@ import { ResourceFactory } from './resources';
 
 const METADATA_KEY = 'DynamoDBTransformerMetadata';
 
+// export type ModelObject = {
+//   name: string;
+//   stackName: string;
+
+// }
+// export type NonModelObject = {
+//   name: string
+// }
 export interface DynamoDBModelTransformerOptions {
   EnableDeletionProtection?: boolean;
   SyncConfig?: SyncConfig;
@@ -97,6 +111,7 @@ export const directiveDefinition = gql`
 export class DynamoDBModelTransformer extends Transformer {
   resources: ResourceFactory;
   opts: DynamoDBModelTransformerOptions;
+  private modelTypes: string[] = [];
 
   constructor(opts: DynamoDBModelTransformerOptions = {}) {
     super('DynamoDBModelTransformer', directiveDefinition);
@@ -132,79 +147,96 @@ export class DynamoDBModelTransformer extends Transformer {
   public object = (def: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext): void => {
     // Add a stack mapping so that all model resources are pulled
     // into their own stack at the end of the transformation.
-    const stackName = def.name.value;
-
-    const nonModelArray: ObjectTypeDefinitionNode[] = getNonModelObjectArray(def, ctx, new Map<string, ObjectTypeDefinitionNode>());
-
-    nonModelArray.forEach((value: ObjectTypeDefinitionNode) => {
-      const nonModelObject = makeNonModelInputObject(value, nonModelArray, ctx);
-      if (!this.typeExist(nonModelObject.name.value, ctx)) {
-        ctx.addInput(nonModelObject);
-      }
-    });
-
-    // Set Sync Config if it exists
-
-    // Create the dynamodb table to hold the @model type
-    // TODO: Handle types with more than a single "id" hash key
     const typeName = def.name.value;
-    this.setSyncConfig(ctx, typeName);
+    this.modelTypes.push(typeName);
+  };
+
+  public prepare = (ctx: TransformerContext) => {
     const isSyncEnabled = this.opts.SyncConfig ? true : false;
-    const tableLogicalID = ModelResourceIDs.ModelTableResourceID(typeName);
-    const iamRoleLogicalID = ModelResourceIDs.ModelTableIAMRoleID(typeName);
-    const dataSourceRoleLogicalID = ModelResourceIDs.ModelTableDataSourceID(typeName);
-    const deletionPolicy = this.opts.EnableDeletionProtection ? DeletionPolicy.Retain : DeletionPolicy.Delete;
-    ctx.setResource(tableLogicalID, this.resources.makeModelTable(typeName, undefined, undefined, deletionPolicy, isSyncEnabled));
-    ctx.mapResourceToStack(stackName, tableLogicalID);
-    ctx.setResource(iamRoleLogicalID, this.resources.makeIAMRole(typeName, this.opts.SyncConfig));
-    ctx.mapResourceToStack(stackName, iamRoleLogicalID);
-    ctx.setResource(
-      dataSourceRoleLogicalID,
-      this.resources.makeDynamoDBDataSource(tableLogicalID, iamRoleLogicalID, typeName, isSyncEnabled),
-    );
-    ctx.mapResourceToStack(stackName, dataSourceRoleLogicalID);
 
-    const streamArnOutputId = `GetAtt${ModelResourceIDs.ModelTableStreamArn(typeName)}`;
-    ctx.setOutput(
-      // "GetAtt" is a backward compatibility addition to prevent breaking current deploys.
-      streamArnOutputId,
-      this.resources.makeTableStreamArnOutput(tableLogicalID),
-    );
-    ctx.mapResourceToStack(stackName, streamArnOutputId);
+    this.modelTypes.forEach(modelName => {
+      const model = ctx.getObject(modelName);
+      const directive = model.directives?.find(d => d.name.value === 'model');
 
-    const datasourceOutputId = `GetAtt${dataSourceRoleLogicalID}Name`;
-    ctx.setOutput(datasourceOutputId, this.resources.makeDataSourceOutput(dataSourceRoleLogicalID));
-    ctx.mapResourceToStack(stackName, datasourceOutputId);
+      // change type to include sync related fields if sync is enabled
+      if (isSyncEnabled) {
+        const obj = ctx.getObject(model.name.value);
+        const newFields = [
+          ...obj.fields,
+          makeField('_version', [], wrapNonNull(makeNamedType('Int'))),
+          makeField('_deleted', [], makeNamedType('Boolean')),
+          makeField('_lastChangedAt', [], wrapNonNull(makeNamedType('AWSTimestamp'))),
+        ];
 
-    const tableNameOutputId = `GetAtt${tableLogicalID}Name`;
-    ctx.setOutput(tableNameOutputId, this.resources.makeTableNameOutput(tableLogicalID));
-    ctx.mapResourceToStack(stackName, tableNameOutputId);
+        const newObj = {
+          ...obj,
+          fields: newFields,
+        };
 
-    this.createQueries(def, directive, ctx);
-    this.createMutations(def, directive, ctx, nonModelArray);
-    this.createSubscriptions(def, directive, ctx);
+        ctx.updateObject(newObj);
+      }
+      this.addTimestampFields(model, directive, ctx);
+    });
+  };
 
-    // Update ModelXConditionInput type
-    this.updateMutationConditionInput(ctx, def);
+  public transformSchema = (ctx: TransformerContext) => {
+    this.modelTypes.forEach(modelName => {
+      const model = ctx.getObject(modelName);
+      const directive = model.directives?.find(d => d.name.value === 'model');
+      const nonModelArray: ObjectTypeDefinitionNode[] = getNonModelObjectArray(model, ctx, new Map<string, ObjectTypeDefinitionNode>());
 
-    // change type to include sync related fields if sync is enabled
-    if (isSyncEnabled) {
-      const obj = ctx.getObject(def.name.value);
-      const newFields = [
-        ...obj.fields,
-        makeField('_version', [], wrapNonNull(makeNamedType('Int'))),
-        makeField('_deleted', [], makeNamedType('Boolean')),
-        makeField('_lastChangedAt', [], wrapNonNull(makeNamedType('AWSTimestamp'))),
-      ];
+      nonModelArray.forEach((value: ObjectTypeDefinitionNode) => {
+        const nonModelObject = makeNonModelInputObject(value, nonModelArray, ctx);
+        if (!this.typeExist(nonModelObject.name.value, ctx)) {
+          ctx.addInput(nonModelObject);
+        }
+      });
 
-      const newObj = {
-        ...obj,
-        fields: newFields,
-      };
+      this.createQueries(model, directive, ctx);
+      this.createMutations(model, directive, ctx, nonModelArray);
+      this.createSubscriptions(model, directive, ctx);
+      // Update ModelXConditionInput type
+      this.updateMutationConditionInput(ctx, model);
+    });
+  };
 
-      ctx.updateObject(newObj);
-    }
-    this.addTimestampFields(def, directive, ctx);
+  public generateResolvers = (ctx: TransformerContext) => {
+    this.modelTypes.forEach(modelName => {
+      const model = ctx.getObject(modelName);
+      // Create the dynamodb table to hold the @model type
+      // TODO: Handle types with more than a single "id" hash key
+      this.setSyncConfig(ctx, modelName);
+      const isSyncEnabled = this.opts.SyncConfig ? true : false;
+      const tableLogicalID = ModelResourceIDs.ModelTableResourceID(modelName);
+      const iamRoleLogicalID = ModelResourceIDs.ModelTableIAMRoleID(modelName);
+      const dataSourceRoleLogicalID = ModelResourceIDs.ModelTableDataSourceID(modelName);
+      const deletionPolicy = this.opts.EnableDeletionProtection ? DeletionPolicy.Retain : DeletionPolicy.Delete;
+      ctx.setResource(tableLogicalID, this.resources.makeModelTable(modelName, undefined, undefined, deletionPolicy, isSyncEnabled));
+      ctx.mapResourceToStack(modelName, tableLogicalID);
+      ctx.setResource(iamRoleLogicalID, this.resources.makeIAMRole(modelName, this.opts.SyncConfig));
+      ctx.mapResourceToStack(modelName, iamRoleLogicalID);
+      ctx.setResource(
+        dataSourceRoleLogicalID,
+        this.resources.makeDynamoDBDataSource(tableLogicalID, iamRoleLogicalID, modelName, isSyncEnabled),
+      );
+      ctx.mapResourceToStack(modelName, dataSourceRoleLogicalID);
+
+      const streamArnOutputId = `GetAtt${ModelResourceIDs.ModelTableStreamArn(modelName)}`;
+      ctx.setOutput(
+        // "GetAtt" is a backward compatibility addition to prevent breaking current deploys.
+        streamArnOutputId,
+        this.resources.makeTableStreamArnOutput(tableLogicalID),
+      );
+      ctx.mapResourceToStack(modelName, streamArnOutputId);
+
+      const datasourceOutputId = `GetAtt${dataSourceRoleLogicalID}Name`;
+      ctx.setOutput(datasourceOutputId, this.resources.makeDataSourceOutput(dataSourceRoleLogicalID));
+      ctx.mapResourceToStack(modelName, datasourceOutputId);
+
+      const tableNameOutputId = `GetAtt${tableLogicalID}Name`;
+      ctx.setOutput(tableNameOutputId, this.resources.makeTableNameOutput(tableLogicalID));
+      ctx.mapResourceToStack(modelName, tableNameOutputId);
+    });
   };
 
   private addTimestampFields(def: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext): void {

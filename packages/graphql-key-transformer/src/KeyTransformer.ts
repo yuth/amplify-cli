@@ -78,7 +78,7 @@ export class KeyTransformer extends Transformer {
    * Augment the table key structures based on the @key.
    */
   object = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
-    this.validate(definition, directive, ctx);
+    this.validateDirective(definition, directive, ctx);
     this.updateIndexStructures(definition, directive, ctx);
     this.updateSchema(definition, directive, ctx);
     this.updateResolvers(definition, directive, ctx);
@@ -416,7 +416,7 @@ export class KeyTransformer extends Transformer {
    * @param directive The @key directive
    * @param ctx The transformer context
    */
-  private validate = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
+  private validateDirective = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
     const directiveArgs = getDirectiveArguments(directive);
     if (!directiveArgs.name) {
       // 1. Make sure there are no more directives without a name.
