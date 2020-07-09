@@ -151,34 +151,6 @@ export class DynamoDBModelTransformer extends Transformer {
     this.modelTypes.push(typeName);
   };
 
-  public prepare = (ctx: TransformerContext) => {
-    const isSyncEnabled = this.opts.SyncConfig ? true : false;
-
-    this.modelTypes.forEach(modelName => {
-      const model = ctx.getObject(modelName);
-      const directive = model.directives?.find(d => d.name.value === 'model');
-
-      // change type to include sync related fields if sync is enabled
-      if (isSyncEnabled) {
-        const obj = ctx.getObject(model.name.value);
-        const newFields = [
-          ...obj.fields,
-          makeField('_version', [], wrapNonNull(makeNamedType('Int'))),
-          makeField('_deleted', [], makeNamedType('Boolean')),
-          makeField('_lastChangedAt', [], wrapNonNull(makeNamedType('AWSTimestamp'))),
-        ];
-
-        const newObj = {
-          ...obj,
-          fields: newFields,
-        };
-
-        ctx.updateObject(newObj);
-      }
-      this.addTimestampFields(model, directive, ctx);
-    });
-  };
-
   public transformSchema = (ctx: TransformerContext) => {
     this.modelTypes.forEach(modelName => {
       const model = ctx.getObject(modelName);
@@ -197,6 +169,26 @@ export class DynamoDBModelTransformer extends Transformer {
       this.createSubscriptions(model, directive, ctx);
       // Update ModelXConditionInput type
       this.updateMutationConditionInput(ctx, model);
+
+      // change type to include sync related fields if sync is enabled
+      const isSyncEnabled = this.opts.SyncConfig ? true : false;
+      if (isSyncEnabled) {
+        const obj = ctx.getObject(model.name.value);
+        const newFields = [
+          ...obj.fields,
+          makeField('_version', [], wrapNonNull(makeNamedType('Int'))),
+          makeField('_deleted', [], makeNamedType('Boolean')),
+          makeField('_lastChangedAt', [], wrapNonNull(makeNamedType('AWSTimestamp'))),
+        ];
+
+        const newObj = {
+          ...obj,
+          fields: newFields,
+        };
+
+        ctx.updateObject(newObj);
+      }
+      this.addTimestampFields(model, directive, ctx);
     });
   };
 

@@ -13,13 +13,14 @@ import {
 } from 'graphql-transformer-common';
 
 export class VersionedModelTransformer extends Transformer {
+  private modelTypes: Record<string, { versionField: string; versionInput: string }> = {};
   constructor() {
     super(
       'VersionedModelTransformer',
       // TODO: Allow version attribute selection. Could be `@version on FIELD_DEFINITION`
       gql`
         directive @versioned(versionField: String = "version", versionInput: String = "expectedVersion") on OBJECT
-      `
+      `,
     );
   }
 
@@ -46,25 +47,32 @@ export class VersionedModelTransformer extends Transformer {
     if (!modelDirective) {
       throw new InvalidDirectiveError('Types annotated with @versioned must also be annotated with @model.');
     }
-
     const isArg = (s: string) => (arg: ArgumentNode) => arg.name.value === s;
     const getArg = (arg: string, dflt?: any) => {
       const argument = directive.arguments.find(isArg(arg));
       return argument ? valueFromASTUntyped(argument.value) : dflt;
     };
-
     const versionField = getArg('versionField', 'version');
     const versionInput = getArg('versionInput', 'expectedVersion');
-    const typeName = def.name.value;
+    this.modelTypes[def.name.value] = { versionField, versionInput };
+  };
 
-    // Make the necessary changes to the context
-    this.augmentCreateMutation(ctx, typeName, versionField, versionInput);
-    this.augmentUpdateMutation(ctx, typeName, versionField, versionInput);
-    this.augmentDeleteMutation(ctx, typeName, versionField, versionInput);
-    this.stripCreateInputVersionedField(ctx, typeName, versionField);
-    this.addVersionedInputToDeleteInput(ctx, typeName, versionInput);
-    this.addVersionedInputToUpdateInput(ctx, typeName, versionInput);
-    this.enforceVersionedFieldOnType(ctx, typeName, versionField);
+  public transformSchema = (ctx: TransformerContext) => {
+    Object.entries(this.modelTypes).forEach(([typeName, versionInfo]) => {
+      const { versionField, versionInput } = versionInfo;
+      this.stripCreateInputVersionedField(ctx, typeName, versionField);
+      this.addVersionedInputToDeleteInput(ctx, typeName, versionInput);
+      this.addVersionedInputToUpdateInput(ctx, typeName, versionInput);
+      this.enforceVersionedFieldOnType(ctx, typeName, versionField);
+    });
+  };
+  public generateResolvers = (ctx: TransformerContext) => {
+    Object.entries(this.modelTypes).forEach(([typeName, versionInfo]) => {
+      const { versionField, versionInput } = versionInfo;
+      this.augmentCreateMutation(ctx, typeName, versionField, versionInput);
+      this.augmentUpdateMutation(ctx, typeName, versionField, versionInput);
+      this.augmentDeleteMutation(ctx, typeName, versionField, versionInput);
+    });
   };
 
   /**
@@ -104,10 +112,10 @@ export class VersionedModelTransformer extends Transformer {
             expressionNames: obj({
               [`#${versionField}`]: str(`${versionField}`),
             }),
-          })
+          }),
         ),
         qref(`$ctx.args.input.remove("${versionInput}")`),
-      ])
+      ]),
     );
     const resolver = ctx.getResource(mutationResolverLogicalId);
     if (resolver) {
@@ -130,12 +138,12 @@ export class VersionedModelTransformer extends Transformer {
             expressionNames: obj({
               [`#${versionField}`]: str(`${versionField}`),
             }),
-          })
+          }),
         ),
         set(ref('newVersion'), raw(`$ctx.args.input.${versionInput} + 1`)),
         qref(`$ctx.args.input.put("${versionField}", $newVersion)`),
         qref(`$ctx.args.input.remove("${versionInput}")`),
-      ])
+      ]),
     );
     const resolver = ctx.getResource(mutationResolverLogicalId);
     if (resolver) {
@@ -153,7 +161,7 @@ export class VersionedModelTransformer extends Transformer {
         throw new InvalidDirectiveError(
           `After stripping away version field "${versionField}", \
                     the create input for type "${typeName}" cannot be created \
-                    with 0 fields. Add another field to type "${typeName}" to continue.`
+                    with 0 fields. Add another field to type "${typeName}" to continue.`,
         );
       }
       const updatedInput = {
