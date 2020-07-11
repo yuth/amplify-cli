@@ -274,6 +274,14 @@ export class TransformerContext {
     this.template.Mappings = { ...this.template.Mappings, ...mapping };
   }
 
+  public addResolver(typeName: string, fieldName?: string) {
+
+  }
+
+  public getResolver(typeName: string, fieldName?: string) {
+
+  }
+
   /**
    * Add an object type definition node to the context. If the type already
    * exists an error will be thrown.
