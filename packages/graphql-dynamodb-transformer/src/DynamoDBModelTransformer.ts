@@ -17,6 +17,8 @@ import {
   ModelResourceIDs,
   ResolverResourceIDs,
   getBaseType,
+  graphqlName,
+  toUpper,
 } from 'graphql-transformer-common';
 import { getDirectiveArguments, gql, Transformer, TransformerContext, SyncConfig } from 'graphql-transformer-core';
 import {
@@ -36,6 +38,7 @@ import {
 } from './definitions';
 import { ModelDirectiveArgs, getCreatedAtFieldName, getUpdatedAtFieldName } from './ModelDirectiveArgs';
 import { ResourceFactory } from './resources';
+import { doesNotReject } from 'assert';
 
 const METADATA_KEY = 'DynamoDBTransformerMetadata';
 
@@ -335,16 +338,24 @@ export class DynamoDBModelTransformer extends Transformer {
         nameOverride: createFieldNameOverride,
         syncConfig: this.opts.SyncConfig,
       });
+      const resolver = ctx.addResolver(
+        createResolver.typeName,
+        createResolver.fieldName,
+        createResolver.dataSourceName,
+        createResolver.requestMappingTemplate,
+        createResolver.responseMappingTemplate,
+      );
+
       const hositedInitalization = this.resources.initalizeDefaultInputForCreateMutation(createInput, timestampFields);
+      resolver.addSlot('init', hositedInitalization);
       const resourceId = ResolverResourceIDs.DynamoDBCreateResolverResourceID(typeName);
-      this.addInitalizationMetadata(ctx, resourceId, hositedInitalization);
-      ctx.setResource(resourceId, createResolver);
+      resolver.mapResourceToStack(typeName);
       ctx.mapResourceToStack(typeName, resourceId);
       const args = [makeInputValueDefinition('input', makeNonNullType(makeNamedType(createInput.name.value)))];
       if (this.supportsConditions(ctx)) {
         args.push(makeInputValueDefinition('condition', makeNamedType(conditionInputName)));
       }
-      mutationFields.push(makeField(createResolver.Properties.FieldName.toString(), args, makeNamedType(def.name.value)));
+      mutationFields.push(makeField(createResolver.fieldName, args, makeNamedType(def.name.value)));
     }
 
     if (shouldMakeUpdate) {
@@ -359,13 +370,20 @@ export class DynamoDBModelTransformer extends Transformer {
         timestamps: timestampFields,
       });
       const resourceId = ResolverResourceIDs.DynamoDBUpdateResolverResourceID(typeName);
-      ctx.setResource(resourceId, updateResolver);
+      const resolver = ctx.addResolver(
+        updateResolver.typeName,
+        updateResolver.fieldName,
+        updateResolver.dataSourceName,
+        updateResolver.requestMappingTemplate,
+        updateResolver.responseMappingTemplate,
+      );
+      resolver.mapResourceToStack(typeName);
       ctx.mapResourceToStack(typeName, resourceId);
       const args = [makeInputValueDefinition('input', makeNonNullType(makeNamedType(updateInput.name.value)))];
       if (this.supportsConditions(ctx)) {
         args.push(makeInputValueDefinition('condition', makeNamedType(conditionInputName)));
       }
-      mutationFields.push(makeField(updateResolver.Properties.FieldName.toString(), args, makeNamedType(def.name.value)));
+      mutationFields.push(makeField(updateResolver.fieldName.toString(), args, makeNamedType(def.name.value)));
     }
 
     if (shouldMakeDelete) {
@@ -378,14 +396,19 @@ export class DynamoDBModelTransformer extends Transformer {
         nameOverride: deleteFieldNameOverride,
         syncConfig: this.opts.SyncConfig,
       });
-      const resourceId = ResolverResourceIDs.DynamoDBDeleteResolverResourceID(typeName);
-      ctx.setResource(resourceId, deleteResolver);
-      ctx.mapResourceToStack(typeName, resourceId);
+      const resolver = ctx.addResolver(
+        deleteResolver.typeName,
+        deleteResolver.fieldName,
+        deleteResolver.dataSourceName,
+        deleteResolver.requestMappingTemplate,
+        deleteResolver.responseMappingTemplate,
+      );
+      resolver.mapResourceToStack(typeName);
       const args = [makeInputValueDefinition('input', makeNonNullType(makeNamedType(deleteInput.name.value)))];
       if (this.supportsConditions(ctx)) {
         args.push(makeInputValueDefinition('condition', makeNamedType(conditionInputName)));
       }
-      mutationFields.push(makeField(deleteResolver.Properties.FieldName.toString(), args, makeNamedType(def.name.value)));
+      mutationFields.push(makeField(deleteResolver.fieldName.toString(), args, makeNamedType(def.name.value)));
     }
     ctx.addMutationFields(mutationFields);
 
@@ -458,13 +481,20 @@ export class DynamoDBModelTransformer extends Transformer {
     // Create get queries
     if (shouldMakeGet) {
       const getResolver = this.resources.makeGetResolver(def.name.value, getFieldNameOverride, isSyncEnabled, ctx.getQueryTypeName());
+      const resolver = ctx.addResolver(
+        getResolver.typeName,
+        getResolver.fieldName,
+        getResolver.dataSourceName,
+        getResolver.requestMappingTemplate,
+        getResolver.responseMappingTemplate,
+      );
+      resolver.mapResourceToStack(typeName);
       const resourceId = ResolverResourceIDs.DynamoDBGetResolverResourceID(typeName);
-      ctx.setResource(resourceId, getResolver);
       ctx.mapResourceToStack(typeName, resourceId);
 
       queryFields.push(
         makeField(
-          getResolver.Properties.FieldName.toString(),
+          getResolver.fieldName.toString(),
           [makeInputValueDefinition('id', makeNonNullType(makeNamedType('ID')))],
           makeNamedType(def.name.value),
         ),
@@ -477,10 +507,17 @@ export class DynamoDBModelTransformer extends Transformer {
       // Create the list resolver
       const listResolver = this.resources.makeListResolver(def.name.value, listFieldNameOverride, isSyncEnabled, ctx.getQueryTypeName());
       const resourceId = ResolverResourceIDs.DynamoDBListResolverResourceID(typeName);
-      ctx.setResource(resourceId, listResolver);
+      const resolver = ctx.addResolver(
+        listResolver.typeName,
+        listResolver.fieldName,
+        listResolver.dataSourceName,
+        listResolver.requestMappingTemplate,
+        listResolver.responseMappingTemplate,
+      );
+      resolver.mapResourceToStack(typeName);
       ctx.mapResourceToStack(typeName, resourceId);
 
-      queryFields.push(makeConnectionField(listResolver.Properties.FieldName.toString(), def.name.value));
+      queryFields.push(makeConnectionField(listResolver.fieldName.toString(), def.name.value));
       this.generateFilterInputs(ctx, def);
     }
 
@@ -520,10 +557,15 @@ export class DynamoDBModelTransformer extends Transformer {
 
     const directiveArguments: ModelDirectiveArgs = getDirectiveArguments(directive);
 
+    const createFieldName = directiveArguments?.mutations?.create || graphqlName('create' + toUpper(typeName));
+    const updateFieldName = directiveArguments?.mutations?.update || graphqlName('update' + toUpper(typeName));
+    const deleteFieldName = directiveArguments.mutations?.delete || graphqlName('delete' + toUpper(typeName));
+
+    const mutationTypeName = ctx.getMutationTypeName()
     const subscriptionsArgument = directiveArguments.subscriptions;
-    const createResolver = ctx.getResource(ResolverResourceIDs.DynamoDBCreateResolverResourceID(typeName));
-    const updateResolver = ctx.getResource(ResolverResourceIDs.DynamoDBUpdateResolverResourceID(typeName));
-    const deleteResolver = ctx.getResource(ResolverResourceIDs.DynamoDBDeleteResolverResourceID(typeName));
+    const createResolver = ctx.getResolver(mutationTypeName, createFieldName);
+    const updateResolver = ctx.getResolver(mutationTypeName, updateFieldName);
+    const deleteResolver = ctx.getResolver(mutationTypeName, deleteFieldName);
 
     if (subscriptionsArgument === null) {
       return;
@@ -531,53 +573,30 @@ export class DynamoDBModelTransformer extends Transformer {
     if (subscriptionsArgument && subscriptionsArgument.level === 'off') {
       return;
     }
-    if (subscriptionsArgument && (subscriptionsArgument.onCreate || subscriptionsArgument.onUpdate || subscriptionsArgument.onDelete)) {
-      // Add the custom subscriptions
-      const subscriptionToMutationsMap: { [subField: string]: string[] } = {};
-      const onCreate = subscriptionsArgument.onCreate || [];
-      const onUpdate = subscriptionsArgument.onUpdate || [];
-      const onDelete = subscriptionsArgument.onDelete || [];
-      const subFields = [...onCreate, ...onUpdate, ...onDelete];
-      // initialize the reverse lookup
-      for (const field of subFields) {
-        subscriptionToMutationsMap[field] = [];
-      }
-      // Add the correct mutation to the lookup
-      for (const field of Object.keys(subscriptionToMutationsMap)) {
-        if (onCreate.includes(field) && createResolver) {
-          subscriptionToMutationsMap[field].push(createResolver.Properties.FieldName);
-        }
-        if (onUpdate.includes(field) && updateResolver) {
-          subscriptionToMutationsMap[field].push(updateResolver.Properties.FieldName);
-        }
-        if (onDelete.includes(field) && deleteResolver) {
-          subscriptionToMutationsMap[field].push(deleteResolver.Properties.FieldName);
-        }
-      }
-      for (const subFieldName of Object.keys(subscriptionToMutationsMap)) {
-        const subField = makeSubscriptionField(subFieldName, typeName, subscriptionToMutationsMap[subFieldName]);
-        subscriptionFields.push(subField);
-      }
-    } else {
-      // Add the default subscriptions
-      if (createResolver) {
-        const onCreateField = makeSubscriptionField(ModelResourceIDs.ModelOnCreateSubscriptionName(typeName), typeName, [
-          createResolver.Properties.FieldName,
-        ]);
+    // Add the custom subscriptions
+    const onCreate = subscriptionsArgument?.onCreate || [ModelResourceIDs.ModelOnCreateSubscriptionName(typeName)];
+    const onUpdate = subscriptionsArgument?.onUpdate || [ModelResourceIDs.ModelOnUpdateSubscriptionName(typeName)];
+    const onDelete = subscriptionsArgument?.onDelete || [ModelResourceIDs.ModelOnDeleteSubscriptionName(typeName)];
+
+    // Add the default subscriptions
+    if (createResolver) {
+      onCreate.forEach(fieldName => {
+        const onCreateField = makeSubscriptionField(fieldName, typeName, [createFieldName]);
         subscriptionFields.push(onCreateField);
-      }
-      if (updateResolver) {
-        const onUpdateField = makeSubscriptionField(ModelResourceIDs.ModelOnUpdateSubscriptionName(typeName), typeName, [
-          updateResolver.Properties.FieldName,
-        ]);
+      })
+
+    }
+    if (updateResolver) {
+      onUpdate.forEach(fieldName => {
+        const onUpdateField = makeSubscriptionField(fieldName, typeName, [updateFieldName]);
         subscriptionFields.push(onUpdateField);
-      }
-      if (deleteResolver) {
-        const onDeleteField = makeSubscriptionField(ModelResourceIDs.ModelOnDeleteSubscriptionName(typeName), typeName, [
-          deleteResolver.Properties.FieldName,
-        ]);
+      })
+    }
+    if (deleteResolver) {
+      onDelete.forEach(fieldName => {
+        const onDeleteField = makeSubscriptionField(fieldName, typeName, [deleteFieldName]);
         subscriptionFields.push(onDeleteField);
-      }
+      })
     }
 
     ctx.addSubscriptionFields(subscriptionFields);

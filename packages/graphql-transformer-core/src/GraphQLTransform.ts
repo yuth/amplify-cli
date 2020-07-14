@@ -343,9 +343,22 @@ export class GraphQLTransform {
       reverseThroughTransformers -= 1;
     }
     // Format the context into many stacks.
+    this.collectResolvers(context);
     this.updateContextForStackMappingOverrides(context);
     const formatter = new TransformFormatter();
     return formatter.format(context);
+  }
+
+  private collectResolvers(context: TransformerContext): void {
+    const resolverEntries = context.collectResolvers();
+    for (let [name, resolver] of resolverEntries) {
+      const resources = resolver.generateResources(context);
+      resources.forEach((resource) => {
+        const resourceName = resource.Type === 'AWS::AppSync::Resolver' ? resolver.getResourceId() : resource.Properties.Name;
+        context.setResource(resourceName, resource);
+        context.mapResourceToStack(resolver.getStackName(), resourceName);
+      });
+    }
   }
 
   private updateContextForStackMappingOverrides(context: TransformerContext) {

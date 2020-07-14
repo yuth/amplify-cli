@@ -1,7 +1,7 @@
 import Template from 'cloudform-types/types/template';
 import Resource from 'cloudform-types/types/resource';
 import Parameter from 'cloudform-types/types/parameter';
-import { Condition } from 'cloudform-types/types/dataTypes';
+import { Condition, IntrinsicFunction } from 'cloudform-types/types/dataTypes';
 import Output from 'cloudform-types/types/output';
 import {
   TypeSystemDefinitionNode,
@@ -32,6 +32,8 @@ import {
 } from 'graphql/language/ast';
 import { _Kind } from 'graphql/language/kinds';
 import { ResolverConfig } from './util';
+import { BaseResolver } from './util/BaseResolver';
+import { resolve } from 'dns';
 export interface MappingParameters {
   [key: string]: {
     [key: string]: {
@@ -112,6 +114,8 @@ export class TransformerContext {
   private resolverConfig: ResolverConfig;
 
   private transformerVersion: Number;
+
+  private resolverMap: Map<string, BaseResolver> = new Map();
 
   constructor(inputSDL: string) {
     const doc: DocumentNode = parse(inputSDL);
@@ -274,12 +278,32 @@ export class TransformerContext {
     this.template.Mappings = { ...this.template.Mappings, ...mapping };
   }
 
-  public addResolver(typeName: string, fieldName?: string) {
-
+  public addResolver(
+    typeName: string,
+    fieldName: string,
+    dataSourceName: string| IntrinsicFunction,
+    requestMappingTemplate: string,
+    responseMappingTemplate: string,
+  ): BaseResolver {
+    const resolverKey = `${typeName}.${fieldName}`;
+    if (this.resolverMap.has(resolverKey)) {
+      throw new Error(`Resolver already exists for ${resolverKey}`);
+    }
+    const resolver = new BaseResolver(typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate);
+    this.resolverMap.set(resolverKey, resolver);
+    return resolver;
   }
 
-  public getResolver(typeName: string, fieldName?: string) {
+  public getResolver(typeName: string, fieldName: string) {
+    const resolverKey = `${typeName}.${fieldName}`;
+    if (!this.resolverMap.has(resolverKey)) {
+      throw new Error(`No resolver exists for ${resolverKey}`);
+    }
+    return this.resolverMap.get(resolverKey);
+  }
 
+  public collectResolvers() {
+    return this.resolverMap.entries();
   }
 
   /**

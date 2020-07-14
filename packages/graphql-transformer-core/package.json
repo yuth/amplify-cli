@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "cloudform-types": "^4.2.0",
+    "change-case": "^4.1.1",
     "deep-diff": "^1.0.2",
     "fs-extra": "^8.1.0",
     "glob": "^7.1.6",

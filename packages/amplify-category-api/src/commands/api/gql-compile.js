@@ -12,7 +12,7 @@ module.exports = {
         minify: options['minify'],
       });
     } catch (err) {
-      context.print.error(err.toString());
+      context.print.error(err);
       context.usageData.emitError(err);
     }
   },

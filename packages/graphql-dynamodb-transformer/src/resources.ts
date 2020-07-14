@@ -194,28 +194,28 @@ export class ResourceFactory {
     const keySchema =
       hashKey && rangeKey
         ? [
-            {
-              AttributeName: hashKey,
-              KeyType: 'HASH',
-            },
-            {
-              AttributeName: rangeKey,
-              KeyType: 'RANGE',
-            },
-          ]
+          {
+            AttributeName: hashKey,
+            KeyType: 'HASH',
+          },
+          {
+            AttributeName: rangeKey,
+            KeyType: 'RANGE',
+          },
+        ]
         : [{ AttributeName: hashKey, KeyType: 'HASH' }];
     const attributeDefinitions =
       hashKey && rangeKey
         ? [
-            {
-              AttributeName: hashKey,
-              AttributeType: 'S',
-            },
-            {
-              AttributeName: rangeKey,
-              AttributeType: 'S',
-            },
-          ]
+          {
+            AttributeName: hashKey,
+            AttributeType: 'S',
+          },
+          {
+            AttributeName: rangeKey,
+            AttributeType: 'S',
+          },
+        ]
         : [{ AttributeName: hashKey, AttributeType: 'S' }];
     return new DynamoDB.Table({
       TableName: this.dynamoDBTableName(typeName),
@@ -317,35 +317,35 @@ export class ResourceFactory {
                   }),
                   ...(syncConfig
                     ? [
-                        Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}', {
-                          tablename: Fn.If(
-                            ResourceConstants.CONDITIONS.HasEnvironmentParameter,
-                            Fn.Join('-', [
-                              SyncResourceIDs.syncTableName,
-                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                              Fn.Ref(ResourceConstants.PARAMETERS.Env),
-                            ]),
-                            Fn.Join('-', [
-                              SyncResourceIDs.syncTableName,
-                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                            ]),
-                          ),
-                        }),
-                        Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}/*', {
-                          tablename: Fn.If(
-                            ResourceConstants.CONDITIONS.HasEnvironmentParameter,
-                            Fn.Join('-', [
-                              SyncResourceIDs.syncTableName,
-                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                              Fn.Ref(ResourceConstants.PARAMETERS.Env),
-                            ]),
-                            Fn.Join('-', [
-                              SyncResourceIDs.syncTableName,
-                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                            ]),
-                          ),
-                        }),
-                      ]
+                      Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}', {
+                        tablename: Fn.If(
+                          ResourceConstants.CONDITIONS.HasEnvironmentParameter,
+                          Fn.Join('-', [
+                            SyncResourceIDs.syncTableName,
+                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                            Fn.Ref(ResourceConstants.PARAMETERS.Env),
+                          ]),
+                          Fn.Join('-', [
+                            SyncResourceIDs.syncTableName,
+                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                          ]),
+                        ),
+                      }),
+                      Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}/*', {
+                        tablename: Fn.If(
+                          ResourceConstants.CONDITIONS.HasEnvironmentParameter,
+                          Fn.Join('-', [
+                            SyncResourceIDs.syncTableName,
+                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                            Fn.Ref(ResourceConstants.PARAMETERS.Env),
+                          ]),
+                          Fn.Join('-', [
+                            SyncResourceIDs.syncTableName,
+                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                          ]),
+                        ),
+                      }),
+                    ]
                     : []),
                 ],
               },
@@ -387,12 +387,12 @@ export class ResourceFactory {
   public makeCreateResolver({ type, nameOverride, syncConfig, mutationTypeName = 'Mutation' }: MutationResolverInput) {
     const fieldName = nameOverride ? nameOverride : graphqlName('create' + toUpper(type));
     const isSyncEnabled = syncConfig ? true : false;
-    return new AppSync.Resolver({
+    return {
       ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
       DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
       FieldName: fieldName,
       TypeName: mutationTypeName,
-      RequestMappingTemplate: printBlock('Prepare DynamoDB PutItem Request')(
+      requestMappingTemplate: printBlock('Prepare DynamoDB PutItem Request')(
         compoundExpression([
           qref(`$context.args.input.put("__typename", "${type}")`),
           set(
@@ -442,10 +442,11 @@ export class ResourceFactory {
           }),
         ]),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
       ...(syncConfig && { SyncConfig: SyncUtils.syncResolverConfig(syncConfig) }),
-    });
+    };
   }
+
 
   public initalizeDefaultInputForCreateMutation(input: InputObjectTypeDefinitionNode, timestamps): string {
     const hasDefaultIdField = input.fields?.find(field => field.name.value === 'id' && ['ID', 'String'].includes(getBaseType(field.type)));
@@ -457,20 +458,21 @@ export class ResourceFactory {
           : []),
         ...(timestamps && timestamps.createdAtField
           ? [
-              comment(`Automatically set the createdAt timestamp.`),
-              qref(
-                `$context.args.input.put("${timestamps.createdAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.createdAtField}, $createdAt))`,
-              ),
-            ]
+            comment(`Automatically set the createdAt timestamp.`),
+            qref(
+              `$context.args.input.put("${timestamps.createdAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.createdAtField}, $createdAt))`,
+            ),
+          ]
           : []),
         ...(timestamps && timestamps.updatedAtField
           ? [
-              comment(`Automatically set the updatedAt timestamp.`),
-              qref(
-                `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $createdAt))`,
-              ),
-            ]
+            comment(`Automatically set the updatedAt timestamp.`),
+            qref(
+              `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $createdAt))`,
+            ),
+          ]
           : []),
+        obj({}),
       ]),
     );
   }
@@ -478,12 +480,12 @@ export class ResourceFactory {
   public makeUpdateResolver({ type, nameOverride, syncConfig, mutationTypeName = 'Mutation', timestamps }: MutationResolverInput) {
     const fieldName = nameOverride ? nameOverride : graphqlName(`update` + toUpper(type));
     const isSyncEnabled = syncConfig ? true : false;
-    return new AppSync.Resolver({
+    return {
       ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-      FieldName: fieldName,
-      TypeName: mutationTypeName,
-      RequestMappingTemplate: print(
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
+      fieldName: fieldName,
+      typeName: mutationTypeName,
+      requestMappingTemplate: print(
         compoundExpression([
           ifElse(
             raw(`$${ResourceConstants.SNIPPETS.AuthCondition} && $${ResourceConstants.SNIPPETS.AuthCondition}.expression != ""`),
@@ -536,11 +538,11 @@ export class ResourceFactory {
           ),
           ...(timestamps && timestamps.updatedAtField
             ? [
-                comment(`Automatically set the updatedAt timestamp.`),
-                qref(
-                  `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $util.time.nowISO8601()))`,
-                ),
-              ]
+              comment(`Automatically set the updatedAt timestamp.`),
+              qref(
+                `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $util.time.nowISO8601()))`,
+              ),
+            ]
             : []),
           qref(`$context.args.input.put("__typename", "${type}")`),
           comment('Update condition if type is @versioned'),
@@ -594,9 +596,9 @@ export class ResourceFactory {
           }),
         ]),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
       ...(syncConfig && { SyncConfig: SyncUtils.syncResolverConfig(syncConfig) }),
-    });
+    };
   }
 
   /**
@@ -605,12 +607,12 @@ export class ResourceFactory {
    */
   public makeGetResolver(type: string, nameOverride?: string, isSyncEnabled: boolean = false, queryTypeName: string = 'Query') {
     const fieldName = nameOverride ? nameOverride : graphqlName('get' + toUpper(type));
-    return new AppSync.Resolver({
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-      FieldName: fieldName,
-      TypeName: queryTypeName,
-      RequestMappingTemplate: print(
+    return {
+      apiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
+      fieldName: fieldName,
+      typeName: queryTypeName,
+      requestMappingTemplate: print(
         DynamoDBMappingTemplate.getItem({
           key: ifElse(
             ref(ResourceConstants.SNIPPETS.ModelObjectKey),
@@ -623,8 +625,8 @@ export class ResourceFactory {
           isSyncEnabled,
         }),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
-    });
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
+    };
   }
 
   /**
@@ -655,12 +657,12 @@ export class ResourceFactory {
    */
   public makeQueryResolver(type: string, nameOverride?: string, isSyncEnabled: boolean = false, queryTypeName: string = 'Query') {
     const fieldName = nameOverride ? nameOverride : graphqlName(`query${toUpper(type)}`);
-    return new AppSync.Resolver({
+    return {
       ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
       DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
       FieldName: fieldName,
       TypeName: queryTypeName,
-      RequestMappingTemplate: print(
+      requestMappingTemplate: print(
         compoundExpression([
           set(ref('limit'), ref(`util.defaultIfNull($context.args.limit, ${ResourceConstants.DEFAULT_PAGE_LIMIT})`)),
           DynamoDBMappingTemplate.query({
@@ -686,13 +688,13 @@ export class ResourceFactory {
           }),
         ]),
       ),
-      ResponseMappingTemplate: print(
+      responseMappingTemplate: print(
         DynamoDBMappingTemplate.dynamoDBResponse(
           isSyncEnabled,
           compoundExpression([iff(raw('!$result'), set(ref('result'), ref('ctx.result'))), raw('$util.toJson($result)')]),
         ),
       ),
-    });
+    };
   }
 
   /**
@@ -703,12 +705,12 @@ export class ResourceFactory {
   public makeListResolver(type: string, nameOverride?: string, isSyncEnabled: boolean = false, queryTypeName: string = 'Query') {
     const fieldName = nameOverride ? nameOverride : graphqlName('list' + plurality(toUpper(type)));
     const requestVariable = 'ListRequest';
-    return new AppSync.Resolver({
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-      FieldName: fieldName,
-      TypeName: queryTypeName,
-      RequestMappingTemplate: print(
+    return {
+      apiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
+      fieldName: fieldName,
+      typeName: queryTypeName,
+      requestMappingTemplate: print(
         compoundExpression([
           set(ref('limit'), ref(`util.defaultIfNull($context.args.limit, ${ResourceConstants.DEFAULT_PAGE_LIMIT})`)),
           set(
@@ -740,8 +742,8 @@ export class ResourceFactory {
           raw(`$util.toJson($${requestVariable})`),
         ]),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
-    });
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
+    };
   }
 
   /**
@@ -752,12 +754,12 @@ export class ResourceFactory {
   public makeDeleteResolver({ type, nameOverride, syncConfig, mutationTypeName = 'Mutation' }: MutationResolverInput) {
     const fieldName = nameOverride ? nameOverride : graphqlName('delete' + toUpper(type));
     const isSyncEnabled = syncConfig ? true : false;
-    return new AppSync.Resolver({
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-      FieldName: fieldName,
-      TypeName: mutationTypeName,
-      RequestMappingTemplate: print(
+    return {
+      apiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
+      fieldName: fieldName,
+      typeName: mutationTypeName,
+      requestMappingTemplate: print(
         compoundExpression([
           ifElse(
             ref(ResourceConstants.SNIPPETS.AuthCondition),
@@ -859,8 +861,8 @@ export class ResourceFactory {
           }),
         ]),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(isSyncEnabled)),
       ...(syncConfig && { SyncConfig: SyncUtils.syncResolverConfig(syncConfig) }),
-    });
+    };
   }
 }
