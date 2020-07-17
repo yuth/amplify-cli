@@ -17,7 +17,7 @@ import {
 } from 'graphql';
 import { DeploymentResources } from './DeploymentResources';
 import { InvalidTransformerError, SchemaValidationError, UnknownDirectiveError } from './errors';
-import { TransformerContext } from './TransformerContext';
+import { TransformerContext } from './transformer-context/TransformerContext';
 import { Transformer } from './Transformer';
 import { ITransformer } from './ITransformer';
 import { validateModelSchema } from './validation';
@@ -223,7 +223,7 @@ export class GraphQLTransform {
    */
   public transform(schema: string): DeploymentResources {
     this.seenTransformations = {};
-    const context = new TransformerContext(schema);
+    const context = new TransformerContext(schema, this.transformers);
     const validDirectiveNameMap = this.transformers.reduce((acc: any, t: Transformer) => ({ ...acc, [t.directive.name.value]: true }), {
       aws_subscribe: true,
       aws_auth: true,
@@ -350,7 +350,7 @@ export class GraphQLTransform {
   }
 
   private collectResolvers(context: TransformerContext): void {
-    const resolverEntries = context.collectResolvers();
+    const resolverEntries = context.resolvers.collectResolvers();
     for (let [name, resolver] of resolverEntries) {
       const resources = resolver.generateResources(context);
       resources.forEach((resource) => {

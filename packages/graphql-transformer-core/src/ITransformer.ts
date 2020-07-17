@@ -1,3 +1,5 @@
+// This should be moved to its own interface package so that other transformer plugins can have
+// a slim dependecy. For now dumping all the interfaces in same file
 import {
   DirectiveNode,
   ObjectTypeDefinitionNode,
@@ -11,8 +13,11 @@ import {
   EnumValueDefinitionNode,
   DirectiveDefinitionNode,
   TypeDefinitionNode,
+  GraphQLObjectType,
 } from 'graphql';
-import { TransformerContext } from './TransformerContext';
+import { TransformerContext } from './transformer-context/TransformerContext';
+import { BaseResolver } from './util/BaseResolver';
+import Resource from 'cloudform-types/types/apiGateway/resource';
 
 export interface ITransformer {
   name: string;
@@ -120,3 +125,81 @@ export interface ITransformer {
    */
   after?: (acc: TransformerContext) => void;
 }
+
+export enum QueryFieldType {
+  GET = 'GET',
+  LIST = 'LIST',
+  SYNC = 'SYNC',
+}
+
+export enum MutationFieldType {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+}
+
+export enum SubscriptionFieldType {
+  ON_CREATE = 'ON_CREATE',
+  ON_DELETE = 'ON_DELETE',
+  ON_UPDATE = 'ON_UPDATE',
+}
+
+export enum ModelCapabilities {
+  SUPPORT_AUTH = 'SUPPORT_AUTH',
+  // SUPPORT_LIST = 'SUPPORT_LIST',
+  // SUPPORT_GET = 'SUPPORT_GET',
+  // SUPPORT_CREATE = 'SUPPORT_CREATE',
+  // SUPPORT_UPDATE = 'SUPPORT_UPDATE',
+  // SUPPORT_DELETE = 'SUPPORT_DELETE',
+}
+
+// {
+//   transformers: [],
+//   formatter: {},
+//   policyGenerator: {}
+// }
+
+// context {
+//   resolvers: [],
+//   dataSources: [],
+//   iamPolicy: [],
+//   getResolver(typeName, fieldName)
+// }
+
+export interface TransformerModelProvider extends ITransformer {
+  readonly transformerName: string;
+
+  readonly capabilities: ModelCapabilities[];
+
+  generateGetResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateListResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateUpdateResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateDeleteResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateOnCreateResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateOnUpdateResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateOnDeleteResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateSyncResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+
+  getQueryFieldNames: (ctx: TransformerContext, type: GraphQLObjectType) => Record<string, QueryFieldType>;
+  getMutationFieldNames: (ctx: TransformerContext, type: GraphQLObjectType) => Record<string, MutationFieldType>;
+  getSubscriptionFieldNames: (ctx: TransformerContext, type: GraphQLObjectType) => Record<string, SubscriptionFieldType>;
+}
+
+// context.stash = {
+//   conditions: {
+//     filter: {}
+//     mutation: {}
+//     subscriptions: {}
+
+//   },
+//   defaultValues: {},
+//   transformedValues: {
+//     email: ""
+//   }
+// }
+// slot initialize {
+//   #set($context.stash.defaultValues.id, $ctx.util.autoId())
+// }
+// merge (defaultValues, input, trnasformedValues)
+// condtions = andCondition = { filter}
+export interface TransformerAuthProvider {}

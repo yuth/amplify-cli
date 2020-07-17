@@ -17,8 +17,10 @@ export class BaseResolver {
     private dataSourceName: string | IntrinsicFunction,
     private requestMappingTemplate: string,
     private responseMappingTemplate: string,
+    private requestSlots: string[],
+    private responseSlots: string[]
   ) {
-    this.slotManager = new ResolverSlotManager([...this.REQUEST_TEMPLATE_SLOTS, ...this.RESPONSE_TEMPLATE_SLOTS]);
+    this.slotManager = new ResolverSlotManager([...this.requestSlots, ...this.responseSlots]);
   }
 
   public addDataSource(dataSourceName: string): void {

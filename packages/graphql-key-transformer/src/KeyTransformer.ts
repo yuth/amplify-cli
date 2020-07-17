@@ -63,6 +63,7 @@ interface KeyArguments {
 }
 
 export class KeyTransformer extends Transformer {
+  private modelWithKeys: string[] = [];
   constructor() {
     // TODO remove once prettier is upgraded
     // prettier-ignore
@@ -78,14 +79,46 @@ export class KeyTransformer extends Transformer {
    * Augment the table key structures based on the @key.
    */
   object = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
-    this.validateDirective(definition, directive, ctx);
-    this.updateIndexStructures(definition, directive, ctx);
-    this.updateSchema(definition, directive, ctx);
-    this.updateResolvers(definition, directive, ctx);
-    this.addKeyConditionInputs(definition, directive, ctx);
-    // Update ModelXConditionInput type
-    this.updateMutationConditionInput(ctx, definition, directive);
+    const modelName = definition.name.value;
+    this.modelWithKeys.push(modelName);
+    // this.updateIndexStructures(definition, directive, ctx);
+    // this.updateSchema(definition, directive, ctx);
+    // this.updateResolvers(definition, directive, ctx);
+    // this.addKeyConditionInputs(definition, directive, ctx);
+    // // Update ModelXConditionInput type
+    // this.updateMutationConditionInput(ctx, definition, directive);
   };
+
+  validate = (ctx: TransformerContext) => {
+    for(let modelName of this.modelWithKeys) {
+      const model = ctx.getObject(modelName);
+      const directives = model.directives?.filter(d => d.name.value === 'key');
+      for(let directive of directives) {
+        this.validateDirective(model, directive, ctx);
+      }
+    }
+  }
+  transformSchema = (ctx: TransformerContext) => {
+    for(let modelName of this.modelWithKeys) {
+      const model = ctx.getObject(modelName);
+      const directives = model.directives?.filter(d => d.name.value === 'key');
+      for(let directive of directives) {
+        this.updateSchema(model, directive, ctx);
+        this.addKeyConditionInputs(model, directive, ctx);
+        this.updateMutationConditionInput(ctx, model, directive);
+      }
+    }
+  }
+
+  generateResolvers = (ctx: TransformerContext) => {
+    for(let modelName of this.modelWithKeys) {
+      const model = ctx.getObject(modelName);
+      const directives = model.directives?.filter(d => d.name.value === 'key');
+      for(let directive of directives) {
+        this.updateResolvers(model, directive, ctx);
+      }
+    }
+  }
 
   /**
    * Update the existing @model table's index structures. Includes primary key, GSI, and LSIs.
@@ -123,6 +156,12 @@ export class KeyTransformer extends Transformer {
    */
   private updateResolvers = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
     const directiveArgs: KeyArguments = getDirectiveArguments(directive);
+    // Need to design a way to get field names from @model
+    const mutationTypeName = ctx.getMutationTypeName();
+    const queryTypeName = ctx.getQueryTypeName();
+    const modelDirective = definition.directives.find(d => d.name.value === 'model');
+    // const listFieldName = modelDirective.arguments.
+    // const getResolver = ctx.getResolver(queryTypeName, ResolverResourceIDs.)
     const getResolver = ctx.getResource(ResolverResourceIDs.DynamoDBGetResolverResourceID(definition.name.value));
     const listResolver = ctx.getResource(ResolverResourceIDs.DynamoDBListResolverResourceID(definition.name.value));
     const createResolver = ctx.getResource(ResolverResourceIDs.DynamoDBCreateResolverResourceID(definition.name.value));

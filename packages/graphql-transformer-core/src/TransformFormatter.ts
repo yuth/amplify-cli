@@ -1,4 +1,4 @@
-import { TransformerContext } from './TransformerContext';
+import { TransformerContext } from './transformer-context/TransformerContext';
 import { Fn, StringParameter } from 'cloudform-types';
 import Resource from 'cloudform-types/types/resource';
 import { makeOperationType, makeSchema } from 'graphql-transformer-common';

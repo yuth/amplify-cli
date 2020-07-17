@@ -1,7 +1,7 @@
 import Template from 'cloudform-types/types/template';
 import Resource from 'cloudform-types/types/resource';
 import Parameter from 'cloudform-types/types/parameter';
-import { Condition, IntrinsicFunction } from 'cloudform-types/types/dataTypes';
+import { Condition } from 'cloudform-types/types/dataTypes';
 import Output from 'cloudform-types/types/output';
 import {
   TypeSystemDefinitionNode,
@@ -19,8 +19,8 @@ import {
   OperationTypeDefinitionNode,
   InterfaceTypeDefinitionNode,
 } from 'graphql';
-import blankTemplate from './util/blankTemplate';
-import DefaultSchemaDefinition from './defaultSchema';
+import blankTemplate from '../util/blankTemplate';
+import DefaultSchemaDefinition from '../defaultSchema';
 import {
   InterfaceTypeExtensionNode,
   UnionTypeExtensionNode,
@@ -31,9 +31,10 @@ import {
   InputValueDefinitionNode,
 } from 'graphql/language/ast';
 import { _Kind } from 'graphql/language/kinds';
-import { ResolverConfig } from './util';
-import { BaseResolver } from './util/BaseResolver';
-import { resolve } from 'dns';
+import { ResolverConfig } from '../util';
+import { TransformerResolvers } from './TransformerResolvers';
+import { TransformerContextMetadata } from './TransformerContextMetadata';
+import { ITransformer } from '../ITransformer';
 export interface MappingParameters {
   [key: string]: {
     [key: string]: {
@@ -68,25 +69,6 @@ export function objectExtension(name: string, fields: FieldDefinitionNode[] = []
   };
 }
 
-export class TransformerContextMetadata {
-  /**
-   * Used by transformers to pass information between one another.
-   */
-  private metadata: { [key: string]: any } = {};
-
-  public get(key: string): any {
-    return this.metadata[key];
-  }
-
-  public set(key: string, val: any): void {
-    return (this.metadata[key] = val);
-  }
-
-  public has(key: string) {
-    return Boolean(this.metadata[key] !== undefined);
-  }
-}
-
 /**
  * The stack mapping defines a full mapping from resource id
  * to the stack that it belongs to. When transformers add
@@ -115,9 +97,12 @@ export class TransformerContext {
 
   private transformerVersion: Number;
 
-  private resolverMap: Map<string, BaseResolver> = new Map();
+  private transformerPluginMap: Map<string, ITransformer>;
 
-  constructor(inputSDL: string) {
+  public resolvers: TransformerResolvers = new TransformerResolvers();
+
+
+  constructor(inputSDL: string, transformers: ITransformer[] = []) {
     const doc: DocumentNode = parse(inputSDL);
     for (const def of doc.definitions) {
       if (def.kind === 'OperationDefinition' || def.kind === 'FragmentDefinition') {
@@ -126,6 +111,13 @@ export class TransformerContext {
     }
     this.inputDocument = doc;
     this.fillNodeMapWithInput();
+
+    const pluginMap = transformers.reduce((acc, inst) => {
+      acc.set(inst.name, inst);
+      return acc;
+    }, new Map());
+    this.transformerPluginMap = pluginMap;
+
   }
 
   /**
@@ -198,6 +190,13 @@ export class TransformerContext {
     }
   }
 
+/**
+ * Return a instance of transformer plugin
+ * @param name transformer plugin name
+ */
+  public getTransformerPluginInstance(name: string) {
+    return this.transformerPluginMap.get(name);
+  }
   /**
    * Scans through the context nodeMap and returns all type definition nodes
    * that are of the given kind.
@@ -278,33 +277,6 @@ export class TransformerContext {
     this.template.Mappings = { ...this.template.Mappings, ...mapping };
   }
 
-  public addResolver(
-    typeName: string,
-    fieldName: string,
-    dataSourceName: string| IntrinsicFunction,
-    requestMappingTemplate: string,
-    responseMappingTemplate: string,
-  ): BaseResolver {
-    const resolverKey = `${typeName}.${fieldName}`;
-    if (this.resolverMap.has(resolverKey)) {
-      throw new Error(`Resolver already exists for ${resolverKey}`);
-    }
-    const resolver = new BaseResolver(typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate);
-    this.resolverMap.set(resolverKey, resolver);
-    return resolver;
-  }
-
-  public getResolver(typeName: string, fieldName: string) {
-    const resolverKey = `${typeName}.${fieldName}`;
-    if (!this.resolverMap.has(resolverKey)) {
-      throw new Error(`No resolver exists for ${resolverKey}`);
-    }
-    return this.resolverMap.get(resolverKey);
-  }
-
-  public collectResolvers() {
-    return this.resolverMap.entries();
-  }
 
   /**
    * Add an object type definition node to the context. If the type already

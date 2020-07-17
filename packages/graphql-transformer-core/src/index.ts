@@ -1,8 +1,8 @@
 import './polyfills/Object.assign';
 import { print } from 'graphql';
-import { TransformerContext } from './TransformerContext';
+import { TransformerContext } from './transformer-context/TransformerContext';
 import { Transformer } from './Transformer';
-import { ITransformer } from './ITransformer';
+import { ITransformer, TransformerModelProvider, MutationFieldType, QueryFieldType, SubscriptionFieldType } from './ITransformer';
 import { GraphQLTransform } from './GraphQLTransform';
 import { collectDirectiveNames, collectDirectivesByTypeNames } from './collectDirectives';
 import { stripDirectives } from './stripDirectives';
@@ -44,6 +44,10 @@ export {
   TransformerContext,
   Transformer,
   ITransformer,
+  TransformerModelProvider,
+  MutationFieldType,
+  QueryFieldType,
+  SubscriptionFieldType,
   collectDirectiveNames,
   collectDirectivesByTypeNames,
   stripDirectives,

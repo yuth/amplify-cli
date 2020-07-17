@@ -5,6 +5,7 @@ import {
   InputObjectTypeDefinitionNode,
   FieldDefinitionNode,
   InterfaceTypeDefinitionNode,
+  GraphQLObjectType,
 } from 'graphql';
 import {
   blankObject,
@@ -19,8 +20,16 @@ import {
   getBaseType,
   graphqlName,
   toUpper,
+  plurality,
 } from 'graphql-transformer-common';
-import { getDirectiveArguments, gql, Transformer, TransformerContext, SyncConfig } from 'graphql-transformer-core';
+import {
+  getDirectiveArguments,
+  gql,
+  Transformer,
+  TransformerContext,
+  SyncConfig,
+  TransformerModelProvider,
+} from 'graphql-transformer-core';
 import {
   getNonModelObjectArray,
   makeCreateInputObject,
@@ -39,6 +48,8 @@ import {
 import { ModelDirectiveArgs, getCreatedAtFieldName, getUpdatedAtFieldName } from './ModelDirectiveArgs';
 import { ResourceFactory } from './resources';
 import { doesNotReject } from 'assert';
+import { ModelCapabilities, QueryFieldType, MutationFieldType, SubscriptionFieldType } from 'graphql-transformer-core/lib/ITransformer';
+import { BaseResolver } from 'graphql-transformer-core/lib/util/BaseResolver';
 
 const METADATA_KEY = 'DynamoDBTransformerMetadata';
 
@@ -111,7 +122,9 @@ export const directiveDefinition = gql`
   }
 `;
 
-export class DynamoDBModelTransformer extends Transformer {
+export class DynamoDBModelTransformer extends Transformer implements TransformerModelProvider {
+  readonly transformerName = 'DynamoDBModelTransformer';
+  readonly capabilities = [ModelCapabilities.SUPPORT_AUTH];
   resources: ResourceFactory;
   opts: DynamoDBModelTransformerOptions;
   private modelTypes: string[] = [];
@@ -338,7 +351,7 @@ export class DynamoDBModelTransformer extends Transformer {
         nameOverride: createFieldNameOverride,
         syncConfig: this.opts.SyncConfig,
       });
-      const resolver = ctx.addResolver(
+      const resolver = ctx.resolvers.addMutationResolver(
         createResolver.typeName,
         createResolver.fieldName,
         createResolver.dataSourceName,
@@ -370,7 +383,7 @@ export class DynamoDBModelTransformer extends Transformer {
         timestamps: timestampFields,
       });
       const resourceId = ResolverResourceIDs.DynamoDBUpdateResolverResourceID(typeName);
-      const resolver = ctx.addResolver(
+      const resolver = ctx.resolvers.addMutationResolver(
         updateResolver.typeName,
         updateResolver.fieldName,
         updateResolver.dataSourceName,
@@ -396,7 +409,7 @@ export class DynamoDBModelTransformer extends Transformer {
         nameOverride: deleteFieldNameOverride,
         syncConfig: this.opts.SyncConfig,
       });
-      const resolver = ctx.addResolver(
+      const resolver = ctx.resolvers.addMutationResolver(
         deleteResolver.typeName,
         deleteResolver.fieldName,
         deleteResolver.dataSourceName,
@@ -481,7 +494,7 @@ export class DynamoDBModelTransformer extends Transformer {
     // Create get queries
     if (shouldMakeGet) {
       const getResolver = this.resources.makeGetResolver(def.name.value, getFieldNameOverride, isSyncEnabled, ctx.getQueryTypeName());
-      const resolver = ctx.addResolver(
+      const resolver = ctx.resolvers.addQueryResolver(
         getResolver.typeName,
         getResolver.fieldName,
         getResolver.dataSourceName,
@@ -507,7 +520,7 @@ export class DynamoDBModelTransformer extends Transformer {
       // Create the list resolver
       const listResolver = this.resources.makeListResolver(def.name.value, listFieldNameOverride, isSyncEnabled, ctx.getQueryTypeName());
       const resourceId = ResolverResourceIDs.DynamoDBListResolverResourceID(typeName);
-      const resolver = ctx.addResolver(
+      const resolver = ctx.resolvers.addQueryResolver(
         listResolver.typeName,
         listResolver.fieldName,
         listResolver.dataSourceName,
@@ -561,11 +574,11 @@ export class DynamoDBModelTransformer extends Transformer {
     const updateFieldName = directiveArguments?.mutations?.update || graphqlName('update' + toUpper(typeName));
     const deleteFieldName = directiveArguments.mutations?.delete || graphqlName('delete' + toUpper(typeName));
 
-    const mutationTypeName = ctx.getMutationTypeName()
+    const mutationTypeName = ctx.getMutationTypeName();
     const subscriptionsArgument = directiveArguments.subscriptions;
-    const createResolver = ctx.getResolver(mutationTypeName, createFieldName);
-    const updateResolver = ctx.getResolver(mutationTypeName, updateFieldName);
-    const deleteResolver = ctx.getResolver(mutationTypeName, deleteFieldName);
+    const createResolver = ctx.resolvers.getResolver(mutationTypeName, createFieldName);
+    const updateResolver = ctx.resolvers.getResolver(mutationTypeName, updateFieldName);
+    const deleteResolver = ctx.resolvers.getResolver(mutationTypeName, deleteFieldName);
 
     if (subscriptionsArgument === null) {
       return;
@@ -583,25 +596,256 @@ export class DynamoDBModelTransformer extends Transformer {
       onCreate.forEach(fieldName => {
         const onCreateField = makeSubscriptionField(fieldName, typeName, [createFieldName]);
         subscriptionFields.push(onCreateField);
-      })
-
+      });
     }
     if (updateResolver) {
       onUpdate.forEach(fieldName => {
         const onUpdateField = makeSubscriptionField(fieldName, typeName, [updateFieldName]);
         subscriptionFields.push(onUpdateField);
-      })
+      });
     }
     if (deleteResolver) {
       onDelete.forEach(fieldName => {
         const onDeleteField = makeSubscriptionField(fieldName, typeName, [deleteFieldName]);
         subscriptionFields.push(onDeleteField);
-      })
+      });
     }
 
     ctx.addSubscriptionFields(subscriptionFields);
   };
 
+  public generateGetResolver = (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string): BaseResolver => {
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const resolverConfig = this.resources.makeGetResolver(type.name, fieldName, this.opts.SyncConfig ? true : false, typeName);
+    return ctx.resolvers.addQueryResolver(
+      resolverConfig.typeName,
+      resolverConfig.fieldName,
+      resolverConfig.dataSourceName,
+      resolverConfig.requestMappingTemplate,
+      resolverConfig.responseMappingTemplate,
+    );
+  };
+
+  public generateListResolver = (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string): BaseResolver => {
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const resolverConfig = this.resources.makeListResolver(type.name, fieldName, this.opts.SyncConfig ? true : false, typeName);
+    return ctx.resolvers.addQueryResolver(
+      resolverConfig.typeName,
+      resolverConfig.fieldName,
+      resolverConfig.dataSourceName,
+      resolverConfig.requestMappingTemplate,
+      resolverConfig.responseMappingTemplate,
+    );
+  };
+
+  public generteCreateResolver = (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string): BaseResolver => {
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    // Todo: Make the signature consistent with queryTypes. Either pass single object or mulitple arguments
+    const resolverConfig = this.resources.makeCreateResolver({
+      type: type.name,
+      nameOverride: fieldName,
+      syncConfig: this.opts.SyncConfig,
+      mutationTypeName: typeName,
+    });
+    return ctx.resolvers.addMutationResolver(
+      resolverConfig.typeName,
+      resolverConfig.fieldName,
+      resolverConfig.dataSourceName,
+      resolverConfig.requestMappingTemplate,
+      resolverConfig.responseMappingTemplate,
+    );
+  };
+
+  public generateUpdateResolver = (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string): BaseResolver => {
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const resolverConfig = this.resources.makeUpdateResolver({
+      type: type.name,
+      nameOverride: fieldName,
+      syncConfig: this.opts.SyncConfig,
+      mutationTypeName: typeName,
+    });
+    return ctx.resolvers.addMutationResolver(
+      resolverConfig.typeName,
+      resolverConfig.fieldName,
+      resolverConfig.dataSourceName,
+      resolverConfig.requestMappingTemplate,
+      resolverConfig.responseMappingTemplate,
+    );
+  };
+
+  public generateDeleteResolver = (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string): BaseResolver => {
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const resolverConfig = this.resources.makeDeleteResolver({
+      type: type.name,
+      nameOverride: fieldName,
+      syncConfig: this.opts.SyncConfig,
+      mutationTypeName: typeName,
+    });
+    return ctx.resolvers.addMutationResolver(
+      resolverConfig.typeName,
+      resolverConfig.fieldName,
+      resolverConfig.dataSourceName,
+      resolverConfig.requestMappingTemplate,
+      resolverConfig.responseMappingTemplate,
+    );
+  };
+
+  public getQueryFieldNames = (ctx: TransformerContext, type: GraphQLObjectType): Record<string, QueryFieldType> => {
+    const name = type.name;
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const typeObject = ctx.getObject(name);
+    const directive = typeObject.directives.find(d => d.name.value === 'model');
+    const directiveArguments: ModelDirectiveArgs = getDirectiveArguments(directive);
+
+    let shouldMakeGet = true;
+    let shouldMakeList = true;
+    let getQueryFieldName = graphqlName('get' + toUpper(name));
+    let listQueryFieldName = graphqlName('list' + plurality(toUpper(name)));
+
+    if (directiveArguments.queries === null) {
+      shouldMakeGet = false;
+      shouldMakeList = false;
+    } else if (directiveArguments.queries) {
+      if (!directiveArguments.queries.get) {
+        shouldMakeGet = false;
+      } else {
+        getQueryFieldName = directiveArguments.queries.get;
+      }
+      if (!directiveArguments.queries.list) {
+        shouldMakeList = false;
+      } else {
+        listQueryFieldName = directiveArguments.queries.list;
+      }
+    }
+    return {
+      ...(shouldMakeGet ? { [getQueryFieldName]: QueryFieldType.GET } : {}),
+      ...(shouldMakeList ? { [listQueryFieldName]: QueryFieldType.LIST } : {}),
+      ...(this.opts.SyncConfig ? { [graphqlName('sync' + toUpper(name))]: QueryFieldType.LIST } : {}),
+    };
+  };
+
+  public getMutationFieldNames = (ctx: TransformerContext, type: GraphQLObjectType): Record<string, MutationFieldType> => {
+    const name = type.name;
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const typeObject = ctx.getObject(name);
+    const directive = typeObject.directives.find(d => d.name.value === 'model');
+    const directiveArguments: ModelDirectiveArgs = getDirectiveArguments(directive);
+
+    let shouldMakeCreate = true;
+    let shouldMakeUpdate = true;
+    let shouldMakeDelete = true;
+
+    let createMutationsFieldName = graphqlName('create' + toUpper(name));
+    let updateMutationFieldName = graphqlName('update' + toUpper(name));
+    let deleteMutationFieldName = graphqlName('delete' + toUpper(name));
+
+    if (directiveArguments.mutations === null) {
+      shouldMakeCreate = false;
+      shouldMakeUpdate = false;
+      shouldMakeDelete = false;
+    } else if (directiveArguments.mutations) {
+      if (!directiveArguments.mutations.create) {
+        shouldMakeCreate = false;
+      } else {
+        createMutationsFieldName = directiveArguments.mutations.create;
+      }
+      if (!directiveArguments.mutations.update) {
+        shouldMakeUpdate = false;
+      } else {
+        updateMutationFieldName = directiveArguments.mutations.update;
+      }
+      if (!directiveArguments.mutations.delete) {
+        shouldMakeDelete = false;
+      } else {
+        updateMutationFieldName = directiveArguments.mutations.delete;
+      }
+    }
+    return {
+      ...(shouldMakeCreate ? { [createMutationsFieldName]: MutationFieldType.CREATE } : {}),
+      ...(shouldMakeUpdate ? { [updateMutationFieldName]: MutationFieldType.UPDATE } : {}),
+      ...(shouldMakeDelete ? { [deleteMutationFieldName]: MutationFieldType.DELETE } : {}),
+    };
+  };
+
+  public getSubscriptionFieldNames = (ctx: TransformerContext, type: GraphQLObjectType): Record<string, SubscriptionFieldType> => {
+    const name = type.name;
+    if (!this.isModelType(type)) {
+      throw new Error(`type ${type.name} does not use @model directive`);
+    }
+    const typeObject = ctx.getObject(name);
+    const directive = typeObject.directives.find(d => d.name.value === 'model');
+    const directiveArguments: ModelDirectiveArgs = getDirectiveArguments(directive);
+
+    let shouldMakeOnCreate = true;
+    let shouldMakeOnUpdate = true;
+    let shouldMakeOnDelete = true;
+
+    let onCreateSubscriptionFieldName = [graphqlName('onCreate' + toUpper(name))];
+    let onUpdateFieldName = [graphqlName('onUpdate' + toUpper(name))];
+    let onDeleteFieldName = [graphqlName('onDelete' + toUpper(name))];
+
+    if (directiveArguments.subscriptions === null || directiveArguments.subscriptions.level === 'off') {
+      shouldMakeOnCreate = false;
+      shouldMakeOnUpdate = false;
+      shouldMakeOnDelete = false;
+    } else if (directiveArguments.subscriptions) {
+      if (!directiveArguments.subscriptions.onCreate) {
+        shouldMakeOnCreate = false;
+      } else {
+        onCreateSubscriptionFieldName = directiveArguments.subscriptions.onCreate;
+      }
+      if (!directiveArguments.subscriptions.onUpdate) {
+        shouldMakeOnUpdate = false;
+      } else {
+        onUpdateFieldName = directiveArguments.subscriptions.onUpdate;
+      }
+      if (!directiveArguments.subscriptions.onDelete) {
+        shouldMakeOnDelete = false;
+      } else {
+        onUpdateFieldName = directiveArguments.subscriptions.onDelete;
+      }
+    }
+    const onCreateList = shouldMakeOnCreate
+      ? onCreateSubscriptionFieldName.reduce((acc, subName) => {
+          return { ...acc, [subName]: SubscriptionFieldType.ON_CREATE };
+        }, {})
+      : {};
+
+    const onUpdateList = shouldMakeOnUpdate
+      ? onUpdateFieldName.reduce((acc, subName) => {
+          return { ...acc, [subName]: SubscriptionFieldType.ON_UPDATE };
+        }, {})
+      : {};
+
+    const onDeleteList = shouldMakeOnDelete
+      ? onDeleteFieldName.reduce((acc, subName) => {
+          return { ...acc, [subName]: SubscriptionFieldType.ON_UPDATE };
+        }, {})
+      : {};
+    return {
+      ...onCreateList,
+      ...onUpdateList,
+      ...onDeleteList,
+    };
+  };
+
+  private isModelType = (type: GraphQLObjectType): boolean => {
+    return this.modelTypes.includes(type.name);
+  };
   private typeExist(type: string, ctx: TransformerContext): boolean {
     return Boolean(type in ctx.nodeMap);
   }

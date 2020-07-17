@@ -1,4 +1,4 @@
-import { TransformerContext } from './TransformerContext';
+import { TransformerContext } from './transformer-context/TransformerContext';
 import { ITransformer } from './ITransformer';
 import {
   DirectiveDefinitionNode,
@@ -32,12 +32,19 @@ export class Transformer implements ITransformer {
 
   public typeDefinitions: TypeDefinitionNode[];
 
+
+
   /**
    * Each transformer has a name.
    *
    * Each transformer defines a set of directives that it knows how to translate.
    */
-  constructor(name: string, document: DocumentNode | string) {
+  constructor(
+    name: string,
+    document: DocumentNode | string,
+    // private dependecies: Record<string, string> = {},
+    // private capabilities?: string[],
+  ) {
     const doc = typeof document === 'string' ? parse(document) : document;
     this.name = name;
     const directives = doc.definitions.filter(d => d.kind === Kind.DIRECTIVE_DEFINITION) as DirectiveDefinitionNode[];
@@ -51,6 +58,14 @@ export class Transformer implements ITransformer {
     // and validated. TODO: Validation.
     this.typeDefinitions = extraDefs;
   }
+
+  // public getCapabilities = (): string[] => {
+  //   return [...this.capabilities];
+  // };
+
+  // public getDependecies = (): Record<string, string> => {
+  //   return { ...this.dependecies };
+  // };
 
   /**
    * An initializer that is called once at the beginning of a transformation.
