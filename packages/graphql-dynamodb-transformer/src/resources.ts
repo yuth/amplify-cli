@@ -194,28 +194,28 @@ export class ResourceFactory {
     const keySchema =
       hashKey && rangeKey
         ? [
-          {
-            AttributeName: hashKey,
-            KeyType: 'HASH',
-          },
-          {
-            AttributeName: rangeKey,
-            KeyType: 'RANGE',
-          },
-        ]
+            {
+              AttributeName: hashKey,
+              KeyType: 'HASH',
+            },
+            {
+              AttributeName: rangeKey,
+              KeyType: 'RANGE',
+            },
+          ]
         : [{ AttributeName: hashKey, KeyType: 'HASH' }];
     const attributeDefinitions =
       hashKey && rangeKey
         ? [
-          {
-            AttributeName: hashKey,
-            AttributeType: 'S',
-          },
-          {
-            AttributeName: rangeKey,
-            AttributeType: 'S',
-          },
-        ]
+            {
+              AttributeName: hashKey,
+              AttributeType: 'S',
+            },
+            {
+              AttributeName: rangeKey,
+              AttributeType: 'S',
+            },
+          ]
         : [{ AttributeName: hashKey, AttributeType: 'S' }];
     return new DynamoDB.Table({
       TableName: this.dynamoDBTableName(typeName),
@@ -317,35 +317,35 @@ export class ResourceFactory {
                   }),
                   ...(syncConfig
                     ? [
-                      Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}', {
-                        tablename: Fn.If(
-                          ResourceConstants.CONDITIONS.HasEnvironmentParameter,
-                          Fn.Join('-', [
-                            SyncResourceIDs.syncTableName,
-                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                            Fn.Ref(ResourceConstants.PARAMETERS.Env),
-                          ]),
-                          Fn.Join('-', [
-                            SyncResourceIDs.syncTableName,
-                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                          ]),
-                        ),
-                      }),
-                      Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}/*', {
-                        tablename: Fn.If(
-                          ResourceConstants.CONDITIONS.HasEnvironmentParameter,
-                          Fn.Join('-', [
-                            SyncResourceIDs.syncTableName,
-                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                            Fn.Ref(ResourceConstants.PARAMETERS.Env),
-                          ]),
-                          Fn.Join('-', [
-                            SyncResourceIDs.syncTableName,
-                            Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-                          ]),
-                        ),
-                      }),
-                    ]
+                        Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}', {
+                          tablename: Fn.If(
+                            ResourceConstants.CONDITIONS.HasEnvironmentParameter,
+                            Fn.Join('-', [
+                              SyncResourceIDs.syncTableName,
+                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                              Fn.Ref(ResourceConstants.PARAMETERS.Env),
+                            ]),
+                            Fn.Join('-', [
+                              SyncResourceIDs.syncTableName,
+                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                            ]),
+                          ),
+                        }),
+                        Fn.Sub('arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}/*', {
+                          tablename: Fn.If(
+                            ResourceConstants.CONDITIONS.HasEnvironmentParameter,
+                            Fn.Join('-', [
+                              SyncResourceIDs.syncTableName,
+                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                              Fn.Ref(ResourceConstants.PARAMETERS.Env),
+                            ]),
+                            Fn.Join('-', [
+                              SyncResourceIDs.syncTableName,
+                              Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+                            ]),
+                          ),
+                        }),
+                      ]
                     : []),
                 ],
               },
@@ -447,7 +447,6 @@ export class ResourceFactory {
     };
   }
 
-
   public initalizeDefaultInputForCreateMutation(input: InputObjectTypeDefinitionNode, timestamps): string {
     const hasDefaultIdField = input.fields?.find(field => field.name.value === 'id' && ['ID', 'String'].includes(getBaseType(field.type)));
     return printBlock('Set default values')(
@@ -458,21 +457,20 @@ export class ResourceFactory {
           : []),
         ...(timestamps && timestamps.createdAtField
           ? [
-            comment(`Automatically set the createdAt timestamp.`),
-            qref(
-              `$context.args.input.put("${timestamps.createdAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.createdAtField}, $createdAt))`,
-            ),
-          ]
+              comment(`Automatically set the createdAt timestamp.`),
+              qref(
+                `$context.args.input.put("${timestamps.createdAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.createdAtField}, $createdAt))`,
+              ),
+            ]
           : []),
         ...(timestamps && timestamps.updatedAtField
           ? [
-            comment(`Automatically set the updatedAt timestamp.`),
-            qref(
-              `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $createdAt))`,
-            ),
-          ]
+              comment(`Automatically set the updatedAt timestamp.`),
+              qref(
+                `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $createdAt))`,
+              ),
+            ]
           : []),
-        obj({}),
       ]),
     );
   }
@@ -538,11 +536,11 @@ export class ResourceFactory {
           ),
           ...(timestamps && timestamps.updatedAtField
             ? [
-              comment(`Automatically set the updatedAt timestamp.`),
-              qref(
-                `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $util.time.nowISO8601()))`,
-              ),
-            ]
+                comment(`Automatically set the updatedAt timestamp.`),
+                qref(
+                  `$context.args.input.put("${timestamps.updatedAtField}", $util.defaultIfNull($ctx.args.input.${timestamps.updatedAtField}, $util.time.nowISO8601()))`,
+                ),
+              ]
             : []),
           qref(`$context.args.input.put("__typename", "${type}")`),
           comment('Update condition if type is @versioned'),
@@ -720,11 +718,14 @@ export class ResourceFactory {
               limit: ref('limit'),
             }),
           ),
+          // PoI: Getting the snipper from stash
           iff(ref('context.args.nextToken'), set(ref(`${requestVariable}.nextToken`), ref('context.args.nextToken'))),
           iff(
             ref('context.args.filter'),
             set(ref(`${requestVariable}.filter`), ref('util.parseJson("$util.transform.toDynamoDBFilterExpression($ctx.args.filter)")')),
           ),
+          iff(ref('context.stash.metadata.index'), set(ref(`${requestVariable}.index`), ref('context.stash.metadata.index'))),
+          set(ref(ResourceConstants.SNIPPETS.ModelQueryExpression), ref(`ctx.stash.${ResourceConstants.SNIPPETS.ModelQueryExpression}`)),
           ifElse(
             raw(`!$util.isNull($${ResourceConstants.SNIPPETS.ModelQueryExpression})
                         && !$util.isNullOrEmpty($${ResourceConstants.SNIPPETS.ModelQueryExpression}.expression)`),

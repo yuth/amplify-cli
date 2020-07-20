@@ -63,8 +63,8 @@ export class TransformerResolvers {
     dataSourceName: string | IntrinsicFunction,
     requestMappingTemplate: string,
     responseMappingTemplate: string,
-    requestSlots: string[] = ['init', 'preauth', 'auth', 'postAuth', 'predataLoad'],
-    responseSlots: string[] = ['postDataLoad', 'preAuthFilter', 'authFilter', 'postAuthFilter', 'finish'],
+    requestSlots: string[],
+    responseSlots: string[],
   ): BaseResolver => {
     const resolverKey = `${typeName}.${fieldName}`;
     if (this.resolverMap.has(resolverKey)) {
@@ -90,7 +90,7 @@ export class TransformerResolvers {
     }
     return this.resolverMap.get(resolverKey);
   }
-  public collectResolvers(): [string,BaseResolver][] {
+  public collectResolvers(): [string, BaseResolver][] {
     return [...this.resolverMap.entries()];
   }
 }

@@ -171,18 +171,18 @@ export interface TransformerModelProvider extends ITransformer {
 
   readonly capabilities: ModelCapabilities[];
 
-  generateGetResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateListResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateUpdateResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateDeleteResolver: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateOnCreateResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateOnUpdateResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateOnDeleteResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
-  generateSyncResolver?: (ctx: TransformerContext, type: GraphQLObjectType, typeName: string, fieldName: string) => BaseResolver;
+  generateGetResolver: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateListResolver: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateUpdateResolver: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateDeleteResolver: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateOnCreateResolver?: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateOnUpdateResolver?: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateOnDeleteResolver?: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
+  generateSyncResolver?: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
 
-  getQueryFieldNames: (ctx: TransformerContext, type: GraphQLObjectType) => Record<string, QueryFieldType>;
-  getMutationFieldNames: (ctx: TransformerContext, type: GraphQLObjectType) => Record<string, MutationFieldType>;
-  getSubscriptionFieldNames: (ctx: TransformerContext, type: GraphQLObjectType) => Record<string, SubscriptionFieldType>;
+  getQueryFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<QueryFieldType, string[]>;
+  getMutationFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<MutationFieldType, string[]>;
+  getSubscriptionFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<SubscriptionFieldType, string[]>;
 }
 
 // context.stash = {

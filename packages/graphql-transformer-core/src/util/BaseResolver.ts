@@ -4,12 +4,10 @@ import { compoundExpression, iff, obj, printBlock, qref, raw, ref } from 'graphq
 import { FunctionResourceIDs, ResourceConstants } from 'graphql-transformer-common';
 import { TransformerContext } from '..';
 import { ResolverSlotManager } from './ResolverSlotManager';
-import { pascalCase } from 'change-case'
+import { pascalCase } from 'change-case';
 
 export class BaseResolver {
   private slotManager: ResolverSlotManager;
-  private REQUEST_TEMPLATE_SLOTS = ['init', 'preauth', 'auth', 'postAuth', 'predataLoad'];
-  private RESPONSE_TEMPLATE_SLOTS = ['postDataLoad', 'preAuthFilter', 'authFilter', 'postAuthFilter', 'finish'];
   private _stackName: string;
   constructor(
     private typeName: string,
@@ -18,7 +16,7 @@ export class BaseResolver {
     private requestMappingTemplate: string,
     private responseMappingTemplate: string,
     private requestSlots: string[],
-    private responseSlots: string[]
+    private responseSlots: string[],
   ) {
     this.slotManager = new ResolverSlotManager([...this.requestSlots, ...this.responseSlots]);
   }
@@ -28,7 +26,7 @@ export class BaseResolver {
   }
 
   public mapResourceToStack(stackName: string) {
-    this._stackName = stackName
+    this._stackName = stackName;
   }
   public getStackName(): string {
     return this._stackName;
@@ -59,17 +57,9 @@ export class BaseResolver {
           ]),
         );
         const requestMappingTemplate = printBlock(this.generateTemplateComment(slotName, index, 'REQUEST'))(
-          compoundExpression([raw(item)]),
+          compoundExpression([raw(item), raw('$util.toJson({})')]),
         );
-        return [
-          ...acc,
-          this.generateAppSyncFunction(
-            slotName,
-            index,
-            requestMappingTemplate,
-            responseMappingTemplate,
-          ),
-        ];
+        return [...acc, this.generateAppSyncFunction(slotName, index, requestMappingTemplate, responseMappingTemplate)];
       }, []);
     });
   }
@@ -82,7 +72,7 @@ export class BaseResolver {
     slotIndex: number,
     requestTemplate: string,
     responseTemplate: string,
-    dataSourceName: string | IntrinsicFunction = 'NONE'
+    dataSourceName: string | IntrinsicFunction = 'NONE',
   ): Resource {
     return new AppSync.FunctionConfiguration({
       DataSourceName: dataSourceName,
@@ -95,8 +85,8 @@ export class BaseResolver {
   }
   generateResources(ctx: TransformerContext): Resource[] {
     this.addNoneDataSource(ctx);
-    const requestFunctions = this.generateSlotFunctions(this.REQUEST_TEMPLATE_SLOTS);
-    const responseFunctions = this.generateSlotFunctions(this.RESPONSE_TEMPLATE_SLOTS);
+    const requestFunctions = this.generateSlotFunctions(this.requestSlots);
+    const responseFunctions = this.generateSlotFunctions(this.responseSlots);
     const dataFetcher = this.generateAppSyncFunction(
       'load',
       0,

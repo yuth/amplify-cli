@@ -1,4 +1,13 @@
-import { Transformer, gql, TransformerContext, getDirectiveArguments, InvalidDirectiveError } from 'graphql-transformer-core';
+import {
+  Transformer,
+  gql,
+  TransformerContext,
+  getDirectiveArguments,
+  InvalidDirectiveError,
+  TransformerModelProvider,
+  QueryFieldType,
+  MutationFieldType,
+} from 'graphql-transformer-core';
 import {
   obj,
   str,
@@ -55,6 +64,7 @@ import {
 } from 'graphql';
 import { AppSync, Fn, Refs } from 'cloudform-types';
 import { Projection, GlobalSecondaryIndex, LocalSecondaryIndex } from 'cloudform-types/types/dynamoDb/table';
+import JobQueue from 'cloudform-types/types/batch/jobQueue';
 
 interface KeyArguments {
   name?: string;
@@ -90,35 +100,36 @@ export class KeyTransformer extends Transformer {
   };
 
   validate = (ctx: TransformerContext) => {
-    for(let modelName of this.modelWithKeys) {
+    for (let modelName of this.modelWithKeys) {
       const model = ctx.getObject(modelName);
       const directives = model.directives?.filter(d => d.name.value === 'key');
-      for(let directive of directives) {
+      for (let directive of directives) {
         this.validateDirective(model, directive, ctx);
       }
     }
-  }
+  };
   transformSchema = (ctx: TransformerContext) => {
-    for(let modelName of this.modelWithKeys) {
+    for (let modelName of this.modelWithKeys) {
       const model = ctx.getObject(modelName);
       const directives = model.directives?.filter(d => d.name.value === 'key');
-      for(let directive of directives) {
+      for (let directive of directives) {
         this.updateSchema(model, directive, ctx);
         this.addKeyConditionInputs(model, directive, ctx);
         this.updateMutationConditionInput(ctx, model, directive);
       }
     }
-  }
+  };
 
   generateResolvers = (ctx: TransformerContext) => {
-    for(let modelName of this.modelWithKeys) {
+    for (let modelName of this.modelWithKeys) {
       const model = ctx.getObject(modelName);
       const directives = model.directives?.filter(d => d.name.value === 'key');
-      for(let directive of directives) {
+      for (let directive of directives) {
+        this.updateIndexStructures(model, directive, ctx);
         this.updateResolvers(model, directive, ctx);
       }
     }
-  }
+  };
 
   /**
    * Update the existing @model table's index structures. Includes primary key, GSI, and LSIs.
@@ -156,81 +167,74 @@ export class KeyTransformer extends Transformer {
    */
   private updateResolvers = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
     const directiveArgs: KeyArguments = getDirectiveArguments(directive);
+    const ddbTransformer: TransformerModelProvider = ctx.getTransformerPluginInstance(
+      'DynamoDBModelTransformer',
+    ) as TransformerModelProvider;
+
     // Need to design a way to get field names from @model
-    const mutationTypeName = ctx.getMutationTypeName();
-    const queryTypeName = ctx.getQueryTypeName();
+
+    const queryTypeNames = ddbTransformer.getQueryFieldNames(ctx, definition);
+    const mutationTypeNames = ddbTransformer.getMutationFieldNames(ctx, definition);
     const modelDirective = definition.directives.find(d => d.name.value === 'model');
-    // const listFieldName = modelDirective.arguments.
-    // const getResolver = ctx.getResolver(queryTypeName, ResolverResourceIDs.)
-    const getResolver = ctx.getResource(ResolverResourceIDs.DynamoDBGetResolverResourceID(definition.name.value));
-    const listResolver = ctx.getResource(ResolverResourceIDs.DynamoDBListResolverResourceID(definition.name.value));
-    const createResolver = ctx.getResource(ResolverResourceIDs.DynamoDBCreateResolverResourceID(definition.name.value));
-    const updateResolver = ctx.getResource(ResolverResourceIDs.DynamoDBUpdateResolverResourceID(definition.name.value));
-    const deleteResolver = ctx.getResource(ResolverResourceIDs.DynamoDBDeleteResolverResourceID(definition.name.value));
+    // PoC POI: How to change the index to be used in DDB
     if (this.isPrimaryKey(directive)) {
       // When looking at a primary key we update the primary paths for writing/reading data.
       // and ensure any composite sort keys for the primary index.
-      if (getResolver) {
-        getResolver.Properties.RequestMappingTemplate = joinSnippets([
-          this.setKeySnippet(directive),
-          getResolver.Properties.RequestMappingTemplate,
-        ]);
+      for (let fieldName of queryTypeNames.GET) {
+        const resolver = ctx.resolvers.getResolver(ctx.getQueryTypeName(), fieldName);
+        resolver.addSlot('predataLoad', this.setKeySnippet(directive));
       }
-      if (listResolver) {
-        listResolver.Properties.RequestMappingTemplate = joinSnippets([
-          print(setQuerySnippet(definition, directive, ctx, true)),
-          listResolver.Properties.RequestMappingTemplate,
-        ]);
+
+      for (let fieldName of queryTypeNames.LIST) {
+        const resolver = ctx.resolvers.getResolver(ctx.getQueryTypeName(), fieldName);
+        resolver.addSlot('predataLoad', print(setQuerySnippet(definition, directive, ctx, true)));
       }
-      if (createResolver) {
-        createResolver.Properties.RequestMappingTemplate = joinSnippets([
-          this.setKeySnippet(directive, true),
-          ensureCompositeKeySnippet(directive),
-          createResolver.Properties.RequestMappingTemplate,
-        ]);
+
+      for (let fieldname of mutationTypeNames.CREATE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), fieldname);
+        resolver.addSlot('preUpdate', joinSnippets([this.setKeySnippet(directive, true), ensureCompositeKeySnippet(directive)]));
       }
-      if (updateResolver) {
-        updateResolver.Properties.RequestMappingTemplate = joinSnippets([
-          this.setKeySnippet(directive, true),
-          ensureCompositeKeySnippet(directive),
-          updateResolver.Properties.RequestMappingTemplate,
-        ]);
+      for (let fieldname of mutationTypeNames.UPDATE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), fieldname);
+        resolver.addSlot('preUpdate', joinSnippets([this.setKeySnippet(directive, true), ensureCompositeKeySnippet(directive)]));
       }
-      if (deleteResolver) {
-        deleteResolver.Properties.RequestMappingTemplate = joinSnippets([
-          this.setKeySnippet(directive, true),
-          deleteResolver.Properties.RequestMappingTemplate,
-        ]);
+
+      for (let fieldname of mutationTypeNames.DELETE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), fieldname);
+        resolver.addSlot('preUpdate', joinSnippets([this.setKeySnippet(directive, true)]));
       }
     } else {
       // When looking at a secondary key we need to ensure any composite sort key values
       // and validate update operations to protect the integrity of composite sort keys.
-      if (createResolver) {
-        createResolver.Properties.RequestMappingTemplate = joinSnippets([
-          this.validateKeyArgumentSnippet(directive, 'create'),
-          ensureCompositeKeySnippet(directive),
-          createResolver.Properties.RequestMappingTemplate,
-        ]);
+
+      for (let fieldname of mutationTypeNames.CREATE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), fieldname);
+        resolver.addSlot(
+          'preUpdate',
+          joinSnippets([this.validateKeyArgumentSnippet(directive, 'create'), ensureCompositeKeySnippet(directive)]),
+        );
       }
-      if (updateResolver) {
-        updateResolver.Properties.RequestMappingTemplate = joinSnippets([
-          this.validateKeyArgumentSnippet(directive, 'update'),
-          ensureCompositeKeySnippet(directive),
-          updateResolver.Properties.RequestMappingTemplate,
-        ]);
+      for (let fieldname of mutationTypeNames.UPDATE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), fieldname);
+        resolver.addSlot(
+          'preUpdate',
+          joinSnippets([this.validateKeyArgumentSnippet(directive, 'update'), ensureCompositeKeySnippet(directive)]),
+        );
       }
-      if (deleteResolver) {
-        deleteResolver.Properties.RequestMappingTemplate = joinSnippets([
-          ensureCompositeKeySnippet(directive),
-          deleteResolver.Properties.RequestMappingTemplate,
-        ]);
+
+      for (let fieldname of mutationTypeNames.DELETE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), fieldname);
+        resolver.addSlot('preUpdate', joinSnippets([ensureCompositeKeySnippet(directive)]));
       }
       if (directiveArgs.queryField) {
         const queryTypeName = ctx.getQueryTypeName();
-        const queryResolverId = ResolverResourceIDs.ResolverResourceID(queryTypeName, directiveArgs.queryField);
-        const queryResolver = makeQueryResolver(definition, directive, ctx);
-        ctx.mapResourceToStack(definition.name.value, queryResolverId);
-        ctx.setResource(queryResolverId, queryResolver);
+        const resolver = ddbTransformer.generateListResolver(ctx, definition, queryTypeName, directiveArgs.queryField);
+        const keySnippet = setQuerySnippet(definition, directive, ctx, true);
+        const preloadContent = print(
+          compoundExpression([keySnippet, set(ref('context.stash.metadata'), obj({ index: str(`${directiveArgs.name}`) }))]),
+        );
+        resolver.addSlot('predataLoad', preloadContent);
+        resolver.mapResourceToStack(definition.name.value);
       }
     }
   };
@@ -923,6 +927,11 @@ function setQuerySnippet(definition: ObjectTypeDefinitionNode, directive: Direct
   expressions.push(
     set(ref(ResourceConstants.SNIPPETS.ModelQueryExpression), obj({})),
     applyKeyExpressionForCompositeKey(keys, keyTypes, ResourceConstants.SNIPPETS.ModelQueryExpression),
+  );
+
+  // PoI: set the query expression
+  expressions.push(
+    set(ref(`ctx.stash.${ResourceConstants.SNIPPETS.ModelQueryExpression}`), ref(ResourceConstants.SNIPPETS.ModelQueryExpression)),
   );
 
   return block(`Set query expression for @key`, expressions);
