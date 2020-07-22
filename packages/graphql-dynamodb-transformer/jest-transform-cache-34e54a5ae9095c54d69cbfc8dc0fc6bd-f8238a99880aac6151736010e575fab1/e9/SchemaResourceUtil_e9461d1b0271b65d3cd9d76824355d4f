@@ -1,0 +1,100 @@
+335a550b0908fd9b0f190fc2eea1c47a
+"use strict";
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.SchemaResourceUtil = void 0;
+
+const appSync_1 = __importDefault(require("cloudform-types/types/appSync"));
+
+const cloudform_types_1 = require("cloudform-types");
+
+const graphql_transformer_common_1 = require("graphql-transformer-common");
+
+const RESOLVERS_DIRECTORY_NAME = 'resolvers';
+const STACKS_DIRECTORY_NAME = 'stacks';
+
+class SchemaResourceUtil {
+  makeResolverS3RootParams() {
+    return {
+      Parameters: {
+        [graphql_transformer_common_1.ResourceConstants.PARAMETERS.Env]: new cloudform_types_1.StringParameter({
+          Description: `The environment name. e.g. Dev, Test, or Production`,
+          Default: graphql_transformer_common_1.ResourceConstants.NONE
+        }),
+        [graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentBucket]: new cloudform_types_1.StringParameter({
+          Description: 'The S3 bucket containing all deployment assets for the project.'
+        }),
+        [graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentRootKey]: new cloudform_types_1.StringParameter({
+          Description: 'An S3 key relative to the S3DeploymentBucket that points to the root of the deployment directory.'
+        })
+      }
+    };
+  }
+
+  makeEnvironmentConditions() {
+    return {
+      [graphql_transformer_common_1.ResourceConstants.CONDITIONS.HasEnvironmentParameter]: cloudform_types_1.Fn.Not(cloudform_types_1.Fn.Equals(cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.Env), graphql_transformer_common_1.ResourceConstants.NONE))
+    };
+  }
+
+  updateResolverResource(resource) {
+    resource.Properties.RequestMappingTemplateS3Location = cloudform_types_1.Fn.Sub('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/resolvers/${ResolverFileName}', {
+      S3DeploymentBucket: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentBucket),
+      S3DeploymentRootKey: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentRootKey),
+      ResolverFileName: cloudform_types_1.Fn.Join('.', [resource.Properties.TypeName, resource.Properties.FieldName, 'req', 'vtl'])
+    });
+    resource.Properties.ResponseMappingTemplateS3Location = cloudform_types_1.Fn.Sub('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/resolvers/${ResolverFileName}', {
+      S3DeploymentBucket: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentBucket),
+      S3DeploymentRootKey: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentRootKey),
+      ResolverFileName: cloudform_types_1.Fn.Join('.', [resource.Properties.TypeName, resource.Properties.FieldName, 'res', 'vtl'])
+    });
+    delete resource.Properties.RequestMappingTemplate;
+    delete resource.Properties.ResponseMappingTemplate;
+    return resource;
+  }
+
+  updateFunctionConfigurationResource(resource) {
+    resource.Properties.RequestMappingTemplateS3Location = cloudform_types_1.Fn.Sub('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/pipelineFunctions/${ResolverFileName}', {
+      S3DeploymentBucket: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentBucket),
+      S3DeploymentRootKey: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentRootKey),
+      ResolverFileName: cloudform_types_1.Fn.Join('.', [resource.Properties.Name, 'req', 'vtl'])
+    });
+    resource.Properties.ResponseMappingTemplateS3Location = cloudform_types_1.Fn.Sub('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/pipelineFunctions/${ResolverFileName}', {
+      S3DeploymentBucket: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentBucket),
+      S3DeploymentRootKey: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentRootKey),
+      ResolverFileName: cloudform_types_1.Fn.Join('.', [resource.Properties.Name, 'res', 'vtl'])
+    });
+    delete resource.Properties.RequestMappingTemplate;
+    delete resource.Properties.ResponseMappingTemplate;
+    return resource;
+  }
+
+  makeAppSyncSchema(schema) {
+    if (schema) {
+      return new appSync_1.default.GraphQLSchema({
+        ApiId: cloudform_types_1.Fn.GetAtt(graphql_transformer_common_1.ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+        Definition: schema
+      });
+    }
+
+    return new appSync_1.default.GraphQLSchema({
+      ApiId: cloudform_types_1.Fn.GetAtt(graphql_transformer_common_1.ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+      DefinitionS3Location: cloudform_types_1.Fn.Sub('s3://${S3DeploymentBucket}/${S3DeploymentRootKey}/schema.graphql', {
+        S3DeploymentBucket: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentBucket),
+        S3DeploymentRootKey: cloudform_types_1.Fn.Ref(graphql_transformer_common_1.ResourceConstants.PARAMETERS.S3DeploymentRootKey)
+      })
+    });
+  }
+
+}
+
+exports.SchemaResourceUtil = SchemaResourceUtil;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy91dGlsL1NjaGVtYVJlc291cmNlVXRpbC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEsTUFBQSxTQUFBLEdBQUEsZUFBQSxDQUFBLE9BQUEsQ0FBQSwrQkFBQSxDQUFBLENBQUE7O0FBRUEsTUFBQSxpQkFBQSxHQUFBLE9BQUEsQ0FBQSxpQkFBQSxDQUFBOztBQUNBLE1BQUEsNEJBQUEsR0FBQSxPQUFBLENBQUEsNEJBQUEsQ0FBQTs7QUFHQSxNQUFNLHdCQUF3QixHQUFHLFdBQWpDO0FBQ0EsTUFBTSxxQkFBcUIsR0FBRyxRQUE5Qjs7QUFFQSxNQUFhLGtCQUFiLENBQStCO0FBQ3RCLEVBQUEsd0JBQXdCLEdBQUE7QUFDN0IsV0FBTztBQUNMLE1BQUEsVUFBVSxFQUFFO0FBQ1YsU0FBQyw0QkFBQSxDQUFBLGlCQUFBLENBQWtCLFVBQWxCLENBQTZCLEdBQTlCLEdBQW9DLElBQUksaUJBQUEsQ0FBQSxlQUFKLENBQW9CO0FBQ3RELFVBQUEsV0FBVyxFQUFFLHFEQUR5QztBQUV0RCxVQUFBLE9BQU8sRUFBRSw0QkFBQSxDQUFBLGlCQUFBLENBQWtCO0FBRjJCLFNBQXBCLENBRDFCO0FBS1YsU0FBQyw0QkFBQSxDQUFBLGlCQUFBLENBQWtCLFVBQWxCLENBQTZCLGtCQUE5QixHQUFtRCxJQUFJLGlCQUFBLENBQUEsZUFBSixDQUFvQjtBQUNyRSxVQUFBLFdBQVcsRUFBRTtBQUR3RCxTQUFwQixDQUx6QztBQVFWLFNBQUMsNEJBQUEsQ0FBQSxpQkFBQSxDQUFrQixVQUFsQixDQUE2QixtQkFBOUIsR0FBb0QsSUFBSSxpQkFBQSxDQUFBLGVBQUosQ0FBb0I7QUFDdEUsVUFBQSxXQUFXLEVBQUU7QUFEeUQsU0FBcEI7QUFSMUM7QUFEUCxLQUFQO0FBY0Q7O0FBRU0sRUFBQSx5QkFBeUIsR0FBQTtBQUM5QixXQUFPO0FBQ0wsT0FBQyw0QkFBQSxDQUFBLGlCQUFBLENBQWtCLFVBQWxCLENBQTZCLHVCQUE5QixH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

@@ -1,0 +1,45 @@
+4fe7dd2397af33ea2129d0adab363fe2
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.ResolverResourceIDs = void 0;
+
+class ResolverResourceIDs {
+  static DynamoDBCreateResolverResourceID(typeName) {
+    return `Create${typeName}Resolver`;
+  }
+
+  static DynamoDBUpdateResolverResourceID(typeName) {
+    return `Update${typeName}Resolver`;
+  }
+
+  static DynamoDBDeleteResolverResourceID(typeName) {
+    return `Delete${typeName}Resolver`;
+  }
+
+  static DynamoDBGetResolverResourceID(typeName) {
+    return `Get${typeName}Resolver`;
+  }
+
+  static DynamoDBListResolverResourceID(typeName) {
+    return `List${typeName}Resolver`;
+  }
+
+  static ElasticsearchSearchResolverResourceID(typeName) {
+    return `Search${typeName}Resolver`;
+  }
+
+  static SyncResolverResourceID(typeName) {
+    return `Sync${typeName}Resolver`;
+  }
+
+  static ResolverResourceID(typeName, fieldName) {
+    return `${typeName}${fieldName}Resolver`;
+  }
+
+}
+
+exports.ResolverResourceIDs = ResolverResourceIDs;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9SZXNvbHZlclJlc291cmNlSURzLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7QUFFQSxNQUFhLG1CQUFiLENBQWdDO0FBQzlCLFNBQU8sZ0NBQVAsQ0FBd0MsUUFBeEMsRUFBd0Q7QUFDdEQsV0FBTyxTQUFTLFFBQVEsVUFBeEI7QUFDRDs7QUFDRCxTQUFPLGdDQUFQLENBQXdDLFFBQXhDLEVBQXdEO0FBQ3RELFdBQU8sU0FBUyxRQUFRLFVBQXhCO0FBQ0Q7O0FBQ0QsU0FBTyxnQ0FBUCxDQUF3QyxRQUF4QyxFQUF3RDtBQUN0RCxXQUFPLFNBQVMsUUFBUSxVQUF4QjtBQUNEOztBQUNELFNBQU8sNkJBQVAsQ0FBcUMsUUFBckMsRUFBcUQ7QUFDbkQsV0FBTyxNQUFNLFFBQVEsVUFBckI7QUFDRDs7QUFDRCxTQUFPLDhCQUFQLENBQXNDLFFBQXRDLEVBQXNEO0FBQ3BELFdBQU8sT0FBTyxRQUFRLFVBQXRCO0FBQ0Q7O0FBQ0QsU0FBTyxxQ0FBUCxDQUE2QyxRQUE3QyxFQUE2RDtBQUMzRCxXQUFPLFNBQVMsUUFBUSxVQUF4QjtBQUNEOztBQUNELFNBQU8sc0JBQVAsQ0FBOEIsUUFBOUIsRUFBOEM7QUFDNUMsV0FBTyxPQUFPLFFBQVEsVUFBdEI7QUFDRDs7QUFDRCxTQUFPLGtCQUFQLENBQTBCLFFBQTFCLEVBQTRDLFNBQTVDLEVBQTZEO0FBQzNELFdBQU8sR0FBRyxRQUFRLEdBQUcsU0FBUyxVQUE5QjtBQUNEOztBQXhCNkI7O0FBQWhDLE9BQUEsQ0FBQSxtQkFBQSxHQUFBLG1CQUFBIiwic291cmNlUm9vdCI6IiJ9

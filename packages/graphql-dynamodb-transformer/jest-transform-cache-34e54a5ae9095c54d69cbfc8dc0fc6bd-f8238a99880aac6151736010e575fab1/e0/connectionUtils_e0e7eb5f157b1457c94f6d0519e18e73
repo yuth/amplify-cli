@@ -1,0 +1,18 @@
+5de881c89f8262b9692848d277557c5b
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.makeConnectionField = void 0;
+
+const definition_1 = require("./definition");
+
+const ModelResourceIDs_1 = require("./ModelResourceIDs");
+
+function makeConnectionField(fieldName, returnTypeName, args = []) {
+  return definition_1.makeField(fieldName, [...args, definition_1.makeInputValueDefinition('filter', definition_1.makeNamedType(ModelResourceIDs_1.ModelResourceIDs.ModelFilterInputTypeName(returnTypeName))), definition_1.makeInputValueDefinition('limit', definition_1.makeNamedType('Int')), definition_1.makeInputValueDefinition('nextToken', definition_1.makeNamedType('String'))], definition_1.makeNamedType(ModelResourceIDs_1.ModelResourceIDs.ModelConnectionTypeName(returnTypeName)));
+}
+
+exports.makeConnectionField = makeConnectionField;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9jb25uZWN0aW9uVXRpbHMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7OztBQUFBLE1BQUEsWUFBQSxHQUFBLE9BQUEsQ0FBQSxjQUFBLENBQUE7O0FBQ0EsTUFBQSxrQkFBQSxHQUFBLE9BQUEsQ0FBQSxvQkFBQSxDQUFBOztBQUVBLFNBQWdCLG1CQUFoQixDQUFvQyxTQUFwQyxFQUF1RCxjQUF2RCxFQUErRSxJQUFBLEdBQW1DLEVBQWxILEVBQW9IO0FBQ2xILFNBQU8sWUFBQSxDQUFBLFNBQUEsQ0FDTCxTQURLLEVBRUwsQ0FDRSxHQUFHLElBREwsRUFFRSxZQUFBLENBQUEsd0JBQUEsQ0FBeUIsUUFBekIsRUFBbUMsWUFBQSxDQUFBLGFBQUEsQ0FBYyxrQkFBQSxDQUFBLGdCQUFBLENBQWlCLHdCQUFqQixDQUEwQyxjQUExQyxDQUFkLENBQW5DLENBRkYsRUFHRSxZQUFBLENBQUEsd0JBQUEsQ0FBeUIsT0FBekIsRUFBa0MsWUFBQSxDQUFBLGFBQUEsQ0FBYyxLQUFkLENBQWxDLENBSEYsRUFJRSxZQUFBLENBQUEsd0JBQUEsQ0FBeUIsV0FBekIsRUFBc0MsWUFBQSxDQUFBLGFBQUEsQ0FBYyxRQUFkLENBQXRDLENBSkYsQ0FGSyxFQVFMLFlBQUEsQ0FBQSxhQUFBLENBQWMsa0JBQUEsQ0FBQSxnQkFBQSxDQUFpQix1QkFBakIsQ0FBeUMsY0FBekMsQ0FBZCxDQVJLLENBQVA7QUFVRDs7QUFYRCxPQUFBLENBQUEsbUJBQUEsR0FBQSxtQkFBQSIsInNvdXJjZVJvb3QiOiIifQ==

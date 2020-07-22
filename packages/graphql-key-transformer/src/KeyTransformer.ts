@@ -131,6 +131,11 @@ export class KeyTransformer extends Transformer {
     }
   };
 
+  public getDirectiveArgument = (defination: ObjectTypeDefinitionNode):KeyArguments[] => {
+    const directives = defination.directives.filter(d => d.name.value == 'key')
+    return directives.map(d => getDirectiveArguments(d))
+  }
+
   /**
    * Update the existing @model table's index structures. Includes primary key, GSI, and LSIs.
    * @param definition The object type definition node.
@@ -843,56 +848,6 @@ function ensureCompositeKeySnippet(dir: DirectiveNode): string {
 
 function condenseRangeKey(fields: string[]) {
   return fields.join(ModelResourceIDs.ModelCompositeKeySeparator());
-}
-
-function makeQueryResolver(definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) {
-  const type = definition.name.value;
-  const directiveArgs: KeyArguments = getDirectiveArguments(directive);
-  const index = directiveArgs.name;
-  const fieldName = directiveArgs.queryField;
-  const queryTypeName = ctx.getQueryTypeName();
-  const requestVariable = 'QueryRequest';
-  return new AppSync.Resolver({
-    ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-    DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-    FieldName: fieldName,
-    TypeName: queryTypeName,
-    RequestMappingTemplate: print(
-      compoundExpression([
-        setQuerySnippet(definition, directive, ctx, false),
-        set(ref('limit'), ref(`util.defaultIfNull($context.args.limit, ${ResourceConstants.DEFAULT_PAGE_LIMIT})`)),
-        set(
-          ref(requestVariable),
-          obj({
-            version: str(RESOLVER_VERSION_ID),
-            operation: str('Query'),
-            limit: ref('limit'),
-            query: ref(ResourceConstants.SNIPPETS.ModelQueryExpression),
-            index: str(index),
-          }),
-        ),
-        ifElse(
-          raw(`!$util.isNull($ctx.args.sortDirection)
-                    && $ctx.args.sortDirection == "DESC"`),
-          set(ref(`${requestVariable}.scanIndexForward`), bool(false)),
-          set(ref(`${requestVariable}.scanIndexForward`), bool(true)),
-        ),
-        iff(ref('context.args.nextToken'), set(ref(`${requestVariable}.nextToken`), ref('context.args.nextToken')), true),
-        iff(
-          ref('context.args.filter'),
-          set(ref(`${requestVariable}.filter`), ref('util.parseJson("$util.transform.toDynamoDBFilterExpression($ctx.args.filter)")')),
-          true,
-        ),
-        raw(`$util.toJson($${requestVariable})`),
-      ]),
-    ),
-    ResponseMappingTemplate: print(
-      compoundExpression([
-        iff(ref('ctx.error'), raw('$util.error($ctx.error.message, $ctx.error.type)')),
-        raw('$util.toJson($ctx.result)'),
-      ]),
-    ),
-  });
 }
 
 function setQuerySnippet(definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext, isListResolver: boolean) {

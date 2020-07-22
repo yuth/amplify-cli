@@ -1,0 +1,29 @@
+068bc50168bb26a67b5120ff4f8711d0
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.PredictionsResourceIDs = void 0;
+
+let PredictionsResourceIDs = (() => {
+  class PredictionsResourceIDs {
+    static getPredictionFunctionName(action) {
+      return `${action}Function`;
+    }
+
+  }
+
+  PredictionsResourceIDs.actionMapID = 'predictionsActionMap';
+  PredictionsResourceIDs.iamRole = 'predictionsIAMRole';
+  PredictionsResourceIDs.lambdaIAMRole = 'predictionsLambdaIAMRole';
+  PredictionsResourceIDs.lambdaName = 'predictionsLambda';
+  PredictionsResourceIDs.lambdaID = 'predictionsLambdaFunction';
+  PredictionsResourceIDs.lambdaHandlerName = 'predictionsLambda.handler';
+  PredictionsResourceIDs.lambdaRuntime = 'nodejs10.x';
+  PredictionsResourceIDs.lambdaTimeout = 60;
+  return PredictionsResourceIDs;
+})();
+
+exports.PredictionsResourceIDs = PredictionsResourceIDs;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9QcmVkaWN0aW9uc1Jlc291cmNlSURzLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7QUFBQSxJQUFBLHNCQUFBLEdBQUEsQ0FBQSxNQUFBO0FBQUEsUUFBYSxzQkFBYixDQUFtQztBQVVqQyxXQUFPLHlCQUFQLENBQWlDLE1BQWpDLEVBQStDO0FBQzdDLGFBQU8sR0FBRyxNQUFNLFVBQWhCO0FBQ0Q7O0FBWmdDOztBQUMxQixFQUFBLHNCQUFBLENBQUEsV0FBQSxHQUFjLHNCQUFkO0FBQ0EsRUFBQSxzQkFBQSxDQUFBLE9BQUEsR0FBVSxvQkFBVjtBQUNBLEVBQUEsc0JBQUEsQ0FBQSxhQUFBLEdBQWdCLDBCQUFoQjtBQUNBLEVBQUEsc0JBQUEsQ0FBQSxVQUFBLEdBQWEsbUJBQWI7QUFDQSxFQUFBLHNCQUFBLENBQUEsUUFBQSxHQUFXLDJCQUFYO0FBQ0EsRUFBQSxzQkFBQSxDQUFBLGlCQUFBLEdBQW9CLDJCQUFwQjtBQUNBLEVBQUEsc0JBQUEsQ0FBQSxhQUFBLEdBQWdCLFlBQWhCO0FBQ0EsRUFBQSxzQkFBQSxDQUFBLGFBQUEsR0FBZ0IsRUFBaEI7QUFLVCxTQUFBLHNCQUFBO0FBQUMsQ0FiRCxHQUFBOztBQUFhLE9BQUEsQ0FBQSxzQkFBQSxHQUFBLHNCQUFBIiwic291cmNlUm9vdCI6IiJ9

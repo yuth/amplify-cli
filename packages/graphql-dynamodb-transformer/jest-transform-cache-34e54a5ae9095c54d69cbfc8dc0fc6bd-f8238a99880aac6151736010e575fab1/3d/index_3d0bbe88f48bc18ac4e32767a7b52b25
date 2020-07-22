@@ -1,0 +1,185 @@
+4239164d4162563b76d5aaacd87f98e9
+"use strict";
+
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+  if (k2 === undefined) k2 = k;
+  Object.defineProperty(o, k2, {
+    enumerable: true,
+    get: function () {
+      return m[k];
+    }
+  });
+} : function (o, m, k, k2) {
+  if (k2 === undefined) k2 = k;
+  o[k2] = m[k];
+});
+
+var __exportStar = this && this.__exportStar || function (m, exports) {
+  for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.ConflictHandlerType = exports.TRANSFORM_CURRENT_VERSION = exports.TRANSFORM_BASE_VERSION = exports.TRANSFORM_CONFIG_FILE_NAME = exports.revertAPIMigration = exports.writeTransformerConfiguration = exports.readTransformerConfiguration = exports.readProjectConfiguration = exports.readProjectSchema = exports.uploadAPIProject = exports.migrateAPIProject = exports.buildAPIProject = exports.stripDirectives = exports.collectDirectivesByTypeNames = exports.collectDirectiveNames = exports.SubscriptionFieldType = exports.QueryFieldType = exports.MutationFieldType = exports.Transformer = exports.TransformerContext = exports.GraphQLTransform = exports.getAppSyncServiceExtraDirectives = void 0;
+
+require("./polyfills/Object.assign");
+
+const graphql_1 = require("graphql");
+
+const TransformerContext_1 = require("./transformer-context/TransformerContext");
+
+Object.defineProperty(exports, "TransformerContext", {
+  enumerable: true,
+  get: function () {
+    return TransformerContext_1.TransformerContext;
+  }
+});
+
+const Transformer_1 = require("./Transformer");
+
+Object.defineProperty(exports, "Transformer", {
+  enumerable: true,
+  get: function () {
+    return Transformer_1.Transformer;
+  }
+});
+
+const ITransformer_1 = require("./ITransformer");
+
+Object.defineProperty(exports, "MutationFieldType", {
+  enumerable: true,
+  get: function () {
+    return ITransformer_1.MutationFieldType;
+  }
+});
+Object.defineProperty(exports, "QueryFieldType", {
+  enumerable: true,
+  get: function () {
+    return ITransformer_1.QueryFieldType;
+  }
+});
+Object.defineProperty(exports, "SubscriptionFieldType", {
+  enumerable: true,
+  get: function () {
+    return ITransformer_1.SubscriptionFieldType;
+  }
+});
+
+const GraphQLTransform_1 = require("./GraphQLTransform");
+
+Object.defineProperty(exports, "GraphQLTransform", {
+  enumerable: true,
+  get: function () {
+    return GraphQLTransform_1.GraphQLTransform;
+  }
+});
+
+const collectDirectives_1 = require("./collectDirectives");
+
+Object.defineProperty(exports, "collectDirectiveNames", {
+  enumerable: true,
+  get: function () {
+    return collectDirectives_1.collectDirectiveNames;
+  }
+});
+Object.defineProperty(exports, "collectDirectivesByTypeNames", {
+  enumerable: true,
+  get: function () {
+    return collectDirectives_1.collectDirectivesByTypeNames;
+  }
+});
+
+const stripDirectives_1 = require("./stripDirectives");
+
+Object.defineProperty(exports, "stripDirectives", {
+  enumerable: true,
+  get: function () {
+    return stripDirectives_1.stripDirectives;
+  }
+});
+
+const amplifyUtils_1 = require("./util/amplifyUtils");
+
+Object.defineProperty(exports, "buildAPIProject", {
+  enumerable: true,
+  get: function () {
+    return amplifyUtils_1.buildProject;
+  }
+});
+Object.defineProperty(exports, "uploadAPIProject", {
+  enumerable: true,
+  get: function () {
+    return amplifyUtils_1.uploadDeployment;
+  }
+});
+Object.defineProperty(exports, "migrateAPIProject", {
+  enumerable: true,
+  get: function () {
+    return amplifyUtils_1.migrateAPIProject;
+  }
+});
+Object.defineProperty(exports, "revertAPIMigration", {
+  enumerable: true,
+  get: function () {
+    return amplifyUtils_1.revertAPIMigration;
+  }
+});
+
+const transformConfig_1 = require("./util/transformConfig");
+
+Object.defineProperty(exports, "readProjectSchema", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.readSchema;
+  }
+});
+Object.defineProperty(exports, "readProjectConfiguration", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.loadProject;
+  }
+});
+Object.defineProperty(exports, "readTransformerConfiguration", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.loadConfig;
+  }
+});
+Object.defineProperty(exports, "writeTransformerConfiguration", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.writeConfig;
+  }
+});
+Object.defineProperty(exports, "TRANSFORM_CONFIG_FILE_NAME", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.TRANSFORM_CONFIG_FILE_NAME;
+  }
+});
+Object.defineProperty(exports, "TRANSFORM_BASE_VERSION", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.TRANSFORM_BASE_VERSION;
+  }
+});
+Object.defineProperty(exports, "TRANSFORM_CURRENT_VERSION", {
+  enumerable: true,
+  get: function () {
+    return transformConfig_1.TRANSFORM_CURRENT_VERSION;
+  }
+});
+
+const validation_1 = require("./validation");
+
+__exportStar(require("./errors"), exports);
+
+__exportStar(require("./util"), exports);
+
+function getAppSyncServiceExtraDirectives() {
+  return graphql_1.print(validation_1.EXTRA_DIRECTIVES_DOCUMENT);
+}
+
+exports.getAppSyncServiceExtraDirectives = getAppSyncServiceExtraDirectives;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,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

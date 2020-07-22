@@ -1,0 +1,265 @@
+ce1a43e63ad92efc43c5aa5e574fe4a0
+"use strict";
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const cloudform_types_1 = require("cloudform-types");
+
+const getTemplateReferences_1 = require("./getTemplateReferences");
+
+const getIn_1 = __importDefault(require("./getIn"));
+
+const setIn_1 = __importDefault(require("./setIn"));
+
+const blankTemplate_1 = __importDefault(require("./blankTemplate"));
+
+function splitStack(opts) {
+  const stack = opts.stack;
+  const stackRules = opts.stackRules;
+  const rootStackName = opts.rootStackName || 'root';
+  const defaultParameterValues = opts.defaultParameterValues || {};
+  const defaultParameterDefinitions = opts.defaultParameterDefinitions || {};
+  const defaultDependencies = opts.defaultDependencies || [];
+  const importExportPrefix = opts.importExportPrefix;
+
+  function createMapByStackRules(keys) {
+    const stackMap = {};
+
+    for (const key of keys) {
+      const mappedTo = stackRules.get(key);
+
+      if (mappedTo) {
+        stackMap[key] = mappedTo;
+      } else {
+        stackMap[key] = rootStackName;
+      }
+    }
+
+    return stackMap;
+  }
+
+  function mapResourcesToStack(template) {
+    return createMapByStackRules(Object.keys(template.Resources));
+  }
+
+  function mapMappingToStack(template) {
+    return createMapByStackRules(Object.keys(template.Mappings));
+  }
+
+  function mapOutputsToStack(template) {
+    return createMapByStackRules(Object.keys(template.Outputs));
+  }
+
+  function collectTemplates(template, resourceToStackMap, outputToStackMap, mappingsToStackMap) {
+    const resourceIds = Object.keys(resourceToStackMap);
+    const templateMap = {};
+
+    for (const resourceId of resourceIds) {
+      const stackName = resourceToStackMap[resourceId];
+
+      if (!templateMap[stackName]) {
+        templateMap[stackName] = blankTemplate_1.default({
+          Description: 'An auto-generated nested stack.',
+          Parameters: { ...template.Parameters,
+            ...defaultParameterDefinitions
+          },
+          Conditions: template.Conditions
+        });
+      }
+
+      const resource = template.Resources[resourceId];
+      let depends = resource.DependsOn;
+
+      if (depends && Array.isArray(depends)) {
+        resource.DependsOn = depends.filter(id => {
+          return resourceToStackMap[id] === stackName;
+        });
+      } else if (depends && typeof depends === 'string') {
+        resource.DependsOn = resourceToStackMap[depends] === stackName ? depends : undefined;
+      }
+
+      templateMap[stackName].Resources[resourceId] = resource;
+    }
+
+    const outputIds = Object.keys(outputToStackMap);
+
+    for (const outputId of outputIds) {
+      const stackName = outputToStackMap[outputId];
+      const output = template.Outputs[outputId];
+      templateMap[stackName].Outputs[outputId] = output;
+    }
+
+    const mappingIds = Object.keys(mappingToStackMap);
+
+    for (const mappingId of mappingIds) {
+      const stackName = mappingsToStackMap[mappingId];
+      const mappings = template.Mappings[mappingId];
+      templateMap[stackName].Mappings[mappingId] = mappings;
+    }
+
+    templateMap[rootStackName].Parameters = template.Parameters;
+    templateMap[rootStackName].Conditions = template.Conditions;
+    return templateMap;
+  }
+
+  function replaceReferences(stacks, resourceToStackMap) {
+    const stackDependsOnMap = Object.keys(stacks).reduce((acc, k) => ({ ...acc,
+      [k]: []
+    }), {});
+    const stackParamsMap = Object.keys(stacks).reduce((acc, k) => ({ ...acc,
+      [k]: {}
+    }), {});
+
+    for (const thisStackName of Object.keys(stacks)) {
+      const template = stacks[thisStackName];
+      const resourceToReferenceMap = getTemplateReferences_1.getTemplateReferences(template);
+
+      for (const resourceId of Object.keys(resourceToReferenceMap)) {
+        const references = resourceToReferenceMap[resourceId];
+        const referencedStackName = resourceToStackMap[resourceId];
+
+        for (const refList of references) {
+          const refNode = getIn_1.default(template, refList);
+          const refNeedsReplacing = refNode && refNode.Ref && referencedStackName && referencedStackName !== thisStackName;
+          const getAttNeedsReplacing = refNode && refNode['Fn::GetAtt'] && referencedStackName && referencedStackName !== thisStackName;
+          const isChildReferencingRoot = thisStackName !== rootStackName && referencedStackName === rootStackName;
+
+          if (refNeedsReplacing && isChildReferencingRoot) {
+            const parameterName = `Ref${resourceId}`;
+            stackParamsMap[thisStackName][parameterName] = refNode;
+            template.Parameters[parameterName] = new cloudform_types_1.StringParameter({
+              Description: `Auto-generated parameter that forwards Fn.Ref(${resourceId}) through to nested stacks.`
+            });
+            setIn_1.default(template, refList, cloudform_types_1.Fn.Ref(parameterName));
+          } else if (refNeedsReplacing) {
+            setIn_1.default(template, refList, makeImportValueForRef(resourceId));
+            const outputForInput = makeOutputForRef(resourceId);
+            const referencedStack = stacks[referencedStackName];
+            const exportLogicalId = `Ref${resourceId}`;
+
+            if (referencedStack && referencedStack.Outputs && !referencedStack.Outputs[exportLogicalId]) {
+              if (template.Outputs[exportLogicalId]) {
+                delete template.Outputs[exportLogicalId];
+              }
+
+              referencedStack.Outputs[exportLogicalId] = outputForInput;
+            }
+
+            if (stackDependsOnMap[thisStackName] && !stackDependsOnMap[thisStackName].find(s => s === referencedStackName)) {
+              stackDependsOnMap[thisStackName].push(referencedStackName);
+            }
+          } else if (getAttNeedsReplacing && isChildReferencingRoot) {
+            const [resId, attr] = refNode['Fn::GetAtt'];
+            const parameterName = `GetAtt${resourceId}${attr}`;
+            stackParamsMap[thisStackName][parameterName] = refNode;
+            template.Parameters[parameterName] = new cloudform_types_1.StringParameter({
+              Description: `Auto-generated parameter that forwards Fn.GetAtt(${resourceId}, ${attr}) through to nested stacks.`
+            });
+            setIn_1.default(template, refList, cloudform_types_1.Fn.Ref(parameterName));
+          } else if (getAttNeedsReplacing) {
+            const [resId, attr] = refNode['Fn::GetAtt'];
+            setIn_1.default(template, refList, makeImportValueForGetAtt(resourceId, attr));
+            const outputForInput = makeOutputForGetAtt(resourceId, attr);
+            const referencedStack = stacks[referencedStackName];
+            const exportLogicalId = `GetAtt${resourceId}${attr}`;
+
+            if (referencedStack && referencedStack.Outputs && !referencedStack.Outputs[exportLogicalId]) {
+              if (template.Outputs[exportLogicalId]) {
+                delete template.Outputs[exportLogicalId];
+              }
+
+              referencedStack.Outputs[exportLogicalId] = outputForInput;
+            }
+
+            if (stackDependsOnMap[thisStackName] && !stackDependsOnMap[thisStackName].find(s => s === referencedStackName)) {
+              stackDependsOnMap[thisStackName].push(referencedStackName);
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      stackDependencyMap: stackDependsOnMap,
+      stackParameterMap: stackParamsMap
+    };
+  }
+
+  function makeImportValueForRef(resourceId) {
+    return cloudform_types_1.Fn.ImportValue(cloudform_types_1.Fn.Join(':', [importExportPrefix, 'Ref', resourceId]));
+  }
+
+  function makeImportValueForGetAtt(resourceId, attribute) {
+    return cloudform_types_1.Fn.ImportValue(cloudform_types_1.Fn.Join(':', [importExportPrefix, 'GetAtt', resourceId, attribute]));
+  }
+
+  function makeOutputForGetAtt(resourceId, attribute) {
+    return {
+      Value: cloudform_types_1.Fn.GetAtt(resourceId, attribute),
+      Export: {
+        Name: cloudform_types_1.Fn.Join(':', [importExportPrefix, 'GetAtt', resourceId, attribute])
+      }
+    };
+  }
+
+  function makeOutputForRef(resourceId) {
+    return {
+      Value: cloudform_types_1.Fn.Ref(resourceId),
+      Export: {
+        Name: cloudform_types_1.Fn.Join(':', [importExportPrefix, 'Ref', resourceId])
+      }
+    };
+  }
+
+  function updateRootWithNestedStacks(root, stacks, stackInfo) {
+    const stackFileNames = Object.keys(stacks);
+    const allParamNames = Object.keys(root.Parameters);
+    const allParamValues = allParamNames.reduce((acc, name) => ({ ...acc,
+      [name]: cloudform_types_1.Fn.Ref(name)
+    }), defaultParameterValues);
+
+    for (const stackName of stackFileNames) {
+      const dependsOnStacks = stackInfo.stackDependencyMap[stackName] || [];
+      const extraParams = stackInfo.stackParameterMap[stackName] || {};
+      let stackResource = new cloudform_types_1.CloudFormation.Stack({
+        Parameters: { ...allParamValues,
+          ...extraParams
+        },
+        TemplateURL: cloudform_types_1.Fn.Join('/', ['https://s3.amazonaws.com', cloudform_types_1.Fn.Ref(opts.deployment.deploymentBucketParameterName), cloudform_types_1.Fn.Ref(opts.deployment.deploymentKeyParameterName), 'stacks', stackName + '.json'])
+      }).dependsOn([...defaultDependencies, ...dependsOnStacks]);
+      root.Resources[stackName] = stackResource;
+    }
+
+    return root;
+  }
+
+  const templateJson = JSON.parse(JSON.stringify(stack));
+  const resourceToStackMap = mapResourcesToStack(templateJson);
+  const outputToStackMap = mapOutputsToStack(templateJson);
+  const mappingToStackMap = mapMappingToStack(templateJson);
+  const stackMapping = { ...resourceToStackMap,
+    ...outputToStackMap,
+    ...mappingToStackMap
+  };
+  const stacks = collectTemplates(templateJson, resourceToStackMap, outputToStackMap, stackMapping);
+  const stackInfo = replaceReferences(stacks, resourceToStackMap);
+  let rootStack = stacks[rootStackName];
+  delete stacks[rootStackName];
+  rootStack = updateRootWithNestedStacks(rootStack, stacks, stackInfo);
+  return {
+    rootStack,
+    stacks,
+    stackMapping
+  };
+}
+
+exports.default = splitStack;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy91dGlsL3NwbGl0U3RhY2sudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7O0FBQ0EsTUFBQSxpQkFBQSxHQUFBLE9BQUEsQ0FBQSxpQkFBQSxDQUFBOztBQUNBLE1BQUEsdUJBQUEsR0FBQSxPQUFBLENBQUEseUJBQUEsQ0FBQTs7QUFDQSxNQUFBLE9BQUEsR0FBQSxlQUFBLENBQUEsT0FBQSxDQUFBLFNBQUEsQ0FBQSxDQUFBOztBQUNBLE1BQUEsT0FBQSxHQUFBLGVBQUEsQ0FBQSxPQUFBLENBQUEsU0FBQSxDQUFBLENBQUE7O0FBQ0EsTUFBQSxlQUFBLEdBQUEsZUFBQSxDQUFBLE9BQUEsQ0FBQSxpQkFBQSxDQUFBLENBQUE7O0FBbUNBLFNBQXdCLFVBQXhCLENBQW1DLElBQW5DLEVBQTBEO0FBQ3hELFFBQU0sS0FBSyxHQUFHLElBQUksQ0FBQyxLQUFuQjtBQUNBLFFBQU0sVUFBVSxHQUFHLElBQUksQ0FBQyxVQUF4QjtBQUNBLFFBQU0sYUFBYSxHQUFHLElBQUksQ0FBQyxhQUFMLElBQXNCLE1BQTVDO0FBQ0EsUUFBTSxzQkFBc0IsR0FBRyxJQUFJLENBQUMsc0JBQUwsSUFBK0IsRUFBOUQ7QUFDQSxRQUFNLDJCQUEyQixHQUFHLElBQUksQ0FBQywyQkFBTCxJQUFvQyxFQUF4RTtBQUNBLFFBQU0sbUJBQW1CLEdBQUcsSUFBSSxDQUFDLG1CQUFMLElBQTRCLEVBQXhEO0FBQ0EsUUFBTSxrQkFBa0IsR0FBRyxJQUFJLENBQUMsa0JBQWhDOztBQU9BLFdBQVMscUJBQVQsQ0FBK0IsSUFBL0IsRUFBNkM7QUFDM0MsVUFBTSxRQUFRLEdBQUcsRUFBakI7O0FBQ0EsU0FBSyxNQUFNLEdBQVgsSUFBa0IsSUFBbEIsRUFBd0I7QUFDdEIsWUFBTSxRQUFRLEdBQUcsVUFBVSxDQUFDLEdBQVgsQ0FBZSxHQUFmLENBQWpCOztBQUNBLFVBQUksUUFBSixFQUFjO0FBQ1osUUFBQSxRQUFRLENBQUMsR0FBRCxDQUFSLEdBQWdC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

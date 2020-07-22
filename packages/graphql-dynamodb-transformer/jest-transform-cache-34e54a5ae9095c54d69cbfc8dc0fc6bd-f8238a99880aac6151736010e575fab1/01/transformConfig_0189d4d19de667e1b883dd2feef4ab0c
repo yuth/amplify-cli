@@ -1,0 +1,230 @@
+11537001056b9f12992a95a896b3725c
+"use strict";
+
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+  if (k2 === undefined) k2 = k;
+  Object.defineProperty(o, k2, {
+    enumerable: true,
+    get: function () {
+      return m[k];
+    }
+  });
+} : function (o, m, k, k2) {
+  if (k2 === undefined) k2 = k;
+  o[k2] = m[k];
+});
+
+var __setModuleDefault = this && this.__setModuleDefault || (Object.create ? function (o, v) {
+  Object.defineProperty(o, "default", {
+    enumerable: true,
+    value: v
+  });
+} : function (o, v) {
+  o["default"] = v;
+});
+
+var __importStar = this && this.__importStar || function (mod) {
+  if (mod && mod.__esModule) return mod;
+  var result = {};
+  if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+
+  __setModuleDefault(result, mod);
+
+  return result;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.readSchema = exports.loadProject = exports.writeConfig = exports.loadConfig = exports.ConflictHandlerType = exports.TRANSFORM_CURRENT_VERSION = exports.TRANSFORM_BASE_VERSION = exports.TRANSFORM_CONFIG_FILE_NAME = void 0;
+
+const path = __importStar(require("path"));
+
+const fileUtils_1 = require("./fileUtils");
+
+const fs = require('fs-extra');
+
+exports.TRANSFORM_CONFIG_FILE_NAME = `transform.conf.json`;
+exports.TRANSFORM_BASE_VERSION = 4;
+exports.TRANSFORM_CURRENT_VERSION = 5;
+var ConflictHandlerType;
+
+(function (ConflictHandlerType) {
+  ConflictHandlerType["OPTIMISTIC"] = "OPTIMISTIC_CONCURRENCY";
+  ConflictHandlerType["AUTOMERGE"] = "AUTOMERGE";
+  ConflictHandlerType["LAMBDA"] = "LAMBDA";
+})(ConflictHandlerType = exports.ConflictHandlerType || (exports.ConflictHandlerType = {}));
+
+async function loadConfig(projectDir) {
+  let config = {
+    Version: exports.TRANSFORM_CURRENT_VERSION
+  };
+
+  try {
+    const configPath = path.join(projectDir, exports.TRANSFORM_CONFIG_FILE_NAME);
+    const configExists = await fs.exists(configPath);
+
+    if (configExists) {
+      const configStr = await fs.readFile(configPath);
+      config = JSON.parse(configStr.toString());
+    }
+
+    return config;
+  } catch (err) {
+    return config;
+  }
+}
+
+exports.loadConfig = loadConfig;
+
+async function writeConfig(projectDir, config) {
+  const configFilePath = path.join(projectDir, exports.TRANSFORM_CONFIG_FILE_NAME);
+  await fs.writeFile(configFilePath, JSON.stringify(config, null, 4));
+  return config;
+}
+
+exports.writeConfig = writeConfig;
+
+async function loadProject(projectDirectory, opts) {
+  const schema = await readSchema(projectDirectory);
+  const functions = {};
+
+  if (!(opts && opts.disableFunctionOverrides === true)) {
+    const functionDirectory = path.join(projectDirectory, 'functions');
+    const functionDirectoryExists = await fs.exists(functionDirectory);
+
+    if (functionDirectoryExists) {
+      const functionFiles = await fs.readdir(functionDirectory);
+
+      for (const functionFile of functionFiles) {
+        if (functionFile.indexOf('.') === 0) {
+          continue;
+        }
+
+        const functionFilePath = path.join(functionDirectory, functionFile);
+        functions[functionFile] = functionFilePath;
+      }
+    }
+  }
+
+  const pipelineFunctions = {};
+
+  if (!(opts && opts.disablePipelineFunctionOverrides === true)) {
+    const pipelineFunctionDirectory = path.join(projectDirectory, 'pipelineFunctions');
+    const pipelineFunctionDirectoryExists = await fs.exists(pipelineFunctionDirectory);
+
+    if (pipelineFunctionDirectoryExists) {
+      const pipelineFunctionFiles = await fs.readdir(pipelineFunctionDirectory);
+
+      for (const pipelineFunctionFile of pipelineFunctionFiles) {
+        if (pipelineFunctionFile.indexOf('.') === 0) {
+          continue;
+        }
+
+        const pipelineFunctionPath = path.join(pipelineFunctionDirectory, pipelineFunctionFile);
+        pipelineFunctions[pipelineFunctionFile] = await fs.readFile(pipelineFunctionPath);
+      }
+    }
+  }
+
+  const resolvers = {};
+
+  if (!(opts && opts.disableResolverOverrides === true)) {
+    const resolverDirectory = path.join(projectDirectory, 'resolvers');
+    const resolverDirExists = await fs.exists(resolverDirectory);
+
+    if (resolverDirExists) {
+      const resolverFiles = await fs.readdir(resolverDirectory);
+
+      for (const resolverFile of resolverFiles) {
+        if (resolverFile.indexOf('.') === 0) {
+          continue;
+        }
+
+        const resolverFilePath = path.join(resolverDirectory, resolverFile);
+        resolvers[resolverFile] = await fs.readFile(resolverFilePath);
+      }
+    }
+  }
+
+  const stacksDirectory = path.join(projectDirectory, 'stacks');
+  const stacksDirExists = await fs.exists(stacksDirectory);
+  const stacks = {};
+
+  if (stacksDirExists) {
+    const stackFiles = await fs.readdir(stacksDirectory);
+
+    for (const stackFile of stackFiles) {
+      if (stackFile.indexOf('.') === 0) {
+        continue;
+      }
+
+      const stackFilePath = path.join(stacksDirectory, stackFile);
+      fileUtils_1.throwIfNotJSONExt(stackFile);
+      const stackBuffer = await fs.readFile(stackFilePath);
+
+      try {
+        stacks[stackFile] = JSON.parse(stackBuffer.toString());
+      } catch (e) {
+        throw new Error(`The CloudFormation template ${stackFiles} does not contain valid JSON.`);
+      }
+    }
+  }
+
+  const config = await loadConfig(projectDirectory);
+  return {
+    functions,
+    pipelineFunctions,
+    stacks,
+    resolvers,
+    schema,
+    config
+  };
+}
+
+exports.loadProject = loadProject;
+
+async function readSchema(projectDirectory) {
+  const schemaFilePath = path.join(projectDirectory, 'schema.graphql');
+  const schemaDirectoryPath = path.join(projectDirectory, 'schema');
+  const schemaFileExists = await fs.exists(schemaFilePath);
+  const schemaDirectoryExists = await fs.exists(schemaDirectoryPath);
+  let schema;
+
+  if (schemaFileExists) {
+    schema = (await fs.readFile(schemaFilePath)).toString();
+  } else if (schemaDirectoryExists) {
+    schema = (await readSchemaDocuments(schemaDirectoryPath)).join('\n');
+  } else {
+    throw new Error(`Could not find a schema at ${schemaFilePath}`);
+  }
+
+  return schema;
+}
+
+exports.readSchema = readSchema;
+
+async function readSchemaDocuments(schemaDirectoryPath) {
+  const files = await fs.readdir(schemaDirectoryPath);
+  let schemaDocuments = [];
+
+  for (const fileName of files) {
+    if (fileName.indexOf('.') === 0) {
+      continue;
+    }
+
+    const fullPath = `${schemaDirectoryPath}/${fileName}`;
+    const stats = await fs.lstat(fullPath);
+
+    if (stats.isDirectory()) {
+      const childDocs = await readSchemaDocuments(fullPath);
+      schemaDocuments = schemaDocuments.concat(childDocs);
+    } else if (stats.isFile()) {
+      const schemaDoc = await fs.readFile(fullPath);
+      schemaDocuments.push(schemaDoc);
+    }
+  }
+
+  return schemaDocuments;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy91dGlsL3RyYW5zZm9ybUNvbmZpZy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFBQSxNQUFBLElBQUEsR0FBQSxZQUFBLENBQUEsT0FBQSxDQUFBLE1BQUEsQ0FBQSxDQUFBOztBQUVBLE1BQUEsV0FBQSxHQUFBLE9BQUEsQ0FBQSxhQUFBLENBQUE7O0FBRUEsTUFBTSxFQUFFLEdBQUcsT0FBTyxDQUFDLFVBQUQsQ0FBbEI7O0FBRWEsT0FBQSxDQUFBLDBCQUFBLEdBQTZCLHFCQUE3QjtBQUNBLE9BQUEsQ0FBQSxzQkFBQSxHQUF5QixDQUF6QjtBQUNBLE9BQUEsQ0FBQSx5QkFBQSxHQUE0QixDQUE1QjtBQVNiLElBQWtCLG1CQUFsQjs7QUFBQSxDQUFBLFVBQWtCLG1CQUFsQixFQUFxQztBQUNuQyxFQUFBLG1CQUFBLENBQUEsWUFBQSxDQUFBLEdBQUEsd0JBQUE7QUFDQSxFQUFBLG1CQUFBLENBQUEsV0FBQSxDQUFBLEdBQUEsV0FBQTtBQUNBLEVBQUEsbUJBQUEsQ0FBQSxRQUFBLENBQUEsR0FBQSxRQUFBO0FBQ0QsQ0FKRCxFQUFrQixtQkFBbUIsR0FBbkIsT0FBQSxDQUFBLG1CQUFBLEtBQUEsT0FBQSxDQUFBLG1CQUFBLEdBQW1CLEVBQW5CLENBQWxCOztBQTBGTyxlQUFlLFVBQWYsQ0FBMEIsVUFBMUIsRUFBNEM7QUFFakQsTUFBSSxNQUFNLEdBQUc7QUFDWCxJQUFBLE9BQU8sRUFBRSxPQUFBLENBQUE7QUFERSxHQUFiOztBQUdBLE1BQUk7QUFDRixVQUFNLFVBQVUsR0FBRyxJQUFJLENBQUMsSUFBTCxDQUFVLFVBQVYsRUFBc0IsT0FBQSxDQUFBLDBCQUF0QixDQUFuQjtBQUNBLFVBQU0sWUFBWSxHQUFHLE1BQU0sRUFBRSxDQUFDLE1BQUgsQ0FBVSxVQUFWLENBQTNCOztBQUNBLFFBQUksWUFBSixFQUFrQjtBQUNoQixZQUFNLFNBQVMsR0FBRyxN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

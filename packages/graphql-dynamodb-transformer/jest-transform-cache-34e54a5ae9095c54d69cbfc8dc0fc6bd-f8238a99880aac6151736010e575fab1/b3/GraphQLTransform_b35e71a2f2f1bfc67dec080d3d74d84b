@@ -1,0 +1,616 @@
+6bb99917fffe93829b41351dadd8e8df
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.GraphQLTransform = void 0;
+
+const graphql_1 = require("graphql");
+
+const errors_1 = require("./errors");
+
+const TransformerContext_1 = require("./transformer-context/TransformerContext");
+
+const validation_1 = require("./validation");
+
+const TransformFormatter_1 = require("./TransformFormatter");
+
+const util_1 = require("./util");
+
+const graphql_transformer_common_1 = require("graphql-transformer-common");
+
+function isFunction(obj) {
+  return obj && typeof obj === 'function';
+}
+
+function makeSeenTransformationKey(directive, type, field, arg, index) {
+  let key = '';
+
+  if (directive && type && field && arg) {
+    key = `${type.name.value}.${field.name.value}.${arg.name.value}@${directive.name.value}`;
+  }
+
+  if (directive && type && field) {
+    key = `${type.name.value}.${field.name.value}@${directive.name.value}`;
+  } else {
+    key = `${type.name.value}@${directive.name.value}`;
+  }
+
+  if (index !== undefined) {
+    key += `[${index}]`;
+  }
+
+  return key;
+}
+
+function matchDirective(definition, directive, node) {
+  if (!directive) {
+    return false;
+  }
+
+  if (definition.name.value !== directive.name.value) {
+    return false;
+  }
+
+  let isValidLocation = false;
+
+  for (const location of definition.locations) {
+    switch (location.value) {
+      case `SCHEMA`:
+        isValidLocation = node.kind === graphql_1.Kind.SCHEMA_DEFINITION || isValidLocation;
+        break;
+
+      case `SCALAR`:
+        isValidLocation = node.kind === graphql_1.Kind.SCALAR_TYPE_DEFINITION || isValidLocation;
+        break;
+
+      case `OBJECT`:
+        isValidLocation = node.kind === graphql_1.Kind.OBJECT_TYPE_DEFINITION || isValidLocation;
+        break;
+
+      case `FIELD_DEFINITION`:
+        isValidLocation = node.kind === graphql_1.Kind.FIELD_DEFINITION || isValidLocation;
+        break;
+
+      case `ARGUMENT_DEFINITION`:
+        isValidLocation = node.kind === graphql_1.Kind.INPUT_VALUE_DEFINITION || isValidLocation;
+        break;
+
+      case `INTERFACE`:
+        isValidLocation = node.kind === graphql_1.Kind.INTERFACE_TYPE_DEFINITION || isValidLocation;
+        break;
+
+      case `UNION`:
+        isValidLocation = node.kind === graphql_1.Kind.UNION_TYPE_DEFINITION || isValidLocation;
+        break;
+
+      case `ENUM`:
+        isValidLocation = node.kind === graphql_1.Kind.ENUM_TYPE_DEFINITION || isValidLocation;
+        break;
+
+      case `ENUM_VALUE`:
+        isValidLocation = node.kind === graphql_1.Kind.ENUM_VALUE_DEFINITION || isValidLocation;
+        break;
+
+      case `INPUT_OBJECT`:
+        isValidLocation = node.kind === graphql_1.Kind.INPUT_OBJECT_TYPE_DEFINITION || isValidLocation;
+        break;
+
+      case `INPUT_FIELD_DEFINITION`:
+        isValidLocation = node.kind === graphql_1.Kind.INPUT_VALUE_DEFINITION || isValidLocation;
+        break;
+    }
+  }
+
+  return isValidLocation;
+}
+
+function matchFieldDirective(definition, directive, node) {
+  if (definition.name.value !== directive.name.value) {
+    return false;
+  }
+
+  let isValidLocation = false;
+
+  for (const location of definition.locations) {
+    switch (location.value) {
+      case `FIELD_DEFINITION`:
+        isValidLocation = node.kind === graphql_1.Kind.FIELD_DEFINITION || isValidLocation;
+        break;
+    }
+  }
+
+  return isValidLocation;
+}
+
+function matchInputFieldDirective(definition, directive, node) {
+  if (definition.name.value !== directive.name.value) {
+    return false;
+  }
+
+  let isValidLocation = false;
+
+  for (const location of definition.locations) {
+    switch (location.value) {
+      case `INPUT_FIELD_DEFINITION`:
+        isValidLocation = node.kind === graphql_1.Kind.INPUT_VALUE_DEFINITION || isValidLocation;
+        break;
+    }
+  }
+
+  return isValidLocation;
+}
+
+function matchArgumentDirective(definition, directive, node) {
+  if (definition.name.value !== directive.name.value) {
+    return false;
+  }
+
+  let isValidLocation = false;
+
+  for (const location of definition.locations) {
+    switch (location.value) {
+      case `ARGUMENT_DEFINITION`:
+        isValidLocation = node.kind === graphql_1.Kind.INPUT_VALUE_DEFINITION || isValidLocation;
+        break;
+    }
+  }
+
+  return isValidLocation;
+}
+
+function matchEnumValueDirective(definition, directive, node) {
+  if (definition.name.value !== directive.name.value) {
+    return false;
+  }
+
+  let isValidLocation = false;
+
+  for (const location of definition.locations) {
+    switch (location.value) {
+      case `ENUM_VALUE`:
+        isValidLocation = node.kind === graphql_1.Kind.ENUM_VALUE_DEFINITION || isValidLocation;
+        break;
+    }
+  }
+
+  return isValidLocation;
+}
+
+class GraphQLTransform {
+  constructor(options) {
+    this.seenTransformations = {};
+
+    if (!options.transformers || options.transformers.length === 0) {
+      throw new Error('Must provide at least one transformer.');
+    }
+
+    this.transformers = options.transformers;
+    this.stackMappingOverrides = options.stackMapping || {};
+    this.transformConfig = options.transformConfig || {};
+  }
+
+  transform(schema) {
+    this.seenTransformations = {};
+    const context = new TransformerContext_1.TransformerContext(schema, this.transformers);
+    const validDirectiveNameMap = this.transformers.reduce((acc, t) => ({ ...acc,
+      [t.directive.name.value]: true
+    }), {
+      aws_subscribe: true,
+      aws_auth: true,
+      aws_api_key: true,
+      aws_iam: true,
+      aws_oidc: true,
+      aws_cognito_user_pools: true,
+      deprecated: true
+    });
+    let allModelDefinitions = [...context.inputDocument.definitions];
+
+    for (const transformer of this.transformers) {
+      allModelDefinitions = allModelDefinitions.concat(...transformer.typeDefinitions, transformer.directive);
+    }
+
+    const errors = validation_1.validateModelSchema({
+      kind: graphql_1.Kind.DOCUMENT,
+      definitions: allModelDefinitions
+    });
+
+    if (errors && errors.length) {
+      throw new errors_1.SchemaValidationError(errors);
+    }
+
+    if (this.transformConfig.ResolverConfig) {
+      this.createResourcesForSyncEnabledProject(context);
+      context.setResolverConfig(this.transformConfig.ResolverConfig);
+    }
+
+    context.setTransformerVersion(this.transformConfig.Version);
+
+    for (const transformer of this.transformers) {
+      if (isFunction(transformer.before)) {
+        transformer.before(context);
+      }
+    }
+
+    for (const transformer of this.transformers) {
+      for (const def of context.inputDocument.definitions) {
+        switch (def.kind) {
+          case 'ObjectTypeDefinition':
+            this.transformObject(transformer, def, validDirectiveNameMap, context);
+            break;
+
+          case 'InterfaceTypeDefinition':
+            this.transformInterface(transformer, def, validDirectiveNameMap, context);
+            break;
+
+          case 'ScalarTypeDefinition':
+            this.transformScalar(transformer, def, validDirectiveNameMap, context);
+            break;
+
+          case 'UnionTypeDefinition':
+            this.transformUnion(transformer, def, validDirectiveNameMap, context);
+            break;
+
+          case 'EnumTypeDefinition':
+            this.transformEnum(transformer, def, validDirectiveNameMap, context);
+            break;
+
+          case 'InputObjectTypeDefinition':
+            this.transformInputObject(transformer, def, validDirectiveNameMap, context);
+            break;
+
+          default:
+            continue;
+        }
+      }
+    }
+
+    for (const transformer of this.transformers) {
+      if (isFunction(transformer.validate)) {
+        transformer.validate(context);
+      }
+    }
+
+    for (const transformer of this.transformers) {
+      if (isFunction(transformer.prepare)) {
+        transformer.prepare(context);
+      }
+    }
+
+    for (const transformer of this.transformers) {
+      if (isFunction(transformer.prepare)) {
+        transformer.prepare(context);
+      }
+    }
+
+    for (const transformer of this.transformers) {
+      if (isFunction(transformer.transformSchema)) {
+        transformer.transformSchema(context);
+      }
+    }
+
+    for (const transformer of this.transformers) {
+      if (isFunction(transformer.generateResolvers)) {
+        transformer.generateResolvers(context);
+      }
+    }
+
+    let reverseThroughTransformers = this.transformers.length - 1;
+
+    while (reverseThroughTransformers >= 0) {
+      const transformer = this.transformers[reverseThroughTransformers];
+
+      if (isFunction(transformer.after)) {
+        transformer.after(context);
+      }
+
+      reverseThroughTransformers -= 1;
+    }
+
+    this.collectResolvers(context);
+    this.updateContextForStackMappingOverrides(context);
+    const formatter = new TransformFormatter_1.TransformFormatter();
+    return formatter.format(context);
+  }
+
+  collectResolvers(context) {
+    const resolverEntries = context.resolvers.collectResolvers();
+
+    for (let [name, resolver] of resolverEntries) {
+      const resources = resolver.generateResources(context);
+      resources.forEach(resource => {
+        const resourceName = resource.Type === 'AWS::AppSync::Resolver' ? resolver.getResourceId() : resource.Properties.Name;
+        context.setResource(resourceName, resource);
+        context.mapResourceToStack(resolver.getStackName(), resourceName);
+      });
+    }
+  }
+
+  updateContextForStackMappingOverrides(context) {
+    for (const resourceId of Object.keys(this.stackMappingOverrides)) {
+      context.mapResourceToStack(this.stackMappingOverrides[resourceId], resourceId);
+    }
+  }
+
+  createResourcesForSyncEnabledProject(context) {
+    const syncResources = {
+      [graphql_transformer_common_1.SyncResourceIDs.syncDataSourceID]: util_1.SyncUtils.createSyncTable()
+    };
+    context.mergeResources(syncResources);
+  }
+
+  transformObject(transformer, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.object)) {
+          const transformKey = makeSeenTransformationKey(dir, def, undefined, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.object(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'object()' method`);
+        }
+      }
+
+      index++;
+    }
+
+    for (const field of def.fields) {
+      this.transformField(transformer, def, field, validDirectiveNameMap, context);
+    }
+  }
+
+  transformField(transformer, parent, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchFieldDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.field)) {
+          const transformKey = makeSeenTransformationKey(dir, parent, def, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.field(parent, def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'field()' method`);
+        }
+      }
+
+      index++;
+    }
+
+    for (const arg of def.arguments) {
+      this.transformArgument(transformer, parent, def, arg, validDirectiveNameMap, context);
+    }
+  }
+
+  transformArgument(transformer, parent, field, arg, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of arg.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchArgumentDirective(transformer.directive, dir, arg)) {
+        if (isFunction(transformer.argument)) {
+          const transformKey = makeSeenTransformationKey(dir, parent, field, arg, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.argument(arg, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'argument()' method`);
+        }
+      }
+
+      index++;
+    }
+  }
+
+  transformInterface(transformer, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.interface)) {
+          const transformKey = makeSeenTransformationKey(dir, def, undefined, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.interface(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'interface()' method`);
+        }
+      }
+
+      index++;
+    }
+
+    for (const field of def.fields) {
+      this.transformField(transformer, def, field, validDirectiveNameMap, context);
+    }
+  }
+
+  transformScalar(transformer, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.scalar)) {
+          const transformKey = makeSeenTransformationKey(dir, def, undefined, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.scalar(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'scalar()' method`);
+        }
+      }
+
+      index++;
+    }
+  }
+
+  transformUnion(transformer, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.union)) {
+          const transformKey = makeSeenTransformationKey(dir, def, undefined, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.union(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'union()' method`);
+        }
+      }
+
+      index++;
+    }
+  }
+
+  transformEnum(transformer, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.enum)) {
+          const transformKey = makeSeenTransformationKey(dir, def, undefined, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.enum(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'enum()' method`);
+        }
+      }
+
+      index++;
+    }
+
+    for (const value of def.values) {
+      this.transformEnumValue(transformer, def, value, validDirectiveNameMap, context);
+    }
+  }
+
+  transformEnumValue(transformer, enm, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchEnumValueDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.enumValue)) {
+          const transformKey = makeSeenTransformationKey(dir, enm, def, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.enumValue(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'enumValue()' method`);
+        }
+      }
+
+      index++;
+    }
+  }
+
+  transformInputObject(transformer, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.input)) {
+          const transformKey = makeSeenTransformationKey(dir, def, undefined, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.input(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'input()' method`);
+        }
+      }
+
+      index++;
+    }
+
+    for (const field of def.fields) {
+      this.transformInputField(transformer, def, field, validDirectiveNameMap, context);
+    }
+  }
+
+  transformInputField(transformer, input, def, validDirectiveNameMap, context) {
+    let index = 0;
+
+    for (const dir of def.directives) {
+      if (!validDirectiveNameMap[dir.name.value]) {
+        throw new errors_1.UnknownDirectiveError(`Unknown directive '${dir.name.value}'. Either remove the directive from the schema or add a transformer to handle it.`);
+      }
+
+      if (matchInputFieldDirective(transformer.directive, dir, def)) {
+        if (isFunction(transformer.inputValue)) {
+          const transformKey = makeSeenTransformationKey(dir, input, def, undefined, index);
+
+          if (!this.seenTransformations[transformKey]) {
+            transformer.inputValue(def, dir, context);
+            this.seenTransformations[transformKey] = true;
+          }
+        } else {
+          throw new errors_1.InvalidTransformerError(`The transformer '${transformer.name}' must implement the 'inputValue()' method`);
+        }
+      }
+
+      index++;
+    }
+  }
+
+}
+
+exports.GraphQLTransform = GraphQLTransform;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9HcmFwaFFMVHJhbnNmb3JtLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7QUFBQSxNQUFBLFNBQUEsR0FBQSxPQUFBLENBQUEsU0FBQSxDQUFBOztBQWtCQSxNQUFBLFFBQUEsR0FBQSxPQUFBLENBQUEsVUFBQSxDQUFBOztBQUNBLE1BQUEsb0JBQUEsR0FBQSxPQUFBLENBQUEsMENBQUEsQ0FBQTs7QUFHQSxNQUFBLFlBQUEsR0FBQSxPQUFBLENBQUEsY0FBQSxDQUFBOztBQUNBLE1BQUEsb0JBQUEsR0FBQSxPQUFBLENBQUEsc0JBQUEsQ0FBQTs7QUFDQSxNQUFBLE1BQUEsR0FBQSxPQUFBLENBQUEsUUFBQSxDQUFBOztBQUNBLE1BQUEsNEJBQUEsR0FBQSxPQUFBLENBQUEsNEJBQUEsQ0FBQTs7QUFFQSxTQUFTLFVBQVQsQ0FBb0IsR0FBcEIsRUFBNEI7QUFDMUIsU0FBTyxHQUFHLElBQUksT0FBTyxHQUFQLEtBQWUsVUFBN0I7QUFDRDs7QUFFRCxTQUFTLHlCQUFULENBQ0UsU0FERixFQUVFLElBRkYsRUFHRSxLQUhGLEVBSUUsR0FKRixFQUtFLEtBTEYsRUFLZ0I7QUFFZCxNQUFJLEdBQUcsR0FBRyxFQUFWOztBQUNBLE1BQUksU0FBUyxJQUFJLElBQWIsSUFBcUIsS0FBckIsSUFBOEIsR0FBbEMsRUFBdUM7QUFDckMsSUFBQSxHQUFHLEdBQUcsR0FBRyxJQUFJLENBQUMsSUFBTCxDQUFVLEtBQUssSUFBSSxLQUFLLENBQUMsSUFBTixDQUFXLEtBQUssSUFBSSxHQUFHLENBQUMsSUFBSixDQUFTLEtBQUssSUFBSSxTQUFTLENBQUMsSUFBVixDQUFlLEtBQUssRUFBdEY7QUFDRDs7QUFDRCxNQUFJLFNBQVMsSUFBSSxJQUFiLElBQXFCLEtBQXpCLEVBQWdDO0FBQzlCLElBQUEsR0FBRyxHQUFHLEdBQUcsSUFBSSxDQUFDLElBQUwsQ0FBVSxLQUFLLElBQUksS0FBSyxDQUFDLElBQU4sQ0FBVyxLQUFLLElBQUksU0FBUyxD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

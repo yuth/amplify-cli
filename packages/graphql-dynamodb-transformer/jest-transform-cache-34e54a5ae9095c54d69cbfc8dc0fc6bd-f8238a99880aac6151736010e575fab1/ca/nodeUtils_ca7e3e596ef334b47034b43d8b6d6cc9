@@ -1,0 +1,34 @@
+843b5c65d54b7e225acb14fdc9c0d6ef
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.withNamedNodeNamed = void 0;
+
+const graphql_1 = require("graphql");
+
+function withNamedNodeNamed(t, n) {
+  switch (t.kind) {
+    case graphql_1.Kind.NON_NULL_TYPE:
+      return { ...t,
+        type: withNamedNodeNamed(t.type, n)
+      };
+
+    case graphql_1.Kind.LIST_TYPE:
+      return { ...t,
+        type: withNamedNodeNamed(t.type, n)
+      };
+
+    case graphql_1.Kind.NAMED_TYPE:
+      return { ...t,
+        name: {
+          kind: graphql_1.Kind.NAME,
+          value: n
+        }
+      };
+  }
+}
+
+exports.withNamedNodeNamed = withNamedNodeNamed;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9ub2RlVXRpbHMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7OztBQUFBLE1BQUEsU0FBQSxHQUFBLE9BQUEsQ0FBQSxTQUFBLENBQUE7O0FBRUEsU0FBZ0Isa0JBQWhCLENBQW1DLENBQW5DLEVBQWdELENBQWhELEVBQXlEO0FBQ3ZELFVBQVEsQ0FBQyxDQUFDLElBQVY7QUFDRSxTQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUssYUFBVjtBQUNFLGFBQU8sRUFDTCxHQUFHLENBREU7QUFFTCxRQUFBLElBQUksRUFBRSxrQkFBa0IsQ0FBQyxDQUFDLENBQUMsSUFBSCxFQUFTLENBQVQ7QUFGbkIsT0FBUDs7QUFJRixTQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUssU0FBVjtBQUNFLGFBQU8sRUFDTCxHQUFHLENBREU7QUFFTCxRQUFBLElBQUksRUFBRSxrQkFBa0IsQ0FBQyxDQUFDLENBQUMsSUFBSCxFQUFTLENBQVQ7QUFGbkIsT0FBUDs7QUFJRixTQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUssVUFBVjtBQUNFLGFBQU8sRUFDTCxHQUFHLENBREU7QUFFTCxRQUFBLElBQUksRUFBRTtBQUNKLFVBQUEsSUFBSSxFQUFFLFNBQUEsQ0FBQSxJQUFBLENBQUssSUFEUDtBQUVKLFVBQUEsS0FBSyxFQUFFO0FBRkg7QUFGRCxPQUFQO0FBWko7QUFvQkQ7O0FBckJELE9BQUEsQ0FBQSxrQkFBQSxHQUFBLGtCQUFBIiwic291cmNlUm9vdCI6IiJ9

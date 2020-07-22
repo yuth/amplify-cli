@@ -718,7 +718,7 @@ export class ResourceFactory {
               limit: ref('limit'),
             }),
           ),
-          // PoI: Getting the snipper from stash
+          // PoI: Getting the snippet from stash
           iff(ref('context.args.nextToken'), set(ref(`${requestVariable}.nextToken`), ref('context.args.nextToken'))),
           iff(
             ref('context.args.filter'),

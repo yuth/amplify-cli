@@ -1,0 +1,31 @@
+31479bb1dba541c3a87d3b0e4b55cd9e
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Transformer = void 0;
+
+const graphql_1 = require("graphql");
+
+const errors_1 = require("./errors");
+
+class Transformer {
+  constructor(name, document) {
+    const doc = typeof document === 'string' ? graphql_1.parse(document) : document;
+    this.name = name;
+    const directives = doc.definitions.filter(d => d.kind === graphql_1.Kind.DIRECTIVE_DEFINITION);
+    const extraDefs = doc.definitions.filter(d => d.kind !== graphql_1.Kind.DIRECTIVE_DEFINITION);
+
+    if (directives.length !== 1) {
+      throw new errors_1.InvalidTransformerError('Transformers must specify exactly one directive definition.');
+    }
+
+    this.directive = directives[0];
+    this.typeDefinitions = extraDefs;
+  }
+
+}
+
+exports.Transformer = Transformer;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9UcmFuc2Zvcm1lci50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7O0FBRUEsTUFBQSxTQUFBLEdBQUEsT0FBQSxDQUFBLFNBQUEsQ0FBQTs7QUFpQkEsTUFBQSxRQUFBLEdBQUEsT0FBQSxDQUFBLFVBQUEsQ0FBQTs7QUFRQSxNQUFhLFdBQWIsQ0FBd0I7QUFjdEIsRUFBQSxXQUFBLENBQ0UsSUFERixFQUVFLFFBRkYsRUFFaUM7QUFJL0IsVUFBTSxHQUFHLEdBQUcsT0FBTyxRQUFQLEtBQW9CLFFBQXBCLEdBQStCLFNBQUEsQ0FBQSxLQUFBLENBQU0sUUFBTixDQUEvQixHQUFpRCxRQUE3RDtBQUNBLFNBQUssSUFBTCxHQUFZLElBQVo7QUFDQSxVQUFNLFVBQVUsR0FBRyxHQUFHLENBQUMsV0FBSixDQUFnQixNQUFoQixDQUF1QixDQUFDLElBQUksQ0FBQyxDQUFDLElBQUYsS0FBVyxTQUFBLENBQUEsSUFBQSxDQUFLLG9CQUE1QyxDQUFuQjtBQUNBLFVBQU0sU0FBUyxHQUFHLEdBQUcsQ0FBQyxXQUFKLENBQWdCLE1BQWhCLENBQXVCLENBQUMsSUFBSSxDQUFDLENBQUMsSUFBRixLQUFXLFNBQUEsQ0FBQSxJQUFBLENBQUssb0JBQTVDLENBQWxCOztBQUNBLFFBQUksVUFBVSxDQUFDLE1BQVgsS0FBc0IsQ0FBMUIsRUFBNkI7QUFDM0IsWUFBTSxJQUFJLFFBQUEsQ0FBQSx1QkFBSixDQUE0Qiw2REFBNUIsQ0FBTjtBQUNEOztBQUNELFNBQUssU0FBTCxHQUFpQixVQUFVLENBQUMsQ0FBRCxDQUEzQjtBQUlBLFNBQUssZUFBTCxHQUF1QixTQUF2QjtBQUNEOztBQWhDcUI7O0FBQXhCLE9BQUEsQ0FBQSxXQUFBLEdBQUEsV0FBQSIsInNvdXJjZVJvb3QiOiIifQ==

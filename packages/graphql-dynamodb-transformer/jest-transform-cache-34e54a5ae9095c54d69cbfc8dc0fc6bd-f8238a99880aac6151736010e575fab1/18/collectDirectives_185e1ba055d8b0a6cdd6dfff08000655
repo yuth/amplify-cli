@@ -1,0 +1,199 @@
+c8b848e2d35d950776af902d02315fd2
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.collectEnumValueDirectives = exports.collectEnumDirectives = exports.collectInputObjectDirectives = exports.collectScalarDirectives = exports.collectUnionDirectives = exports.collectArgumentDirectives = exports.collectFieldDirectives = exports.collectInterfaceDirectives = exports.collectObjectDirectives = exports.collectDirectivesByType = exports.collectDirectivesByTypeNames = exports.collectDirectives = exports.collectDirectiveNames = void 0;
+
+const graphql_1 = require("graphql");
+
+function collectDirectiveNames(sdl) {
+  const dirs = collectDirectives(sdl);
+  return dirs.map(d => d.name.value);
+}
+
+exports.collectDirectiveNames = collectDirectiveNames;
+
+function collectDirectives(sdl) {
+  const doc = graphql_1.parse(sdl);
+  let directives = [];
+
+  for (const def of doc.definitions) {
+    switch (def.kind) {
+      case graphql_1.Kind.OBJECT_TYPE_DEFINITION:
+        directives = directives.concat(collectObjectDirectives(def));
+        break;
+
+      case graphql_1.Kind.INTERFACE_TYPE_DEFINITION:
+        directives = directives.concat(collectInterfaceDirectives(def));
+        break;
+
+      case graphql_1.Kind.UNION_TYPE_DEFINITION:
+        directives = directives.concat(collectUnionDirectives(def));
+        break;
+
+      case graphql_1.Kind.INPUT_OBJECT_TYPE_DEFINITION:
+        directives = directives.concat(collectInputObjectDirectives(def));
+        break;
+
+      case graphql_1.Kind.ENUM_TYPE_DEFINITION:
+        directives = directives.concat(collectEnumDirectives(def));
+        break;
+
+      case graphql_1.Kind.SCALAR_TYPE_DEFINITION:
+        directives = directives.concat(collectScalarDirectives(def));
+        break;
+    }
+  }
+
+  return directives;
+}
+
+exports.collectDirectives = collectDirectives;
+
+function collectDirectivesByTypeNames(sdl) {
+  let types = collectDirectivesByType(sdl);
+  const directives = new Set();
+  Object.keys(types).forEach(dir => {
+    let set = new Set();
+    types[dir].forEach(d => {
+      set.add(d.name.value);
+      directives.add(d.name.value);
+    });
+    types[dir] = Array.from(set);
+  });
+  return {
+    types,
+    directives: Array.from(directives)
+  };
+}
+
+exports.collectDirectivesByTypeNames = collectDirectivesByTypeNames;
+
+function collectDirectivesByType(sdl) {
+  const doc = graphql_1.parse(sdl);
+  let types = {};
+
+  for (const def of doc.definitions) {
+    switch (def.kind) {
+      case graphql_1.Kind.OBJECT_TYPE_DEFINITION:
+        types[def.name.value] = [...(types[def.name.value] || []), ...collectObjectDirectives(def)];
+        break;
+
+      case graphql_1.Kind.INTERFACE_TYPE_DEFINITION:
+        types[def.name.value] = [...(types[def.name.value] || []), ...collectInterfaceDirectives(def)];
+        break;
+
+      case graphql_1.Kind.UNION_TYPE_DEFINITION:
+        types[def.name.value] = [...(types[def.name.value] || []), ...collectUnionDirectives(def)];
+        break;
+
+      case graphql_1.Kind.INPUT_OBJECT_TYPE_DEFINITION:
+        types[def.name.value] = [...(types[def.name.value] || []), ...collectInputObjectDirectives(def)];
+        break;
+
+      case graphql_1.Kind.ENUM_TYPE_DEFINITION:
+        types[def.name.value] = [...(types[def.name.value] || []), ...collectEnumDirectives(def)];
+        break;
+
+      case graphql_1.Kind.SCALAR_TYPE_DEFINITION:
+        types[def.name.value] = [...(types[def.name.value] || []), ...collectScalarDirectives(def)];
+        break;
+    }
+  }
+
+  return types;
+}
+
+exports.collectDirectivesByType = collectDirectivesByType;
+
+function collectObjectDirectives(node) {
+  let dirs = [];
+
+  for (const field of node.fields) {
+    const fieldDirs = collectFieldDirectives(field);
+    dirs = dirs.concat(fieldDirs);
+  }
+
+  return dirs.concat(node.directives);
+}
+
+exports.collectObjectDirectives = collectObjectDirectives;
+
+function collectInterfaceDirectives(node) {
+  let dirs = [];
+
+  for (const field of node.fields) {
+    const fieldDirs = collectFieldDirectives(field);
+    dirs = dirs.concat(fieldDirs);
+  }
+
+  return dirs.concat(node.directives);
+}
+
+exports.collectInterfaceDirectives = collectInterfaceDirectives;
+
+function collectFieldDirectives(node) {
+  let dirs = [];
+
+  for (const arg of node.arguments) {
+    const argDirs = collectArgumentDirectives(arg);
+    dirs = dirs.concat(argDirs);
+  }
+
+  return dirs.concat(node.directives);
+}
+
+exports.collectFieldDirectives = collectFieldDirectives;
+
+function collectArgumentDirectives(node) {
+  return [...(node.directives || [])];
+}
+
+exports.collectArgumentDirectives = collectArgumentDirectives;
+
+function collectUnionDirectives(node) {
+  return [...(node.directives || [])];
+}
+
+exports.collectUnionDirectives = collectUnionDirectives;
+
+function collectScalarDirectives(node) {
+  return [...(node.directives || [])];
+}
+
+exports.collectScalarDirectives = collectScalarDirectives;
+
+function collectInputObjectDirectives(node) {
+  let dirs = [];
+
+  for (const field of node.fields) {
+    const fieldDirs = collectArgumentDirectives(field);
+    dirs = dirs.concat(fieldDirs);
+  }
+
+  return dirs.concat(node.directives);
+}
+
+exports.collectInputObjectDirectives = collectInputObjectDirectives;
+
+function collectEnumDirectives(node) {
+  let dirs = [];
+
+  for (const val of node.values) {
+    const valDirs = collectEnumValueDirectives(val);
+    dirs = dirs.concat(valDirs);
+  }
+
+  return dirs.concat(node.directives);
+}
+
+exports.collectEnumDirectives = collectEnumDirectives;
+
+function collectEnumValueDirectives(node) {
+  return [...(node.directives || [])];
+}
+
+exports.collectEnumValueDirectives = collectEnumValueDirectives;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9jb2xsZWN0RGlyZWN0aXZlcy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7O0FBQUEsTUFBQSxTQUFBLEdBQUEsT0FBQSxDQUFBLFNBQUEsQ0FBQTs7QUFlQSxTQUFnQixxQkFBaEIsQ0FBc0MsR0FBdEMsRUFBaUQ7QUFDL0MsUUFBTSxJQUFJLEdBQUcsaUJBQWlCLENBQUMsR0FBRCxDQUE5QjtBQUNBLFNBQU8sSUFBSSxDQUFDLEdBQUwsQ0FBUyxDQUFDLElBQUksQ0FBQyxDQUFDLElBQUYsQ0FBTyxLQUFyQixDQUFQO0FBQ0Q7O0FBSEQsT0FBQSxDQUFBLHFCQUFBLEdBQUEscUJBQUE7O0FBS0EsU0FBZ0IsaUJBQWhCLENBQWtDLEdBQWxDLEVBQTZDO0FBQzNDLFFBQU0sR0FBRyxHQUFHLFNBQUEsQ0FBQSxLQUFBLENBQU0sR0FBTixDQUFaO0FBQ0EsTUFBSSxVQUFVLEdBQUcsRUFBakI7O0FBQ0EsT0FBSyxNQUFNLEdBQVgsSUFBa0IsR0FBRyxDQUFDLFdBQXRCLEVBQW1DO0FBQ2pDLFlBQVEsR0FBRyxDQUFDLElBQVo7QUFDRSxXQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUssc0JBQVY7QUFFRSxRQUFBLFVBQVUsR0FBRyxVQUFVLENBQUMsTUFBWCxDQUFrQix1QkFBdUIsQ0FBQyxHQUFELENBQXpDLENBQWI7QUFDQTs7QUFDRixXQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUsseUJBQVY7QUFDRSxRQUFBLFVBQVUsR0FBRyxVQUFVLENBQUMsTUFBWCxDQUFrQiwwQkFBMEIsQ0FBQyxHQUFELENBQTVDLENBQWI7QUFDQTs7QUFDRixXQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUsscUJBQVY7QUFDRSxRQUFBLFVBQVUsR0FBRyxVQUFVLENBQUMsTUFBWCxDQUFrQixzQkFBc0IsQ0FBQyxHQUFELENBQXhDLENBQWI7QUFDQTs7QUFDRixXQUFLLFNBQUEsQ0FBQSxJQUFBLENBQUssNEJBQVY7QUFDRSxRQUFBLFVBQVUsR0FBRyxVQUFVLENB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

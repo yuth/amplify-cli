@@ -1,0 +1,481 @@
+e759e55401a209dad234e3f391836637
+"use strict";
+
+/* istanbul ignore next */
+function cov_27kpvzf866() {
+  var path = "/Users/yathiraj/Documents/work/amplify-cli/packages/graphql-dynamodb-transformer/src/ModelDirectiveArgs.ts";
+  var hash = "e5a3871cd73f5607381f03e69f39487f8d21ee33";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/yathiraj/Documents/work/amplify-cli/packages/graphql-dynamodb-transformer/src/ModelDirectiveArgs.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 2,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 3,
+          column: 103
+        }
+      },
+      "2": {
+        start: {
+          line: 4,
+          column: 35
+        },
+        end: {
+          line: 4,
+          column: 70
+        }
+      },
+      "3": {
+        start: {
+          line: 6,
+          column: 4
+        },
+        end: {
+          line: 6,
+          column: 70
+        }
+      },
+      "4": {
+        start: {
+          line: 8,
+          column: 0
+        },
+        end: {
+          line: 8,
+          column: 54
+        }
+      },
+      "5": {
+        start: {
+          line: 10,
+          column: 4
+        },
+        end: {
+          line: 10,
+          column: 70
+        }
+      },
+      "6": {
+        start: {
+          line: 12,
+          column: 0
+        },
+        end: {
+          line: 12,
+          column: 54
+        }
+      },
+      "7": {
+        start: {
+          line: 14,
+          column: 31
+        },
+        end: {
+          line: 14,
+          column: 90
+        }
+      },
+      "8": {
+        start: {
+          line: 15,
+          column: 22
+        },
+        end: {
+          line: 15,
+          column: 51
+        }
+      },
+      "9": {
+        start: {
+          line: 21,
+          column: 4
+        },
+        end: {
+          line: 22,
+          column: 20
+        }
+      },
+      "10": {
+        start: {
+          line: 22,
+          column: 8
+        },
+        end: {
+          line: 22,
+          column: 20
+        }
+      },
+      "11": {
+        start: {
+          line: 23,
+          column: 4
+        },
+        end: {
+          line: 25,
+          column: 5
+        }
+      },
+      "12": {
+        start: {
+          line: 24,
+          column: 8
+        },
+        end: {
+          line: 24,
+          column: 36
+        }
+      },
+      "13": {
+        start: {
+          line: 26,
+          column: 4
+        },
+        end: {
+          line: 26,
+          column: 29
+        }
+      },
+      "14": {
+        start: {
+          line: 28,
+          column: 0
+        },
+        end: {
+          line: 28,
+          column: 54
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "getCreatedAtFieldName",
+        decl: {
+          start: {
+            line: 5,
+            column: 9
+          },
+          end: {
+            line: 5,
+            column: 30
+          }
+        },
+        loc: {
+          start: {
+            line: 5,
+            column: 42
+          },
+          end: {
+            line: 7,
+            column: 1
+          }
+        },
+        line: 5
+      },
+      "1": {
+        name: "getUpdatedAtFieldName",
+        decl: {
+          start: {
+            line: 9,
+            column: 9
+          },
+          end: {
+            line: 9,
+            column: 30
+          }
+        },
+        loc: {
+          start: {
+            line: 9,
+            column: 42
+          },
+          end: {
+            line: 11,
+            column: 1
+          }
+        },
+        line: 9
+      },
+      "2": {
+        name: "getTimestampFieldName",
+        decl: {
+          start: {
+            line: 13,
+            column: 9
+          },
+          end: {
+            line: 13,
+            column: 30
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 72
+          },
+          end: {
+            line: 27,
+            column: 1
+          }
+        },
+        line: 13
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 21,
+            column: 4
+          },
+          end: {
+            line: 22,
+            column: 20
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 21,
+            column: 4
+          },
+          end: {
+            line: 22,
+            column: 20
+          }
+        }, {
+          start: {
+            line: 21,
+            column: 4
+          },
+          end: {
+            line: 22,
+            column: 20
+          }
+        }],
+        line: 21
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 23,
+            column: 4
+          },
+          end: {
+            line: 25,
+            column: 5
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 23,
+            column: 4
+          },
+          end: {
+            line: 25,
+            column: 5
+          }
+        }, {
+          start: {
+            line: 23,
+            column: 4
+          },
+          end: {
+            line: 25,
+            column: 5
+          }
+        }],
+        line: 23
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 23,
+            column: 8
+          },
+          end: {
+            line: 23,
+            column: 55
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 23,
+            column: 8
+          },
+          end: {
+            line: 23,
+            column: 17
+          }
+        }, {
+          start: {
+            line: 23,
+            column: 21
+          },
+          end: {
+            line: 23,
+            column: 55
+          }
+        }],
+        line: 23
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0],
+      "2": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      file: "/Users/yathiraj/Documents/work/amplify-cli/packages/graphql-dynamodb-transformer/src/ModelDirectiveArgs.ts",
+      sources: ["/Users/yathiraj/Documents/work/amplify-cli/packages/graphql-dynamodb-transformer/src/ModelDirectiveArgs.ts"],
+      names: [],
+      mappings: ";;;AAAA,uEAAiE;AAoCjE,SAAgB,qBAAqB,CAAC,SAAwB;IAC5D,OAAO,qBAAqB,CAAC,SAAS,EAAE,WAAW,EAAE,WAAW,CAAC,CAAC;AACpE,CAAC;AAFD,sDAEC;AAED,SAAgB,qBAAqB,CAAC,SAAwB;IAC5D,OAAO,qBAAqB,CAAC,SAAS,EAAE,WAAW,EAAE,WAAW,CAAC,CAAC;AACpE,CAAC;AAFD,sDAEC;AAED,SAAgB,qBAAqB,CAAC,SAAwB,EAAE,SAAiB,EAAE,iBAAyB;IAC1G,MAAM,kBAAkB,GAAuB,gDAAqB,CAAC,SAAS,CAAC,CAAC;IAChF,MAAM,SAAS,GAAG,kBAAkB,CAAC,UAAU,CAAC;IAEhD;;;;OAIG;IACH,IAAI,SAAS,KAAK,IAAI;QAAE,OAAO,IAAI,CAAC;IACpC,IAAI,SAAS,IAAI,SAAS,CAAC,SAAS,CAAC,KAAK,SAAS,EAAE;QACnD,OAAO,SAAS,CAAC,SAAS,CAAC,CAAC;KAC7B;IACD,OAAO,iBAAiB,CAAC;AAC3B,CAAC;AAdD,sDAcC",
+      sourcesContent: ["import { getDirectiveArguments } from 'graphql-transformer-core';\nimport { DirectiveNode } from 'graphql';\n\nexport interface QueryNameMap {\n  get?: string;\n  list?: string;\n  query?: string;\n}\n\nexport interface MutationNameMap {\n  create?: string;\n  update?: string;\n  delete?: string;\n}\n\nexport type ModelSubscriptionLevel = 'off' | 'public' | 'on';\n\nexport interface SubscriptionNameMap {\n  onCreate?: string[];\n  onUpdate?: string[];\n  onDelete?: string[];\n  level?: ModelSubscriptionLevel;\n}\n\nexport interface ModelDirectiveTimestampConfiguration {\n  createdAt?: string;\n  updatedAt?: string;\n}\n\nexport interface ModelDirectiveArgs {\n  queries?: QueryNameMap;\n  mutations?: MutationNameMap;\n  subscriptions?: SubscriptionNameMap;\n  timestamps?: ModelDirectiveTimestampConfiguration;\n}\n\nexport function getCreatedAtFieldName(directive: DirectiveNode): string | undefined {\n  return getTimestampFieldName(directive, 'createdAt', 'createdAt');\n}\n\nexport function getUpdatedAtFieldName(directive: DirectiveNode): string | undefined {\n  return getTimestampFieldName(directive, 'updatedAt', 'updatedAt');\n}\n\nexport function getTimestampFieldName(directive: DirectiveNode, fieldName: string, defaultFiledValue: string): string | undefined {\n  const directiveArguments: ModelDirectiveArgs = getDirectiveArguments(directive);\n  const timestamp = directiveArguments.timestamps;\n\n  /* When explicitly set to null, note that the check here is strict equality to null and not undefined\n   * type Post @model(timestamps:null) {\n        id: ID!\n   }\n   */\n  if (timestamp === null) return null;\n  if (timestamp && timestamp[fieldName] !== undefined) {\n    return timestamp[fieldName];\n  }\n  return defaultFiledValue;\n}\n"]
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "e5a3871cd73f5607381f03e69f39487f8d21ee33"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_27kpvzf866 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+
+cov_27kpvzf866();
+cov_27kpvzf866().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+/* istanbul ignore next */
+cov_27kpvzf866().s[1]++;
+exports.getTimestampFieldName = exports.getUpdatedAtFieldName = exports.getCreatedAtFieldName = void 0;
+const graphql_transformer_core_1 =
+/* istanbul ignore next */
+(cov_27kpvzf866().s[2]++, require("graphql-transformer-core"));
+
+function getCreatedAtFieldName(directive) {
+  /* istanbul ignore next */
+  cov_27kpvzf866().f[0]++;
+  cov_27kpvzf866().s[3]++;
+  return getTimestampFieldName(directive, 'createdAt', 'createdAt');
+}
+
+/* istanbul ignore next */
+cov_27kpvzf866().s[4]++;
+exports.getCreatedAtFieldName = getCreatedAtFieldName;
+
+function getUpdatedAtFieldName(directive) {
+  /* istanbul ignore next */
+  cov_27kpvzf866().f[1]++;
+  cov_27kpvzf866().s[5]++;
+  return getTimestampFieldName(directive, 'updatedAt', 'updatedAt');
+}
+
+/* istanbul ignore next */
+cov_27kpvzf866().s[6]++;
+exports.getUpdatedAtFieldName = getUpdatedAtFieldName;
+
+function getTimestampFieldName(directive, fieldName, defaultFiledValue) {
+  /* istanbul ignore next */
+  cov_27kpvzf866().f[2]++;
+  const directiveArguments =
+  /* istanbul ignore next */
+  (cov_27kpvzf866().s[7]++, graphql_transformer_core_1.getDirectiveArguments(directive));
+  const timestamp =
+  /* istanbul ignore next */
+  (cov_27kpvzf866().s[8]++, directiveArguments.timestamps);
+  /* When explicitly set to null, note that the check here is strict equality to null and not undefined
+   * type Post @model(timestamps:null) {
+        id: ID!
+   }
+   */
+
+  /* istanbul ignore next */
+  cov_27kpvzf866().s[9]++;
+
+  if (timestamp === null) {
+    /* istanbul ignore next */
+    cov_27kpvzf866().b[0][0]++;
+    cov_27kpvzf866().s[10]++;
+    return null;
+  } else
+  /* istanbul ignore next */
+  {
+    cov_27kpvzf866().b[0][1]++;
+  }
+
+  cov_27kpvzf866().s[11]++;
+
+  if (
+  /* istanbul ignore next */
+  (cov_27kpvzf866().b[2][0]++, timestamp) &&
+  /* istanbul ignore next */
+  (cov_27kpvzf866().b[2][1]++, timestamp[fieldName] !== undefined)) {
+    /* istanbul ignore next */
+    cov_27kpvzf866().b[1][0]++;
+    cov_27kpvzf866().s[12]++;
+    return timestamp[fieldName];
+  } else
+  /* istanbul ignore next */
+  {
+    cov_27kpvzf866().b[1][1]++;
+  }
+
+  cov_27kpvzf866().s[13]++;
+  return defaultFiledValue;
+}
+
+/* istanbul ignore next */
+cov_27kpvzf866().s[14]++;
+exports.getTimestampFieldName = getTimestampFieldName;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi9Vc2Vycy95YXRoaXJhai9Eb2N1bWVudHMvd29yay9hbXBsaWZ5LWNsaS9wYWNrYWdlcy9ncmFwaHFsLWR5bmFtb2RiLXRyYW5zZm9ybWVyL3NyYy9Nb2RlbERpcmVjdGl2ZUFyZ3MudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFnREU7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBaERGLE1BQUEsMEJBQUE7QUFBQTtBQUFBLDBCQUFBLE9BQUEsQ0FBQSwwQkFBQSxDQUFBLENBQUE7O0FBb0NBLFNBQWdCLHFCQUFoQixDQUFzQyxTQUF0QyxFQUE4RDtBQUFBO0FBQUE7QUFBQTtBQUM1RCxTQUFPLHFCQUFxQixDQUFDLFNBQUQsRUFBWSxXQUFaLEVBQXlCLFdBQXpCLENBQTVCO0FBQ0Q7Ozs7QUFGRCxPQUFBLENBQUEscUJBQUEsR0FBQSxxQkFBQTs7QUFJQSxTQUFnQixxQkFBaEIsQ0FBc0MsU0FBdEMsRUFBOEQ7QUFBQTtBQUFBO0FBQUE7QUFDNUQsU0FBTyxxQkFBcUIsQ0FBQyxTQUFELEVBQVksV0FBWixFQUF5QixXQUF6QixDQUE1QjtBQUNEOzs7O0FBRkQsT0FBQSxDQUFBLHFCQUFBLEdBQUEscUJBQUE7O0FBSUEsU0FBZ0IscUJBQWhCLENBQXNDLFNBQXRDLEVBQWdFLFNBQWhFLEVBQW1GLGlCQUFuRixFQUE0RztBQUFBO0FBQUE7QUFDMUcsUUFBTSxrQkFBa0I7QUFBQTtBQUFBLDRCQUF1QiwwQkFBQSxDQUFBLHFCQUFBLENBQXNCLFNBQXRCLENBQXZCLENBQXhCO0FBQ0EsUUFBTSxTQUFTO0FBQUE7QUFBQSw0QkFBRyxrQkFBa0IsQ0FBQyxVQUF0QixDQUFmO0FBRUE7Ozs7OztBQUowRztBQUFBOztBQVMxRyxNQUFJLFNBQVMsS0FBSyxJQUFsQixFQUF3QjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBQU8sSUFBUDtBQUFZLEdBQXBDO0FBQUE7QUFBQTtBQUFBO0FBQUE7O0FBVDBHOztBQVUxRztBQUFJO0FBQUEsK0JBQUEsU0FBUztBQUFBO0FBQUEsK0JBQUksU0FBUyxDQUFDLFNBQUQsQ0FBVCxLQUF5QixTQUE3QixDQUFiLEVBQXFEO0FBQUE7QUFBQTtBQUFBO0FBQ25ELFdBQU8sU0FBUyxDQUFDLFNBQUQsQ0FBaEI7QUFDRCxHQUZEO0FBQUE7QUFBQTtBQUFBO0FBQUE7O0FBVjBHO0FBYTFHLFNBQU8saUJBQVA7QUFDRDs7OztBQWRELE9BQUEsQ0FBQSxxQkFBQSxHQUFBLHFCQUFBIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgZ2V0RGlyZWN0aXZlQXJndW1lbnRzIH0gZnJvbSAnZ3JhcGhxbC10cmFuc2Zvcm1lci1jb3JlJztcbmltcG9ydCB7IERpcmVjdGl2ZU5vZGUgfSBmcm9tICdncmFwaHFsJztcblxuZXhwb3J0IGludGVyZmFjZSBRdWVyeU5hbWVNYXAge1xuICBnZXQ/OiBzdHJpbmc7XG4gIGxpc3Q/OiBzdHJpbmc7XG4gIHF1ZXJ5Pzogc3RyaW5nO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIE11dGF0aW9uTmFtZU1hcCB7XG4gIGNyZWF0ZT86IHN0cmluZztcbiAgdXBkYXRlPzogc3RyaW5nO1xuICBkZWxldGU/OiBzdHJpbmc7XG59XG5cbmV4cG9ydCB0eXBlIE1vZGVsU3Vic2NyaXB0aW9uTGV2ZWwgPSAnb2ZmJyB8ICdwdWJsaWMnIHwgJ29uJztcblxuZXhwb3J0IGludGVyZmFjZSBTdWJzY3JpcHRpb25OYW1lTWFwIHtcbiAgb25DcmVhdGU/OiBzdHJpbmdbXTtcbiAgb25VcGRhdGU/OiBzdHJpbmdbXTtcbiAgb25EZWxldGU/OiBzdHJpbmdbXTtcbiAgbGV2ZWw/OiBNb2RlbFN1YnNjcmlwdGlvbkxldmVsO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIE1vZGVsRGlyZWN0aXZlVGltZXN0YW1wQ29uZmlndXJhdGlvbiB7XG4gIGNyZWF0ZWRBdD86IHN0cmluZztcbiAgdXBkYXRlZEF0Pzogc3RyaW5nO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIE1vZGVsRGlyZWN0aXZlQXJncyB7XG4gIHF1ZXJpZXM/OiBRdWVyeU5hbWVNYXA7XG4gIG11dGF0aW9ucz86IE11dGF0aW9uTmFtZU1hcDtcbiAgc3Vic2NyaXB0aW9ucz86IFN1YnNjcmlwdGlvbk5hbWVNYXA7XG4gIHRpbWVzdGFtcHM/OiBNb2RlbERpcmVjdGl2ZVRpbWVzdGFtcENvbmZpZ3VyYXRpb247XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBnZXRDcmVhdGVkQXRGaWVsZE5hbWUoZGlyZWN0aXZlOiBEaXJlY3RpdmVOb2RlKTogc3RyaW5nIHwgdW5kZWZpbmVkIHtcbiAgcmV0dXJuIGdldFRpbWVzdGFtcEZpZWxkTmFtZShkaXJlY3RpdmUsICdjcmVhdGVkQXQnLCAnY3JlYXRlZEF0Jyk7XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBnZXRVcGRhdGVkQXRGaWVsZE5hbWUoZGlyZWN0aXZlOiBEaXJlY3RpdmVOb2RlKTogc3RyaW5nIHwgdW5kZWZpbmVkIHtcbiAgcmV0dXJuIGdldFRpbWVzdGFtcEZpZWxkTmFtZShkaXJlY3RpdmUsICd1cGRhdGVkQXQnLCAndXBkYXRlZEF0Jyk7XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBnZXRUaW1lc3RhbXBGaWVsZE5hbWUoZGlyZWN0aXZlOiBEaXJlY3RpdmVOb2RlLCBmaWVsZE5hbWU6IHN0cmluZywgZGVmYXVsdEZpbGVkVmFsdWU6IHN0cmluZyk6IHN0cmluZyB8IHVuZGVmaW5lZCB7XG4gIGNvbnN0IGRpcmVjdGl2ZUFyZ3VtZW50czogTW9kZWxEaXJlY3RpdmVBcmdzID0gZ2V0RGlyZWN0aXZlQXJndW1lbnRzKGRpcmVjdGl2ZSk7XG4gIGNvbnN0IHRpbWVzdGFtcCA9IGRpcmVjdGl2ZUFyZ3VtZW50cy50aW1lc3RhbXBzO1xuXG4gIC8qIFdoZW4gZXhwbGljaXRseSBzZXQgdG8gbnVsbCwgbm90ZSB0aGF0IHRoZSBjaGVjayBoZXJlIGlzIHN0cmljdCBlcXVhbGl0eSB0byBudWxsIGFuZCBub3QgdW5kZWZpbmVkXG4gICAqIHR5cGUgUG9zdCBAbW9kZWwodGltZXN0YW1wczpudWxsKSB7XG4gICAgICAgIGlkOiBJRCFcbiAgIH1cbiAgICovXG4gIGlmICh0aW1lc3RhbXAgPT09IG51bGwpIHJldHVybiBudWxsO1xuICBpZiAodGltZXN0YW1wICYmIHRpbWVzdGFtcFtmaWVsZE5hbWVdICE9PSB1bmRlZmluZWQpIHtcbiAgICByZXR1cm4gdGltZXN0YW1wW2ZpZWxkTmFtZV07XG4gIH1cbiAgcmV0dXJuIGRlZmF1bHRGaWxlZFZhbHVlO1xufVxuIl19

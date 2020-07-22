@@ -185,6 +185,92 @@ export interface TransformerModelProvider extends ITransformer {
   getSubscriptionFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<SubscriptionFieldType, string[]>;
 }
 
+export type ModelSizeInput = {
+  ne: Number
+  eq: Number
+  le: Number
+  lt: Number
+  ge: Number
+  gt: Number
+  between: [Number, Number]
+}
+
+export type ModelStringInput = {
+  ne: string
+  eq: string
+  le: string
+  lt: string
+  ge: string
+  gt: string
+  contains: string
+  notContains: string
+  between: [string]
+  beginsWith: string
+  attributeExists: boolean
+  attributeType: string
+  size: ModelSizeInput
+}
+
+export type ID = string | number;
+
+export type ModelIDInput = {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  attributeExists: Boolean
+  attributeType: string
+  size: ModelSizeInput
+}
+
+export type ModelNumberInput = {
+  ne: Number
+  eq: Number
+  le: Number
+  lt: Number
+  ge: Number
+  gt: Number
+  between: [Number]
+  attributeExists: string
+  attributeType: string
+}
+
+
+export type ModelBooleanInput = {
+  ne: boolean
+  eq: boolean
+  attributeExists: boolean
+  attributeType: string
+}
+
+
+export type ModelCondition =  {
+  and: [ModelCondition]
+  or: [ModelCondition]
+  not: ModelCondition
+  [field: string]: ModelCondition,
+}
+export type DataProviderConditonObj = {
+
+}
+export type StashShape = {
+  conditions : {
+    queryCondition: {}
+    mutationCondition: {},
+    subscriptionCondition: {}
+  },
+  defaultValues: Record<string, any>,
+  transformedValues: Record<string, any>
+}
+
+merge (defaultValues, input, transformedValues)
+
 // context.stash = {
 //   conditions: {
 //     filter: {}

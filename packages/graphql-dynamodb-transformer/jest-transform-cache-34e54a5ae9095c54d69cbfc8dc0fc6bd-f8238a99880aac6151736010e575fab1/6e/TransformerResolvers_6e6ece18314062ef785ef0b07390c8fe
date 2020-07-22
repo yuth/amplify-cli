@@ -1,0 +1,57 @@
+1abcf16ed11bd0fed735bf6437a55272
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.TransformerResolvers = void 0;
+
+const BaseResolver_1 = require("../util/BaseResolver");
+
+class TransformerResolvers {
+  constructor() {
+    this.resolverMap = new Map();
+
+    this.addQueryResolver = (typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate) => {
+      return this.addResolver(typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate, ['init', 'preauth', 'auth', 'postAuth', 'predataLoad'], ['postDataLoad', 'finish']);
+    };
+
+    this.addMutationResolver = (typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate) => {
+      return this.addResolver(typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate, ['init', 'preauth', 'auth', 'postAuth', 'preUpdate'], ['postUpdate', 'finish']);
+    };
+
+    this.addSubscriptionResolver = (typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate) => {
+      return this.addResolver(typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate, ['init', 'preauth', 'auth', 'postAuth', 'preSubscribe'], []);
+    };
+
+    this.addResolver = (typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate, requestSlots, responseSlots) => {
+      const resolverKey = `${typeName}.${fieldName}`;
+
+      if (this.resolverMap.has(resolverKey)) {
+        throw new Error(`Resolver already exists for ${resolverKey}`);
+      }
+
+      const resolver = new BaseResolver_1.BaseResolver(typeName, fieldName, dataSourceName, requestMappingTemplate, responseMappingTemplate, requestSlots, responseSlots);
+      this.resolverMap.set(resolverKey, resolver);
+      return resolver;
+    };
+  }
+
+  getResolver(typeName, fieldName) {
+    const resolverKey = `${typeName}.${fieldName}`;
+
+    if (!this.resolverMap.has(resolverKey)) {
+      throw new Error(`No resolver exists for ${resolverKey}`);
+    }
+
+    return this.resolverMap.get(resolverKey);
+  }
+
+  collectResolvers() {
+    return [...this.resolverMap.entries()];
+  }
+
+}
+
+exports.TransformerResolvers = TransformerResolvers;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy90cmFuc2Zvcm1lci1jb250ZXh0L1RyYW5zZm9ybWVyUmVzb2x2ZXJzLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7QUFDQSxNQUFBLGNBQUEsR0FBQSxPQUFBLENBQUEsc0JBQUEsQ0FBQTs7QUFFQSxNQUFhLG9CQUFiLENBQWlDO0FBQWpDLEVBQUEsV0FBQSxHQUFBO0FBQ1UsU0FBQSxXQUFBLEdBQXlDLElBQUksR0FBSixFQUF6Qzs7QUFDRCxTQUFBLGdCQUFBLEdBQW1CLENBQ3hCLFFBRHdCLEVBRXhCLFNBRndCLEVBR3hCLGNBSHdCLEVBSXhCLHNCQUp3QixFQUt4Qix1QkFMd0IsS0FNUjtBQUNoQixhQUFPLEtBQUssV0FBTCxDQUNMLFFBREssRUFFTCxTQUZLLEVBR0wsY0FISyxFQUlMLHNCQUpLLEVBS0wsdUJBTEssRUFNTCxDQUFDLE1BQUQsRUFBUyxTQUFULEVBQW9CLE1BQXBCLEVBQTRCLFVBQTVCLEVBQXdDLGFBQXhDLENBTkssRUFPTCxDQUFDLGNBQUQsRUFBaUIsUUFBakIsQ0FQSyxDQUFQO0FBU0QsS0FoQk07O0FBa0JBLFNBQUEsbUJBQUEsR0FBc0IsQ0FDM0IsUUFEMkIsRUFFM0IsU0FGMkIsRUFHM0IsY0FIMkIsRUFJM0Isc0JBSjJCLEVBSzNCLHVCQUwyQixLQU1YO0FBQ2hCLGFBQU8sS0FBSyxXQUFMLENBQ0wsUUFESyxFQUVMLFNBRkssRUFHTCxjQUhLLEVBSUwsc0JBSkssRUFLTCx1QkFMSyxFQU1MLENBQUMsTUFBRCxFQUFTLFNBQVQsRUFBb0IsTUFBcEIsRUFBNEIsVUFBNUIsRUFBd0MsV0FBeEMsQ0FOSyxFQU9MLENBQUMsWUFBRCxFQUFlLFFBQWYsQ0FQSyxDQUFQO0FBU0QsS0FoQk07O0FBa0JBLFNBQUEsdUJBQUEsR0FBMEIsQ0FDL0IsUUFEK0IsRUFFL0IsU0FGK0IsRUFHL0IsY0FIK0IsRUFJL0Isc0JBSitCLEVBSy9CLHVCQUwrQixLQU1mO0FBQ2hCLGFBQU8sS0FBSyxXQUFMLENBQ0wsUUFESyxFQUVMLFNBRkssRUFHTCxjQUhLLEVBSUwsc0JBSkssRUFLTCx1QkFMSyxFQU1MLENBQUMsTUFBRCxFQUFTLFNBQVQsRUFBb0IsTUFBcEIsRUFBNEIsVUFBNUIsRUFBd0MsY0FBeEMsQ0FOSyxFQU9MLEVBUEssQ0FBUDtBQVNELEtBaEJNOztBQWtCQSxTQUFBLFdBQUEsR0FBYyxDQUNuQixRQURtQixFQUVuQixTQUZtQixFQUduQixjQUhtQixFQUluQixzQkFKbUIsRUFLbkIsdUJBTG1CLEVBTW5CLFlBTm1CLEVBT25CLGFBUG1CLEtBUUg7QUFDaEIsWUFBTSxXQUFXLEdBQUcsR0FBRyxRQUFRLElBQUksU0FBUyxFQUE1Qzs7QUFDQSxVQUFJLEtBQUssV0FBTCxDQUFpQixHQUFqQixDQUFxQixXQUFyQixDQUFKLEVBQXVDO0FBQ3JDLGNBQU0sSUFBSSxLQUFKLENBQVUsK0JBQStCLFdBQVcsRUFBcEQsQ0FBTjtBQUNEOztBQUNELFlBQU0sUUFBUSxHQUFHLElBQUksY0FBQSxDQUFBLFlBQUosQ0FDZixRQURlLEVBRWYsU0FGZSxFQUdmLGNBSGUsRUFJZixzQkFKZSxFQUtmLHVCQUxlLEVBTWYsWUFOZSxFQU9mLGFBUGUsQ0FBakI7QUFTQSxXQUFLLFdBQUwsQ0FBaUIsR0FBakIsQ0FBcUIsV0FBckIsRUFBa0MsUUFBbEM7QUFDQSxhQUFPLFFBQVA7QUFDRCxLQXhCTTtBQW9DUjs7QUFWUSxFQUFBLFdBQVcsQ0FBQyxRQUFELEVBQW1CLFNBQW5CLEVBQW9DO0FBQ3BELFVBQU0sV0FBVyxHQUFHLEdBQUcsUUFBUSxJQUFJLFNBQVMsRUFBNUM7O0FBQ0EsUUFBSSxDQUFDLEtBQUssV0FBTCxDQUFpQixHQUFqQixDQUFxQixXQUFyQixDQUFMLEVBQXdDO0FBQ3RDLFlBQU0sSUFBSSxLQUFKLENBQVUsMEJBQTBCLFdBQVcsRUFBL0MsQ0FBTjtBQUNEOztBQUNELFdBQU8sS0FBSyxXQUFMLENBQWlCLEdBQWpCLENBQXFCLFdBQXJCLENBQVA7QUFDRDs7QUFDTSxFQUFBLGdCQUFnQixHQUFBO0FBQ3JCLFdBQU8sQ0FBQyxHQUFHLEtBQUssV0FBTCxDQUFpQixPQUFqQixFQUFKLENBQVA7QUFDRDs7QUEzRjhCOztBQUFqQyxPQUFBLENBQUEsb0JBQUEsR0FBQSxvQkFBQSIsInNvdXJjZVJvb3QiOiIifQ==

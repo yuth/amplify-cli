@@ -1,0 +1,98 @@
+626b9f87d450aba57ec1446ab6702b25
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.ResourceConstants = void 0;
+
+let ResourceConstants = (() => {
+  class ResourceConstants {}
+
+  ResourceConstants.NONE = 'NONE';
+  ResourceConstants.DEFAULT_PAGE_LIMIT = 100;
+  ResourceConstants.DEFAULT_SYNC_QUERY_PAGE_LIMIT = 100;
+  ResourceConstants.DEFAULT_SEARCHABLE_PAGE_LIMIT = 100;
+  ResourceConstants.RESOURCES = {
+    GraphQLAPILogicalID: 'GraphQLAPI',
+    GraphQLSchemaLogicalID: 'GraphQLSchema',
+    APIKeyLogicalID: 'GraphQLAPIKey',
+    AuthRolePolicy: 'AuthRolePolicy',
+    UnauthRolePolicy: 'UnauthRolePolicy',
+    ElasticsearchAccessIAMRoleLogicalID: 'ElasticSearchAccessIAMRole',
+    ElasticsearchDomainLogicalID: 'ElasticSearchDomain',
+    ElasticsearchStreamingLambdaIAMRoleLogicalID: 'ElasticSearchStreamingLambdaIAMRole',
+    ElasticsearchStreamingLambdaFunctionLogicalID: 'ElasticSearchStreamingLambdaFunction',
+    ElasticsearchDataSourceLogicalID: 'ElasticSearchDataSource',
+    NoneDataSource: 'NoneDataSource',
+    AuthCognitoUserPoolLogicalID: 'AuthCognitoUserPool',
+    AuthCognitoUserPoolNativeClientLogicalID: 'AuthCognitoUserPoolNativeClient',
+    AuthCognitoUserPoolJSClientLogicalID: 'AuthCognitoUserPoolJSClient'
+  };
+  ResourceConstants.PARAMETERS = {
+    Env: 'env',
+    S3DeploymentBucket: 'S3DeploymentBucket',
+    S3DeploymentRootKey: 'S3DeploymentRootKey',
+    AppSyncApiName: 'AppSyncApiName',
+    AppSyncApiId: 'AppSyncApiId',
+    CreateAPIKey: 'CreateAPIKey',
+    AuthRoleName: 'authRoleName',
+    UnauthRoleName: 'unauthRoleName',
+    APIKeyExpirationEpoch: 'APIKeyExpirationEpoch',
+    DynamoDBBillingMode: 'DynamoDBBillingMode',
+    DynamoDBModelTableReadIOPS: 'DynamoDBModelTableReadIOPS',
+    DynamoDBModelTableWriteIOPS: 'DynamoDBModelTableWriteIOPS',
+    DynamoDBEnablePointInTimeRecovery: 'DynamoDBEnablePointInTimeRecovery',
+    DynamoDBEnableServerSideEncryption: 'DynamoDBEnableServerSideEncryption',
+    ElasticsearchAccessIAMRoleName: 'ElasticSearchAccessIAMRoleName',
+    ElasticsearchDebugStreamingLambda: 'ElasticSearchDebugStreamingLambda',
+    ElasticsearchStreamingIAMRoleName: 'ElasticSearchStreamingIAMRoleName',
+    ElasticsearchStreamingFunctionName: 'ElasticSearchStreamingFunctionName',
+    ElasticsearchInstanceCount: 'ElasticSearchInstanceCount',
+    ElasticsearchInstanceType: 'ElasticSearchInstanceType',
+    ElasticsearchEBSVolumeGB: 'ElasticSearchEBSVolumeGB',
+    ElasticsearchStreamingLambdaHandlerName: 'ElasticSearchStreamingLambdaHandlerName',
+    ElasticsearchStreamingLambdaRuntime: 'ElasticSearchStreamingLambdaRuntime',
+    AuthCognitoUserPoolId: 'AuthCognitoUserPoolId'
+  };
+  ResourceConstants.MAPPINGS = {};
+  ResourceConstants.CONDITIONS = {
+    HasEnvironmentParameter: 'HasEnvironmentParameter',
+    ShouldUsePayPerRequestBilling: 'ShouldUsePayPerRequestBilling',
+    ShouldUsePointInTimeRecovery: 'ShouldUsePointInTimeRecovery',
+    ShouldUseServerSideEncryption: 'ShouldUseServerSideEncryption',
+    ShouldCreateAPIKey: 'ShouldCreateAPIKey',
+    APIKeyExpirationEpochIsPositive: 'APIKeyExpirationEpochIsPositive'
+  };
+  ResourceConstants.OUTPUTS = {
+    GraphQLAPIEndpointOutput: 'GraphQLAPIEndpointOutput',
+    GraphQLAPIApiKeyOutput: 'GraphQLAPIKeyOutput',
+    GraphQLAPIIdOutput: 'GraphQLAPIIdOutput',
+    ElasticsearchStreamingLambdaIAMRoleArn: 'ElasticsearchStreamingLambdaIAMRoleArn',
+    ElasticsearchAccessIAMRoleArn: 'ElasticsearchAccessIAMRoleArn',
+    ElasticsearchDomainArn: 'ElasticsearchDomainArn',
+    ElasticsearchDomainEndpoint: 'ElasticsearchDomainEndpoint',
+    AuthCognitoUserPoolIdOutput: 'AuthCognitoUserPoolIdOutput',
+    AuthCognitoUserPoolNativeClientOutput: 'AuthCognitoUserPoolNativeClientId',
+    AuthCognitoUserPoolJSClientOutput: 'AuthCognitoUserPoolJSClientId'
+  };
+  ResourceConstants.METADATA = {};
+  ResourceConstants.SNIPPETS = {
+    AuthCondition: 'authCondition',
+    AuthMode: 'authMode',
+    VersionedCondition: 'versionedCondition',
+    ModelObjectKey: 'modelObjectKey',
+    DynamoDBNameOverrideMap: 'dynamodbNameOverrideMap',
+    ModelQueryExpression: 'modelQueryExpression',
+    ModelQueryIndex: 'modelQueryIndex',
+    IsDynamicGroupAuthorizedVariable: 'isDynamicGroupAuthorized',
+    IsLocalDynamicGroupAuthorizedVariable: 'isLocalDynamicGroupAuthorized',
+    IsStaticGroupAuthorizedVariable: 'isStaticGroupAuthorized',
+    IsOwnerAuthorizedVariable: 'isOwnerAuthorized',
+    IsLocalOwnerAuthorizedVariable: 'isLocalOwnerAuthorized'
+  };
+  return ResourceConstants;
+})();
+
+exports.ResourceConstants = ResourceConstants;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9SZXNvdXJjZUNvbnN0YW50cy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7O0FBQUEsSUFBQSxpQkFBQSxHQUFBLENBQUEsTUFBQTtBQUFBLFFBQWEsaUJBQWIsQ0FBOEI7O0FBQ2QsRUFBQSxpQkFBQSxDQUFBLElBQUEsR0FBTyxNQUFQO0FBRUEsRUFBQSxpQkFBQSxDQUFBLGtCQUFBLEdBQXFCLEdBQXJCO0FBQ0EsRUFBQSxpQkFBQSxDQUFBLDZCQUFBLEdBQWdDLEdBQWhDO0FBQ0EsRUFBQSxpQkFBQSxDQUFBLDZCQUFBLEdBQWdDLEdBQWhDO0FBRVMsRUFBQSxpQkFBQSxDQUFBLFNBQUEsR0FBWTtBQUVqQyxJQUFBLG1CQUFtQixFQUFFLFlBRlk7QUFHakMsSUFBQSxzQkFBc0IsRUFBRSxlQUhTO0FBSWpDLElBQUEsZUFBZSxFQUFFLGVBSmdCO0FBS2pDLElBQUEsY0FBYyxFQUFFLGdCQUxpQjtBQU1qQyxJQUFBLGdCQUFnQixFQUFFLGtCQU5lO0FBU2pDLElBQUEsbUNBQW1DLEVBQUUsNEJBVEo7QUFVakMsSUFBQSw0QkFBNEIsRUFBRSxxQkFWRztBQVdqQyxJQUFBLDRDQUE0QyxFQUFFLHFDQVhiO0FBWWpDLElBQUEsNkNBQTZDLEVBQUUsc0NBWmQ7QUFhakMsSUFBQSxnQ0FBZ0MsRUFBRSx5QkFiRDtBQWdCakMsSUFBQSxjQUFjLEVBQUUsZ0JBaEJpQjtBQW1CakMsSUFBQSw0QkFBNEIsRUFBRSxxQkFuQkc7QUFvQmpDLElBQUEsd0NBQXdDLEVBQUUsaUNBcEJUO0FBcUJqQyxJQUFBLG9DQUFvQyxFQUFFO0FBckJMLEdBQVo7QUF1QlQsRUFBQSxpQkFBQSxDQUFBLFVBQUEsR0FBYTtBQUV6QixJQUFBLEdBQUcsRUFBRSxLQUZvQjtBQUd6QixJQUFBLGtCQUFrQixFQUFFLG9CQUhLO0FBSXpCLElBQUEsbUJBQW1CLEVBQUUscUJBSkk7QUFPekIsSUFBQSxjQUFjLEVBQUUsZ0JBUFM7QUFRekIsSUFBQSxZQUFZLEVBQUUs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
