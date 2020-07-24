@@ -61,12 +61,14 @@ import {
   Kind,
   InputValueDefinitionNode,
   EnumTypeDefinitionNode,
+  InterfaceTypeDefinitionNode,
 } from 'graphql';
 import { AppSync, Fn, Refs } from 'cloudform-types';
 import { Projection, GlobalSecondaryIndex, LocalSecondaryIndex } from 'cloudform-types/types/dynamoDb/table';
 import JobQueue from 'cloudform-types/types/batch/jobQueue';
+import { DefinitionDocument } from 'cloudform-types/types/ioTThingsGraph/flowTemplate';
 
-interface KeyArguments {
+export interface KeyArguments {
   name?: string;
   fields: string[];
   queryField?: string;
@@ -131,10 +133,18 @@ export class KeyTransformer extends Transformer {
     }
   };
 
-  public getDirectiveArgument = (defination: ObjectTypeDefinitionNode):KeyArguments[] => {
-    const directives = defination.directives.filter(d => d.name.value == 'key')
-    return directives.map(d => getDirectiveArguments(d))
-  }
+  public getDirectiveArgs = (defination: ObjectTypeDefinitionNode| InterfaceTypeDefinitionNode): KeyArguments[] => {
+    return defination.directives
+      .filter(d => d.name.value === 'key')
+      .map(d => {
+        return getDirectiveArguments(d);
+      });
+  };
+
+  public getDirectiveArgument = (defination: ObjectTypeDefinitionNode): KeyArguments[] => {
+    const directives = defination.directives.filter(d => d.name.value == 'key');
+    return directives.map(d => getDirectiveArguments(d));
+  };
 
   /**
    * Update the existing @model table's index structures. Includes primary key, GSI, and LSIs.

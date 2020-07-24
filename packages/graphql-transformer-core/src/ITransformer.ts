@@ -185,4 +185,3 @@ export interface TransformerModelProvider extends ITransformer {
   getSubscriptionFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<SubscriptionFieldType, string[]>;
 }
 
-
