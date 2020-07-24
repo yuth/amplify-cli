@@ -389,9 +389,9 @@ export class ResourceFactory {
     const isSyncEnabled = syncConfig ? true : false;
     return {
       ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-      FieldName: fieldName,
-      TypeName: mutationTypeName,
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
+      fieldName: fieldName,
+      typeName: mutationTypeName,
       requestMappingTemplate: printBlock('Prepare DynamoDB PutItem Request')(
         compoundExpression([
           qref(`$context.args.input.put("__typename", "${type}")`),
