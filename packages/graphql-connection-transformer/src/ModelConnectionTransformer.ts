@@ -7,6 +7,7 @@ import {
   InterfaceTypeDefinitionNode,
   InputObjectTypeDefinitionNode,
   EnumTypeDefinitionNode,
+  createLexer,
 } from 'graphql';
 import { ResourceFactory } from './resources';
 import {
@@ -171,6 +172,13 @@ function checkFieldsAgainstIndex(
  * This transform configures the GSIs and resolvers needed to implement
  * relationships at the GraphQL level.
  */
+
+type SortKeyInfo = {
+  fieldName: string;
+  attributeType: 'S' | 'N';
+  typeName: string;
+};
+
 type ConnectionInfo = {
   parent: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode;
   field: FieldDefinitionNode;
@@ -184,11 +192,7 @@ type ConnectionInfo = {
   limit?: string;
   connectionAttributeName?: string;
   foreignAssociatedSortField?: FieldDefinitionNode;
-  sortKeyInfo?: {
-    fieldName: string;
-    attributeType: 'S' | 'N';
-    typeName: string;
-  };
+  sortKeyInfo?: SortKeyInfo;
 };
 export class ModelConnectionTransformer extends Transformer {
   resources: ResourceFactory;
@@ -235,55 +239,56 @@ export class ModelConnectionTransformer extends Transformer {
     this.populate(parent, field, directive, ctx);
   };
 
-  public populate = (
+  private populate = (
     parent: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode,
     field: FieldDefinitionNode,
     directive: DirectiveNode,
     ctx: TransformerContext,
   ) => {
-    for (const { fieldName, typeName } of this.connectedFields) {
-      const parentModelDirective = this.getDirective(parent, 'model');
-      const relatedTypeName = getBaseType(field.type);
-      const relatedType = ctx.inputDocument.definitions.find(
-        d => d.kind === Kind.OBJECT_TYPE_DEFINITION && d.name.value === relatedTypeName,
-      ) as ObjectTypeDefinitionNode | undefined;
-      const relatedTypeModelDirective = this.getDirective(relatedType, 'model');
+    const fieldName = field.name.value;
+    const typeName = parent.name.value;
 
-      let connectionName = getDirectiveArgument(directive, 'name');
+    const parentModelDirective = this.getDirective(parent, 'model');
+    const relatedTypeName = getBaseType(field.type);
+    const relatedType = ctx.inputDocument.definitions.find(
+      d => d.kind === Kind.OBJECT_TYPE_DEFINITION && d.name.value === relatedTypeName,
+    ) as ObjectTypeDefinitionNode | undefined;
+    const relatedTypeModelDirective = this.getDirective(relatedType, 'model');
 
-      const associatedConnectionField = this.getRelatedField(field, relatedType, connectionName);
-      const associatedSortFieldName = this.getLegacySortFieldName(field);
-      const associatedSortField = associatedSortFieldName && this.getField(parent, associatedSortFieldName);
+    let connectionName = getDirectiveArgument(directive, 'name');
 
-      const limit = getDirectiveArgument(directive, 'limit');
+    const associatedConnectionField = this.getRelatedField(field, relatedType, connectionName);
+    const associatedSortFieldName = this.getLegacySortFieldName(field);
+    const associatedSortField = associatedSortFieldName && this.getField(parent, associatedSortFieldName);
 
-      let connectionAttributeName = getDirectiveArgument(directive, 'keyField');
-      const foreignAssociatedSortField = associatedSortFieldName && this.getField(relatedType, associatedSortFieldName);
+    const limit = getDirectiveArgument(directive, 'limit');
 
-      const sortKeyInfo = foreignAssociatedSortField
-        ? {
-            fieldName: foreignAssociatedSortField.name.value,
-            attributeType: attributeTypeFromScalar(foreignAssociatedSortField.type),
-            typeName: getBaseType(foreignAssociatedSortField.type),
-          }
-        : undefined;
+    let connectionAttributeName = getDirectiveArgument(directive, 'keyField');
+    const foreignAssociatedSortField = associatedSortFieldName && this.getField(relatedType, associatedSortFieldName);
 
-      this.connectedFieldInfo[`${typeName}.${fieldName}`] = {
-        parent,
-        field,
-        directive,
-        parentModelDirective,
-        relatedType,
-        relatedTypeModelDirective,
-        connectionName,
-        associatedConnectionField,
-        associatedSortField,
-        limit,
-        connectionAttributeName,
-        foreignAssociatedSortField,
-        sortKeyInfo,
-      };
-    }
+    const sortKeyInfo = foreignAssociatedSortField
+      ? {
+          fieldName: foreignAssociatedSortField.name.value,
+          attributeType: attributeTypeFromScalar(foreignAssociatedSortField.type),
+          typeName: getBaseType(foreignAssociatedSortField.type),
+        }
+      : undefined;
+
+    this.connectedFieldInfo[`${typeName}.${fieldName}`] = {
+      parent,
+      field,
+      directive,
+      parentModelDirective,
+      relatedType,
+      relatedTypeModelDirective,
+      connectionName,
+      associatedConnectionField,
+      associatedSortField,
+      limit,
+      connectionAttributeName,
+      foreignAssociatedSortField,
+      sortKeyInfo,
+    };
   };
 
   public validate = (ctx: TransformerContext): void => {
@@ -467,18 +472,383 @@ export class ModelConnectionTransformer extends Transformer {
       const connectionInfo = this.connectedFieldInfo[`${parentTypeName}.${fieldName}`];
       const args = getDirectiveArguments(connectionInfo.directive) as ConnectionDirectiveArgs;
       if (args.fields) {
-
-        if(isListType(connectionInfo.field.type)) {
-          let keyArg = this.getKeyArg(keyTransformer, connectionInfo, args);
+        if (isListType(connectionInfo.field.type)) {
+          let sortKeyInfo: { fieldName: string; typeName: SortKeyFieldInfoTypeName; model: string; keyName: string } = undefined;
+          let keyArg: KeyArguments = this.getKeyArg(keyTransformer, connectionInfo, args);
+          // connection does not have all the needed sort keys
+          if (args.fields.length === 1) {
+            // If a sort key field is found then add a simple sort key, else add a composite sort key.
+            if (keyArg.fields.length === 2) {
+              const sortKeyField = this.getField(connectionInfo.relatedType, keyArg.fields[1]);
+              sortKeyInfo = {
+                fieldName: keyArg.fields[1],
+                typeName: getBaseType(sortKeyField.type),
+                model: connectionInfo.relatedType.name.value,
+                keyName: keyArg.name || 'Primary',
+              };
+            } else if (keyArg.fields.length > 2) {
+              const compositeSortKeyName = this.resources.makeCompositeSortKeyName(keyArg.fields.slice(1));
+              sortKeyInfo = {
+                fieldName: compositeSortKeyName,
+                typeName: 'Composite',
+                model: connectionInfo.relatedType.name.value,
+                keyName: keyArg.name || 'Primary',
+              };
+            }
+          }
+          this.extendTypeWithConnection(ctx, connectionInfo.parent, connectionInfo.field, connectionInfo.relatedType, sortKeyInfo);
         }
       } else {
+        const { field, associatedConnectionField } = connectionInfo;
+        const leftConnectionIsList = isListType(field.type);
+        const leftConnectionIsNonNull = isNonNullType(field.type);
+        const rightConnectionIsList = associatedConnectionField ? isListType(associatedConnectionField.type) : undefined;
+        const rightConnectionIsNonNull = associatedConnectionField ? isNonNullType(associatedConnectionField.type) : undefined;
+        const connectionName = connectionInfo.connectionName || `${parentTypeName}.${fieldName}`;
+        let connectionAttributeName = getDirectiveArgument(connectionInfo.directive, 'keyField');
+        if (leftConnectionIsList && rightConnectionIsList) {
+          // left blank, Need to refactor the condition
+        } else if (leftConnectionIsList && rightConnectionIsList === false) {
+          // 2. [] to {} when the association exists. Note: false and undefined are not equal.
+          this.extendTypeWithConnection(ctx, connectionInfo.parent, field, connectionInfo.relatedType, connectionInfo.sortKeyInfo);
+        } else if (!leftConnectionIsList && rightConnectionIsList) {
+          // 3. {} to [] when the association exists.
+          // Store foreign key on this table and wire up a GetItem resolver.
+          // This is the inverse of 2.
 
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(parentTypeName, fieldName);
+          }
+          // Update the create & update input objects for this
+          const createInputName = ModelResourceIDs.ModelCreateInputObjectName(parentTypeName);
+          const createInput = ctx.getType(createInputName) as InputObjectTypeDefinitionNode;
+          if (createInput) {
+            const updated = updateCreateInputWithConnectionField(createInput, connectionAttributeName, leftConnectionIsNonNull);
+            ctx.putType(updated);
+          }
+          const updateInputName = ModelResourceIDs.ModelUpdateInputObjectName(parentTypeName);
+          const updateInput = ctx.getType(updateInputName) as InputObjectTypeDefinitionNode;
+          if (updateInput) {
+            const updated = updateUpdateInputWithConnectionField(updateInput, connectionAttributeName);
+            ctx.putType(updated);
+          }
+        } else if (leftConnectionIsList) {
+          // 4. [] to ?
+          // Store foreign key on the related table and wire up a Query resolver.
+          // This has no inverse and has limited knowlege of the connection.
+          const primaryKeyField = this.getPrimaryKeyField(ctx, connectionInfo.parent);
+          const idFieldName = primaryKeyField ? primaryKeyField.name.value : 'id';
+
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(parentTypeName, fieldName);
+          }
+
+          // Validate the provided key field is legit.
+          const existingKeyField = connectionInfo.relatedType.fields.find(f => f.name.value === connectionAttributeName);
+
+          this.extendTypeWithConnection(ctx, connectionInfo.parent, field, connectionInfo.relatedType, connectionInfo.sortKeyInfo);
+
+          // Update the create & update input objects for the related type
+          const createInputName = ModelResourceIDs.ModelCreateInputObjectName(connectionInfo.relatedType.name.value);
+          const createInput = ctx.getType(createInputName) as InputObjectTypeDefinitionNode;
+          if (createInput) {
+            const updated = updateCreateInputWithConnectionField(createInput, connectionAttributeName);
+            ctx.putType(updated);
+          }
+          const updateInputName = ModelResourceIDs.ModelUpdateInputObjectName(connectionInfo.relatedType.name.value);
+          const updateInput = ctx.getType(updateInputName) as InputObjectTypeDefinitionNode;
+          if (updateInput) {
+            const updated = updateUpdateInputWithConnectionField(updateInput, connectionAttributeName);
+            ctx.putType(updated);
+          }
+        } else {
+          // 5. {} to ?
+          // Store foreign key on this table and wire up a GetItem resolver.
+          // This has no inverse and has limited knowlege of the connection.
+          const primaryKeyField = this.getPrimaryKeyField(ctx, connectionInfo.relatedType);
+          const idFieldName = primaryKeyField ? primaryKeyField.name.value : 'id';
+
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(parentTypeName, fieldName);
+          }
+
+          // Issue #2100 - in a 1:1 mapping that's based on sortField, we need to validate both sides
+          // and getItemResolver has to be aware of the soft field.
+          let sortFieldInfo;
+          const sortFieldName = getDirectiveArgument(connectionInfo.directive, 'sortField');
+          if (sortFieldName) {
+            // Related type has to have a primary key directive and has to have a soft key
+            // defined
+            const relatedSortField = this.getSortField(connectionInfo.relatedType);
+
+            const sortField = connectionInfo.parent.fields.find(f => f.name.value === sortFieldName);
+
+            const relatedSortFieldType = getBaseType(relatedSortField.type);
+            const sortFieldType = getBaseType(sortField.type);
+
+            let sortFieldIsStringLike = true;
+
+            // We cannot use $util.defaultIfNullOrBlank on non-string types
+            if (
+              sortFieldType === STANDARD_SCALARS.Int ||
+              sortFieldType === STANDARD_SCALARS.Float ||
+              sortFieldType === STANDARD_SCALARS.Bolean
+            ) {
+              sortFieldIsStringLike = false;
+            }
+
+            sortFieldInfo = {
+              primarySortFieldName: relatedSortField.name.value,
+              sortFieldName,
+              sortFieldIsStringLike,
+            };
+          }
+          // Update the create & update input objects for this type
+          const createInputName = ModelResourceIDs.ModelCreateInputObjectName(parentTypeName);
+          const createInput = ctx.getType(createInputName) as InputObjectTypeDefinitionNode;
+          if (createInput) {
+            const updated = updateCreateInputWithConnectionField(createInput, connectionAttributeName, leftConnectionIsNonNull);
+            ctx.putType(updated);
+          }
+          const updateInputName = ModelResourceIDs.ModelUpdateInputObjectName(parentTypeName);
+          const updateInput = ctx.getType(updateInputName) as InputObjectTypeDefinitionNode;
+          if (updateInput) {
+            const updated = updateUpdateInputWithConnectionField(updateInput, connectionAttributeName);
+            ctx.putType(updated);
+          }
+        }
       }
     }
   };
 
+  generateResolvers = (acc: TransformerContext): void => {
+    const keyTransformer = acc.getTransformerPluginInstance('KeyTransformer') as KeyTransformer;
+    for (let { typeName: parentTypeName, fieldName } of this.connectedFields) {
+      const connectionInfo = this.connectedFieldInfo[`${parentTypeName}.${fieldName}`];
+      const { directive, field, parent, associatedConnectionField, relatedType } = connectionInfo;
+      const fields = getDirectiveArgument(directive, 'fields');
+      const args: ConnectionDirectiveArgs = getDirectiveArguments(connectionInfo.directive);
+      if (fields) {
+        let keyArg: KeyArguments = this.getKeyArg(keyTransformer, connectionInfo, args);
+        if (!isListType(field.type)) {
+          // Start with GetItem resolver for case where the connection is to a single object.
+          const getResolver = this.resources.makeGetItemConnectionWithKeyResolver(
+            parentTypeName,
+            fieldName,
+            relatedType.name.value,
+            args.fields,
+            keyArg.fields,
+          );
+          const resolver = acc.resolvers.addQueryResolver(
+            getResolver.typeName,
+            getResolver.fieldName,
+            getResolver.dataSourceName,
+            getResolver.requestMappingTemplate,
+            getResolver.responseMappingTemplate,
+          );
+          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+        } else {
+          const queryResolver = this.resources.makeQueryConnectionWithKeyResolver(
+            parentTypeName,
+            fieldName,
+            relatedType,
+            args.fields,
+            keyArg.fields,
+            keyArg.name,
+            args.limit,
+          );
 
-  generateResolvers = (acc: TransformerContext): void => {};
+          const resolver = acc.resolvers.addQueryResolver(
+            queryResolver.typeName,
+            queryResolver.fieldName,
+            queryResolver.dataSourceName,
+            queryResolver.requestMappingTemplate,
+            queryResolver.requestMappingTemplate,
+          );
+          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+        }
+      } else {
+        const leftConnectionIsList = isListType(field.type);
+        const leftConnectionIsNonNull = isNonNullType(field.type);
+        const rightConnectionIsList = associatedConnectionField ? isListType(associatedConnectionField.type) : undefined;
+        const rightConnectionIsNonNull = associatedConnectionField ? isNonNullType(associatedConnectionField.type) : undefined;
+        const limit = getDirectiveArgument(directive, 'limit');
+        let connectionAttributeName = getDirectiveArgument(directive, 'keyField');
+        const connectionName = getDirectiveArgument(directive, name, `${parentTypeName}. ${fieldName}`);
+        const sortType = getBaseType(connectionInfo.associatedSortField.type);
+
+        if (leftConnectionIsList && rightConnectionIsList) {
+          // placeholder need to refactor
+        } else if (leftConnectionIsList && rightConnectionIsList === false) {
+          // 2. [] to {} when the association exists. Note: false and undefined are not equal.
+          // Store a foreign key on the related table and wire up a Query resolver.
+          // This is the inverse of 3.
+          const primaryKeyField = this.getPrimaryKeyField(acc, parent);
+          const idFieldName = primaryKeyField ? primaryKeyField.name.value : 'id';
+
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(
+              connectionInfo.relatedType.name.value,
+              associatedConnectionField.name.value,
+            );
+          }
+          // Validate the provided key field is legit.
+          const existingKeyField = relatedType.fields.find(f => f.name.value === connectionAttributeName);
+          validateKeyField(existingKeyField);
+
+          const queryResolver = this.resources.makeQueryConnectionResolver(
+            parentTypeName,
+            fieldName,
+            connectionInfo.relatedType.name.value,
+            connectionAttributeName,
+            connectionName,
+            idFieldName,
+            // If there is a sort field for this connection query then use
+            connectionInfo.sortKeyInfo,
+            limit,
+          );
+          const resolver = acc.resolvers.addQueryResolver(
+            queryResolver.typeName,
+            queryResolver.fieldName,
+            queryResolver.dataSourceName,
+            queryResolver.requestMappingTemplate,
+            queryResolver.responseMappingTemplate,
+          );
+          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+        } else if (!leftConnectionIsList && rightConnectionIsList) {
+          // 3. {} to [] when the association exists.
+          // Store foreign key on this table and wire up a GetItem resolver.
+          // This is the inverse of 2.
+
+          // if the sortField is not defined as a field, throw an error
+          // Cannot assume the required type of the field
+
+          const primaryKeyField = this.getPrimaryKeyField(acc, relatedType);
+          const idFieldName = primaryKeyField ? primaryKeyField.name.value : 'id';
+
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(parentTypeName, fieldName);
+          }
+
+          const tableLogicalId = ModelResourceIDs.ModelTableResourceID(parentTypeName);
+          const table = acc.getResource(tableLogicalId) as Table;
+          const sortField = connectionInfo.associatedSortField
+            ? { name: connectionInfo.associatedSortField.name.value, type: sortType }
+            : null;
+          const updated = this.resources.updateTableForConnection(table, connectionName, connectionAttributeName, sortField);
+          acc.setResource(tableLogicalId, updated);
+
+          const getResolver = this.resources.makeGetItemConnectionResolver(
+            parentTypeName,
+            fieldName,
+            connectionInfo.relatedType.name.value,
+            connectionAttributeName,
+            idFieldName,
+          );
+          const resolver = acc.resolvers.addQueryResolver(
+            getResolver.typeName,
+            getResolver.fieldName,
+            getResolver.dataSourceName,
+            getResolver.requestMappingTemplate,
+            getResolver.responseMappingTemplate,
+          );
+          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+        } else if (leftConnectionIsList) {
+          // 4. [] to ?
+          // Store foreign key on the related table and wire up a Query resolver.
+          // This has no inverse and has limited knowlege of the connection.
+          const primaryKeyField = this.getPrimaryKeyField(acc, parent);
+          const idFieldName = primaryKeyField ? primaryKeyField.name.value : 'id';
+
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(parentTypeName, fieldName);
+          }
+
+          const tableLogicalId = ModelResourceIDs.ModelTableResourceID(connectionInfo.relatedType.name.value);
+          const table = acc.getResource(tableLogicalId) as Table;
+          const updated = this.resources.updateTableForConnection(table, connectionName, connectionAttributeName);
+          acc.setResource(tableLogicalId, updated);
+
+          const queryResolver = this.resources.makeQueryConnectionResolver(
+            parentTypeName,
+            fieldName,
+            connectionInfo.relatedType.name.value,
+            connectionAttributeName,
+            connectionName,
+            idFieldName,
+            connectionInfo.sortKeyInfo,
+            limit,
+          );
+          const resolver = acc.resolvers.addQueryResolver(
+            queryResolver.typeName,
+            queryResolver.fieldName,
+            queryResolver.dataSourceName,
+            queryResolver.requestMappingTemplate,
+            queryResolver.responseMappingTemplate,
+          );
+          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+        } else {
+          // 5. {} to ?
+          // Store foreign key on this table and wire up a GetItem resolver.
+          // This has no inverse and has limited knowlege of the connection.
+          const primaryKeyField = this.getPrimaryKeyField(acc, relatedType);
+          const idFieldName = primaryKeyField ? primaryKeyField.name.value : 'id';
+
+          if (!connectionAttributeName) {
+            connectionAttributeName = makeConnectionAttributeName(parentTypeName, fieldName);
+          }
+
+          // Issue #2100 - in a 1:1 mapping that's based on sortField, we need to validate both sides
+          // and getItemResolver has to be aware of the soft field.
+          let sortFieldInfo;
+          const sortFieldName = getDirectiveArgument(directive, 'sortField');
+          if (sortFieldName) {
+            // Related type has to have a primary key directive and has to have a soft key
+            // defined
+            const relatedSortField = this.getSortField(relatedType);
+
+            const sortField = parent.fields.find(f => f.name.value === sortFieldName);
+
+            const relatedSortFieldType = getBaseType(relatedSortField.type);
+            const sortFieldType = getBaseType(sortField.type);
+
+            let sortFieldIsStringLike = true;
+
+            // We cannot use $util.defaultIfNullOrBlank on non-string types
+            if (
+              sortFieldType === STANDARD_SCALARS.Int ||
+              sortFieldType === STANDARD_SCALARS.Float ||
+              sortFieldType === STANDARD_SCALARS.Bolean
+            ) {
+              sortFieldIsStringLike = false;
+            }
+
+            sortFieldInfo = {
+              primarySortFieldName: relatedSortField.name.value,
+              sortFieldName,
+              sortFieldIsStringLike,
+            };
+          }
+          const getResolver = this.resources.makeGetItemConnectionResolver(
+            parentTypeName,
+            fieldName,
+            connectionInfo.relatedType.name.value,
+            connectionAttributeName,
+            idFieldName,
+            sortFieldInfo,
+          );
+          const resolver = acc.resolvers.addQueryResolver(
+            getResolver.typeName,
+            getResolver.fieldName,
+            getResolver.dataSourceName,
+            getResolver.requestMappingTemplate,
+            getResolver.responseMappingTemplate,
+          );
+          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+        }
+      }
+    }
+  };
 
   /**
    * The @connection parameterization with "fields" can be used to connect objects by running a query on a table.
@@ -493,133 +863,6 @@ export class ModelConnectionTransformer extends Transformer {
    *      connected objects
    * param @fields The names of the fields on the current object to query by.
    */
-  public connectionWithKey = (
-    parent: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode,
-    field: FieldDefinitionNode,
-    directive: DirectiveNode,
-    ctx: TransformerContext,
-  ): void => {
-    const parentTypeName = parent.name.value;
-    const fieldName = field.name.value;
-    const args = getDirectiveArguments(directive) as ConnectionDirectiveArgs;
-
-    // Ensure that there is at least one field provided.
-    if (args.fields.length === 0) {
-      throw new InvalidDirectiveError('No fields passed in to @connection directive.');
-    }
-
-    // Check that related type exists and that the connected object is annotated with @model.
-    const relatedTypeName = getBaseType(field.type);
-    const relatedType = ctx.inputDocument.definitions.find(
-      d => d.kind === Kind.OBJECT_TYPE_DEFINITION && d.name.value === relatedTypeName,
-    ) as ObjectTypeDefinitionNode | undefined;
-
-    // Get Child object's table.
-    const tableLogicalID = ModelResourceIDs.ModelTableResourceID(relatedType.name.value);
-    const tableResource = ctx.getResource(tableLogicalID) as Table;
-
-    // Check that each field provided exists in the parent model and that it is a valid key type (single non-null).
-    let inputFields: FieldDefinitionNode[] = [];
-    args.fields.forEach(item => {
-      const fieldsArrayLength = inputFields.length;
-      inputFields.push(parent.fields.find(f => f.name.value === item));
-      if (!inputFields[fieldsArrayLength]) {
-        throw new InvalidDirectiveError(`${item} is not a field in ${parentTypeName}`);
-      }
-
-      validateKeyFieldConnectionWithKey(inputFields[fieldsArrayLength], ctx);
-    });
-
-    let index: GlobalSecondaryIndex = undefined;
-    // If no index is provided use the default index for the related model type and
-    // check that the query fields match the PK/SK of the table. Else confirm that index exists.
-    if (!args.keyName) {
-      checkFieldsAgainstIndex(parent, relatedType, args.fields, <KeySchema[]>tableResource.Properties.KeySchema, field);
-    } else {
-      index =
-        (tableResource.Properties.GlobalSecondaryIndexes
-          ? (<GlobalSecondaryIndex[]>tableResource.Properties.GlobalSecondaryIndexes).find(GSI => GSI.IndexName === args.keyName)
-          : null) ||
-        (tableResource.Properties.LocalSecondaryIndexes
-          ? (<LocalSecondaryIndex[]>tableResource.Properties.LocalSecondaryIndexes).find(LSI => LSI.IndexName === args.keyName)
-          : null);
-      if (!index) {
-        throw new InvalidDirectiveError(`Key ${args.keyName} does not exist for model ${relatedTypeName}`);
-      }
-
-      // check the arity
-
-      // Confirm that types of query fields match types of PK/SK of the index being queried.
-      checkFieldsAgainstIndex(parent, relatedType, args.fields, <KeySchema[]>index.KeySchema, field);
-    }
-
-    // If the related type is not a list, the index has to be the default index and the fields provided must match the PK/SK of the index.
-    if (!isListType(field.type)) {
-      if (args.keyName) {
-        // tslint:disable-next-line: max-line-length
-        throw new InvalidDirectiveError(
-          `Connection is to a single object but the keyName ${args.keyName} was provided which does not reference the default table.`,
-        );
-      }
-
-      // Start with GetItem resolver for case where the connection is to a single object.
-      const getResolver = this.resources.makeGetItemConnectionWithKeyResolver(
-        parentTypeName,
-        fieldName,
-        relatedTypeName,
-        args.fields,
-        <KeySchema[]>tableResource.Properties.KeySchema,
-      );
-
-      ctx.setResource(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName), getResolver);
-    } else {
-      const keySchema: KeySchema[] = index ? <KeySchema[]>index.KeySchema : <KeySchema[]>tableResource.Properties.KeySchema;
-
-      const queryResolver = this.resources.makeQueryConnectionWithKeyResolver(
-        parentTypeName,
-        fieldName,
-        relatedType,
-        args.fields,
-        keySchema,
-        index ? String(index.IndexName) : undefined,
-        args.limit,
-      );
-
-      ctx.setResource(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName), queryResolver);
-
-      let sortKeyInfo: { fieldName: string; typeName: SortKeyFieldInfoTypeName; model: string; keyName: string } = undefined;
-      if (args.fields.length > 1) {
-        sortKeyInfo = undefined;
-      } else {
-        const compositeSortKeyType: SortKeyFieldInfoTypeName = 'Composite';
-        const compositeSortKeyName = keySchema[1] ? this.resources.makeCompositeSortKeyName(String(keySchema[1].AttributeName)) : undefined;
-        const sortKeyField = keySchema[1] ? relatedType.fields.find(f => f.name.value === keySchema[1].AttributeName) : undefined;
-
-        // If a sort key field is found then add a simple sort key, else add a composite sort key.
-        if (sortKeyField) {
-          sortKeyInfo = keySchema[1]
-            ? {
-                fieldName: String(keySchema[1].AttributeName),
-                typeName: getBaseType(sortKeyField.type),
-                model: relatedTypeName,
-                keyName: index ? String(index.IndexName) : 'Primary',
-              }
-            : undefined;
-        } else {
-          sortKeyInfo = keySchema[1]
-            ? {
-                fieldName: compositeSortKeyName,
-                typeName: compositeSortKeyType,
-                model: relatedTypeName,
-                keyName: index ? String(index.IndexName) : 'Primary',
-              }
-            : undefined;
-        }
-      }
-
-      this.extendTypeWithConnection(ctx, parent, field, relatedType, sortKeyInfo);
-    }
-  };
 
   private getKeyArg(keyTransformer: KeyTransformer, connectionInfo: ConnectionInfo, args: ConnectionDirectiveArgs) {
     const keyArgs: KeyArguments[] = keyTransformer.getDirectiveArgs(connectionInfo.relatedType);
@@ -629,8 +872,7 @@ export class ModelConnectionTransformer extends Transformer {
       if (!keyArg) {
         throw new InvalidDirectiveError(`Key ${args.keyName} does not exist for model ${connectionInfo.relatedType.name.value}`);
       }
-    }
-    else {
+    } else {
       keyArg = keyArgs.find(arg => !arg.name) || { name: undefined, fields: ['id'] };
     }
     return keyArg;

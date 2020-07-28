@@ -180,8 +180,14 @@ export interface TransformerModelProvider extends ITransformer {
   generateOnDeleteResolver?: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
   generateSyncResolver?: (ctx: TransformerContext, type: ObjectTypeDefinitionNode, typeName: string, fieldName: string) => BaseResolver;
 
+  //  Mutation Type information so other directives acan agument it
+  getCreateInputTypeName?: (ctx: TransformerContext, typeName: string) => string;
+  getUpdateInputTypeName?: (ctx: TransformerContext, typeName: string) => string;
+  getCreateDeleteTypeName?: (ctx: TransformerContext, typeName: string) => string;
+
+  // Todo: Should the same information needs to be provided for query types and subscription types?
+
   getQueryFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<QueryFieldType, string[]>;
   getMutationFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<MutationFieldType, string[]>;
   getSubscriptionFieldNames: (ctx: TransformerContext, type: ObjectTypeDefinitionNode) => Record<SubscriptionFieldType, string[]>;
 }
-

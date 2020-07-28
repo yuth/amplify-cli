@@ -132,7 +132,7 @@ export class ResourceFactory {
     connectionAttribute: string,
     idFieldName: string,
     sortFieldInfo?: { primarySortFieldName: string; sortFieldName: string; sortFieldIsStringLike: boolean },
-  ): Resolver {
+  ) {
     let keyObj: ObjectNode = obj({
       [`${idFieldName}`]: ref(
         `util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank($ctx.source.${connectionAttribute}, "${NONE_VALUE}"))`,
@@ -154,18 +154,17 @@ export class ResourceFactory {
       }
     }
 
-    return new Resolver({
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType), 'Name'),
-      FieldName: field,
-      TypeName: type,
-      RequestMappingTemplate: print(
+    return {
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType), 'Name'),
+      fieldName: field,
+      typeName: type,
+      requestMappingTemplate: print(
         DynamoDBMappingTemplate.getItem({
           key: keyObj,
         }),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(false)),
-    }).dependsOn(ResourceConstants.RESOURCES.GraphQLSchemaLogicalID);
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(false)),
+    };
   }
 
   /**
@@ -203,12 +202,11 @@ export class ResourceFactory {
     if (sortKeyInfo) {
       setup.push(applyKeyConditionExpression(sortKeyInfo.fieldName, sortKeyInfo.attributeType, 'query'));
     }
-    return new Resolver({
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType), 'Name'),
-      FieldName: field,
-      TypeName: type,
-      RequestMappingTemplate: print(
+    return {
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType), 'Name'),
+      fieldName: field,
+      typeName: type,
+      requestMappingTemplate: print(
         compoundExpression([
           ...setup,
           DynamoDBMappingTemplate.query({
@@ -225,13 +223,13 @@ export class ResourceFactory {
           }),
         ]),
       ),
-      ResponseMappingTemplate: print(
+      responseMappingTemplate: print(
         DynamoDBMappingTemplate.dynamoDBResponse(
           false,
           compoundExpression([iff(raw('!$result'), set(ref('result'), ref('ctx.result'))), raw('$util.toJson($result)')]),
         ),
       ),
-    }).dependsOn(ResourceConstants.RESOURCES.GraphQLSchemaLogicalID);
+    };
   }
 
   // Resources for new way to parameterize @connection
@@ -249,9 +247,9 @@ export class ResourceFactory {
     field: string,
     relatedType: string,
     connectionAttributes: string[],
-    keySchema: KeySchema[],
-  ): Resolver {
-    const partitionKeyName = keySchema[0].AttributeName as string;
+    keyDirectiveFields: string[],
+  ) {
+    const partitionKeyName = keyDirectiveFields[0];
 
     let keyObj: ObjectNode = obj({
       [partitionKeyName]: ref(
@@ -262,7 +260,7 @@ export class ResourceFactory {
     // Add a composite sort key or simple sort key if there is one.
     if (connectionAttributes.length > 2) {
       const rangeKeyFields = connectionAttributes.slice(1);
-      const sortKeyName = keySchema[1].AttributeName as string;
+      const sortKeyName = ModelResourceIDs.ModelCompositeAttributeName(keyDirectiveFields.slice(1));
       const condensedSortKeyValue = this.condenseRangeKey(rangeKeyFields.map(keyField => `\${ctx.source.${keyField}}`));
 
       keyObj.attributes.push([
@@ -270,27 +268,27 @@ export class ResourceFactory {
         ref(`util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank("${condensedSortKeyValue}", "${NONE_VALUE}"))`),
       ]);
     } else if (connectionAttributes[1]) {
-      const sortKeyName = keySchema[1].AttributeName as string;
+      const sortKeyName = keyDirectiveFields[1];
       keyObj.attributes.push([
         sortKeyName,
         ref(`util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank($ctx.source.${connectionAttributes[1]}, "${NONE_VALUE}"))`),
       ]);
     }
 
-    return new Resolver({
+    return {
       ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType), 'Name'),
-      FieldName: field,
-      TypeName: type,
-      RequestMappingTemplate: print(
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType), 'Name'),
+      fieldName: field,
+      typeName: type,
+      requestMappingTemplate: print(
         compoundExpression([
           DynamoDBMappingTemplate.getItem({
             key: keyObj,
           }),
         ]),
       ),
-      ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(false)),
-    }).dependsOn(ResourceConstants.RESOURCES.GraphQLSchemaLogicalID);
+      responseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(false)),
+    };
   }
 
   /**
@@ -299,7 +297,7 @@ export class ResourceFactory {
    * @param field The connection field name.
    * @param relatedType The related type to fetch from.
    * @param connectionAttributes The names of the underlying attributes containing the fields to query by.
-   * @param keySchema The keySchema for the table or index being queried.
+   * @param keyDirectiveFields The fields defined in @key directive
    * @param indexName The index to run the query on.
    */
   public makeQueryConnectionWithKeyResolver(
@@ -307,30 +305,30 @@ export class ResourceFactory {
     field: string,
     relatedType: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode,
     connectionAttributes: string[],
-    keySchema: KeySchema[],
+    keyDirectiveFields: string[],
     indexName: string,
     limit?: number,
   ) {
     const pageLimit = limit || ResourceConstants.DEFAULT_PAGE_LIMIT;
     const setup: Expression[] = [
       set(ref('limit'), ref(`util.defaultIfNull($context.args.limit, ${pageLimit})`)),
-      set(ref('query'), this.makeExpression(keySchema, connectionAttributes)),
+      set(ref('query'), this.makeExpression(keyDirectiveFields, connectionAttributes)),
     ];
 
     // If the key schema has a sort key but one is not provided for the query, let a sort key be
     // passed in via $ctx.args.
-    if (keySchema[1] && !connectionAttributes[1]) {
-      const sortKeyField = relatedType.fields.find(f => f.name.value === keySchema[1].AttributeName);
-
-      if (sortKeyField) {
-        setup.push(applyKeyConditionExpression(String(keySchema[1].AttributeName), attributeTypeFromScalar(sortKeyField.type), 'query'));
+    if (connectionAttributes.length === 1 && keyDirectiveFields.length > 1) {
+      if (keyDirectiveFields.length === 2) {
+        const sortKeyField = relatedType.fields.find(f => f.name.value === keyDirectiveFields[1]);
+        setup.push(applyKeyConditionExpression(keyDirectiveFields[1], attributeTypeFromScalar(sortKeyField.type), 'query'));
       } else {
+        const sortKeyAttributeName = ModelResourceIDs.ModelCompositeAttributeName(keyDirectiveFields.slice(1));
         setup.push(
           applyCompositeKeyConditionExpression(
-            this.getSortKeyNames(String(keySchema[1].AttributeName)),
+            keyDirectiveFields.slice(1),
             'query',
-            this.makeCompositeSortKeyName(String(keySchema[1].AttributeName)),
-            String(keySchema[1].AttributeName),
+            this.makeCompositeSortKeyName(keyDirectiveFields.slice(1)),
+            sortKeyAttributeName,
           ),
         );
       }
@@ -356,29 +354,29 @@ export class ResourceFactory {
 
     const queryObj = DynamoDBMappingTemplate.query(queryArguments);
 
-    return new Resolver({
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType.name.value), 'Name'),
-      FieldName: field,
-      TypeName: type,
-      RequestMappingTemplate: print(compoundExpression([...setup, queryObj])),
-      ResponseMappingTemplate: print(
+    return {
+      dataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(relatedType.name.value), 'Name'),
+      fieldName: field,
+      typeName: type,
+      requestMappingTemplate: print(compoundExpression([...setup, queryObj])),
+      responseMappingTemplate: print(
         DynamoDBMappingTemplate.dynamoDBResponse(
           false,
           compoundExpression([iff(raw('!$result'), set(ref('result'), ref('ctx.result'))), raw('$util.toJson($result)')]),
         ),
       ),
-    }).dependsOn(ResourceConstants.RESOURCES.GraphQLSchemaLogicalID);
+    };
   }
 
   /**
    * Makes the query expression based on whether there is a sort key to be used for the query
    * or not.
-   * @param keySchema The key schema for the table or index being queried.
+   * @param keyDirectiveFields The key schema for the table or index being queried.
    * @param connectionAttributes The names of the underlying attributes containing the fields to query by.
    */
-  public makeExpression(keySchema: KeySchema[], connectionAttributes: string[]): ObjectNode {
-    if (keySchema[1] && connectionAttributes[1]) {
+  public makeExpression(keyDirectiveFields: string[], connectionAttributes: string[]): ObjectNode {
+    if (keyDirectiveFields[1] && connectionAttributes[1]) {
+      const sortAttributeName = ModelResourceIDs.ModelCompositeAttributeName(keyDirectiveFields.slice(1));
       let condensedSortKeyValue: string = undefined;
       if (connectionAttributes.length > 2) {
         const rangeKeyFields = connectionAttributes.slice(1);
@@ -388,8 +386,8 @@ export class ResourceFactory {
       return obj({
         expression: str('#partitionKey = :partitionKey AND #sortKey = :sortKey'),
         expressionNames: obj({
-          '#partitionKey': str(String(keySchema[0].AttributeName)),
-          '#sortKey': str(String(keySchema[1].AttributeName)),
+          '#partitionKey': str(String(keyDirectiveFields[0])),
+          '#sortKey': str(sortAttributeName),
         }),
         expressionValues: obj({
           ':partitionKey': obj({
@@ -405,7 +403,7 @@ export class ResourceFactory {
     return obj({
       expression: str('#partitionKey = :partitionKey'),
       expressionNames: obj({
-        '#partitionKey': str(String(keySchema[0].AttributeName)),
+        '#partitionKey': str(String(keyDirectiveFields[0])),
       }),
       expressionValues: obj({
         ':partitionKey': obj({
@@ -419,9 +417,8 @@ export class ResourceFactory {
     return fields.join(ModelResourceIDs.ModelCompositeKeySeparator());
   }
 
-  public makeCompositeSortKeyName(sortKeyName: string) {
-    const attributeNames = sortKeyName.split(ModelResourceIDs.ModelCompositeKeySeparator());
-    return toCamelCase(attributeNames);
+  public makeCompositeSortKeyName(sortKeyName: string[]) {
+    return toCamelCase(sortKeyName);
   }
 
   private getSortKeyNames(compositeSK: string) {
