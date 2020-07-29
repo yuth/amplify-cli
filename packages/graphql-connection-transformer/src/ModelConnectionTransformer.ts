@@ -646,7 +646,7 @@ export class ModelConnectionTransformer extends Transformer {
             getResolver.requestMappingTemplate,
             getResolver.responseMappingTemplate,
           );
-          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+          resolver.mapResourceToStack(CONNECTION_STACK_NAME);
         } else {
           const queryResolver = this.resources.makeQueryConnectionWithKeyResolver(
             parentTypeName,
@@ -663,9 +663,9 @@ export class ModelConnectionTransformer extends Transformer {
             queryResolver.fieldName,
             queryResolver.dataSourceName,
             queryResolver.requestMappingTemplate,
-            queryResolver.requestMappingTemplate,
+            queryResolver.responseMappingTemplate,
           );
-          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+          resolver.mapResourceToStack(CONNECTION_STACK_NAME);
         }
       } else {
         const leftConnectionIsList = isListType(field.type);
@@ -674,8 +674,8 @@ export class ModelConnectionTransformer extends Transformer {
         const rightConnectionIsNonNull = associatedConnectionField ? isNonNullType(associatedConnectionField.type) : undefined;
         const limit = getDirectiveArgument(directive, 'limit');
         let connectionAttributeName = getDirectiveArgument(directive, 'keyField');
-        const connectionName = getDirectiveArgument(directive, name, `${parentTypeName}. ${fieldName}`);
-        const sortType = getBaseType(connectionInfo.associatedSortField.type);
+        const connectionName = getDirectiveArgument(directive, 'name', `${parentTypeName}. ${fieldName}`);
+        const sortType = connectionInfo.associatedSortField ? getBaseType(connectionInfo.associatedSortField.type) : undefined;
 
         if (leftConnectionIsList && rightConnectionIsList) {
           // placeholder need to refactor
@@ -714,7 +714,7 @@ export class ModelConnectionTransformer extends Transformer {
             queryResolver.requestMappingTemplate,
             queryResolver.responseMappingTemplate,
           );
-          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+          resolver.mapResourceToStack(CONNECTION_STACK_NAME);
         } else if (!leftConnectionIsList && rightConnectionIsList) {
           // 3. {} to [] when the association exists.
           // Store foreign key on this table and wire up a GetItem resolver.
@@ -752,7 +752,7 @@ export class ModelConnectionTransformer extends Transformer {
             getResolver.requestMappingTemplate,
             getResolver.responseMappingTemplate,
           );
-          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+          resolver.mapResourceToStack(CONNECTION_STACK_NAME);
         } else if (leftConnectionIsList) {
           // 4. [] to ?
           // Store foreign key on the related table and wire up a Query resolver.
@@ -786,7 +786,7 @@ export class ModelConnectionTransformer extends Transformer {
             queryResolver.requestMappingTemplate,
             queryResolver.responseMappingTemplate,
           );
-          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+          resolver.mapResourceToStack(CONNECTION_STACK_NAME);
         } else {
           // 5. {} to ?
           // Store foreign key on this table and wire up a GetItem resolver.
@@ -844,7 +844,7 @@ export class ModelConnectionTransformer extends Transformer {
             getResolver.requestMappingTemplate,
             getResolver.responseMappingTemplate,
           );
-          resolver.mapResourceToStack(ResolverResourceIDs.ResolverResourceID(parentTypeName, fieldName));
+          resolver.mapResourceToStack(CONNECTION_STACK_NAME);
         }
       }
     }

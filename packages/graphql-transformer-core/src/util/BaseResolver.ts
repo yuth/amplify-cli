@@ -48,28 +48,38 @@ export class BaseResolver {
   }
 
   generateSlotFunctions(slotNames: string[]): Resource[] {
-    return slotNames.flatMap(slotName => {
-      return this.slotManager.get(slotName).reduce((acc, item, index) => {
-        const responseMappingTemplate = printBlock(this.generateTemplateComment(slotName, index, 'RESPONSE'))(
-          compoundExpression([
-            iff(ref('ctx.error'), raw('$util.error($ctx.error.message, $ctx.error.type)')),
-            raw('$util.toJson($ctx.result)'),
-          ]),
-        );
-        const requestMappingTemplate = printBlock(this.generateTemplateComment(slotName, index, 'REQUEST'))(
-          compoundExpression([raw(item), raw('$util.toJson({})')]),
-        );
-        return [...acc, this.generateAppSyncFunction(slotName, index, requestMappingTemplate, responseMappingTemplate)];
-      }, []);
-    });
+    return slotNames
+      .map(slotName => {
+        return this.generateSlotFunction(slotName);
+      })
+      .filter(resolver => resolver);
   }
-  private generateTemplateComment(slotName: string, index: number, templateType: 'REQUEST' | 'RESPONSE'): string {
-    return `Resolver :  ${this.typeName}.${this.fieldName} Slot: ${slotName} slotIndex: ${index} type: ${templateType}`;
+
+  private generateSlotFunction(slotName): Resource | undefined {
+    const slots = this.slotManager.get(slotName);
+    if (!slots.length) return;
+    const requestMappingTemplate = slots.reduce((acc, item) => {
+      return [...acc, printBlock(this.generateTemplateComment(slotName, 'REQUEST'))(compoundExpression([raw(item)]))];
+    }, []);
+
+    requestMappingTemplate.push(printBlock('End of slot')(raw('$util.toJson({})')));
+
+    const responseMappingTemplate = printBlock(this.generateTemplateComment(slotName, 'RESPONSE'))(
+      compoundExpression([
+        iff(ref('ctx.error'), raw('$util.error($ctx.error.message, $ctx.error.type)')),
+        raw('$util.toJson($ctx.result)'),
+      ]),
+    );
+
+    return this.generateAppSyncFunction(slotName, requestMappingTemplate.join('\n'), responseMappingTemplate);
+  }
+
+  private generateTemplateComment(slotName: string, templateType: 'REQUEST' | 'RESPONSE'): string {
+    return `Resolver :  ${this.typeName}.${this.fieldName} Slot: ${slotName} type: ${templateType}`;
   }
 
   generateAppSyncFunction(
     slotName: string,
-    slotIndex: number,
     requestTemplate: string,
     responseTemplate: string,
     dataSourceName: string | IntrinsicFunction = 'NONE',
@@ -79,7 +89,7 @@ export class BaseResolver {
       FunctionVersion: '2018-05-29',
       RequestMappingTemplate: requestTemplate,
       ApiId: this.getAPIId(),
-      Name: this.getFunctionName(slotName, slotIndex),
+      Name: this.getFunctionName(slotName),
       ResponseMappingTemplate: responseTemplate,
     }).dependsOn(ResourceConstants.RESOURCES.NoneDataSource);
   }
@@ -89,7 +99,6 @@ export class BaseResolver {
     const responseFunctions = this.generateSlotFunctions(this.responseSlots);
     const dataFetcher = this.generateAppSyncFunction(
       'load',
-      0,
       this.requestMappingTemplate,
       this.responseMappingTemplate,
       this.dataSourceName,
@@ -99,8 +108,8 @@ export class BaseResolver {
     return [...requestFunctions, dataFetcher, ...responseFunctions, pipelineResolver];
   }
 
-  protected getFunctionName(slotName: string, index: number): string {
-    return pascalCase(`${this.typeName} ${this.fieldName} ${slotName}${index}`);
+  protected getFunctionName(slotName: string): string {
+    return pascalCase(`${this.typeName} ${this.fieldName} ${slotName}`);
   }
 
   protected generatePipelineResolver(functionNames: string[]) {
