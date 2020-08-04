@@ -32,7 +32,7 @@ export class DynamoDBMappingTemplate {
     }: {
       key: ObjectNode | Expression;
       attributeValues: Expression;
-      condition?: ObjectNode | ReferenceNode;
+      condition?: ObjectNode | ReferenceNode| Expression;
     },
     version: string = RESOLVER_VERSION_ID,
   ): ObjectNode {

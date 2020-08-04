@@ -20,6 +20,8 @@ import {
   forEach,
   and,
   RESOLVER_VERSION_ID,
+  list,
+  not,
 } from 'graphql-mapping-template';
 import {
   ResourceConstants,
@@ -394,40 +396,40 @@ export class ResourceFactory {
       typeName: mutationTypeName,
       requestMappingTemplate: printBlock('Prepare DynamoDB PutItem Request')(
         compoundExpression([
-          qref(`$context.args.input.put("__typename", "${type}")`),
           set(
-            ref('condition'),
+            ref('conditionObj'),
             obj({
-              expression: str('attribute_not_exists(#id)'),
-              expressionNames: obj({
-                '#id': str('id'),
-              }),
+              and: list([]),
             }),
           ),
-          iff(
-            ref('context.args.condition'),
+          qref(`$context.args.input.put("__typename", "${type}")`),
+          ifElse(
+            not(ref(ResourceConstants.SNIPPETS.ModelObjectKey)),
+            compoundExpression([qref('$conditionObj["and"].add({"id": {"attributeExists": false}})')]),
             compoundExpression([
-              set(ref('condition.expressionValues'), obj({})),
-              set(
-                ref('conditionFilterExpressions'),
-                raw('$util.parseJson($util.transform.toDynamoDBConditionExpression($context.args.condition))'),
-              ),
-              // tslint:disable-next-line
-              qref(`$condition.put("expression", "($condition.expression) AND $conditionFilterExpressions.expression")`),
-              qref(`$condition.expressionNames.putAll($conditionFilterExpressions.expressionNames)`),
-              qref(`$condition.expressionValues.putAll($conditionFilterExpressions.expressionValues)`),
+              set(ref('keyCondition'), list([])),
+              forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
+                set(ref('keyCond'), obj({ '$entry.key': obj({ attributeExists: bool(false) }) })),
+                qref('$keyCondition.add($keyCond)'),
+              ]),
+              qref(`$conditionObj["and"].add({"and": $keyCondition})`),
             ]),
           ),
+          iff(ref('context.args.condition'), compoundExpression([qref('$conditionObj["and"].add($context.args.condition)')])),
           iff(
-            and([ref('condition.expressionValues'), raw('$condition.expressionValues.size() == 0')]),
-            set(
-              ref('condition'),
-              obj({
-                expression: ref('condition.expression'),
-                expressionNames: ref('condition.expressionNames'),
-              }),
-            ),
+            not(ref('context.stash.authCondition.isEmpty()')),
+            compoundExpression([qref('$conditionObj["and"].add($context.stash.authCondition)')]),
           ),
+          iff(
+            not(ref('context.stash.condition.isEmpty()')),
+            compoundExpression([qref('$conditionObj["and"].add($context.stash.condition)')]),
+          ),
+          set(ref('condition'), ref('util.parseJson($util.transform.toDynamoDBFilterExpression($conditionObj))')),
+          iff(
+            ref('condition.expressionValues.isEmpty()'),
+            compoundExpression([set(ref('condition'), ref('util.map.copyAndRemoveAllKeys($condition, ["expressionValues"])'))]),
+          ),
+
           DynamoDBMappingTemplate.putItem({
             key: ifElse(
               ref(ResourceConstants.SNIPPETS.ModelObjectKey),
@@ -485,55 +487,34 @@ export class ResourceFactory {
       typeName: mutationTypeName,
       requestMappingTemplate: print(
         compoundExpression([
-          ifElse(
-            raw(`$${ResourceConstants.SNIPPETS.AuthCondition} && $${ResourceConstants.SNIPPETS.AuthCondition}.expression != ""`),
-            compoundExpression([
-              set(ref('condition'), ref(ResourceConstants.SNIPPETS.AuthCondition)),
-              ifElse(
-                ref(ResourceConstants.SNIPPETS.ModelObjectKey),
-                forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
-                  qref('$condition.put("expression", "$condition.expression AND attribute_exists(#keyCondition$velocityCount)")'),
-                  qref('$condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key")'),
-                ]),
-                compoundExpression([
-                  qref('$condition.put("expression", "$condition.expression AND attribute_exists(#id)")'),
-                  qref('$condition.expressionNames.put("#id", "id")'),
-                ]),
-              ),
-            ]),
+          set(
+            ref('conditionObj'),
+            obj({
+              and: list([]),
+            }),
+          ),
+          compoundExpression([
             ifElse(
               ref(ResourceConstants.SNIPPETS.ModelObjectKey),
               compoundExpression([
-                set(
-                  ref('condition'),
-                  obj({
-                    expression: str(''),
-                    expressionNames: obj({}),
-                    expressionValues: obj({}),
-                  }),
-                ),
+                set(ref('keyCondition'), list([])),
                 forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
-                  ifElse(
-                    raw('$velocityCount == 1'),
-                    qref('$condition.put("expression", "attribute_exists(#keyCondition$velocityCount)")'),
-                    qref('$condition.put(\
-"expression", "$condition.expression AND attribute_exists(#keyCondition$velocityCount)")'),
-                  ),
-                  qref('$condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key")'),
+                  set(ref('keyCond'), obj({ '$entry.key': obj({ attributeExists: bool(true) }) })),
+                  qref('$keyCondition.add($keyCond)'),
                 ]),
+                qref(`$conditionObj["and"].add({"and": $keyCondition})`),
               ]),
-              set(
-                ref('condition'),
-                obj({
-                  expression: str('attribute_exists(#id)'),
-                  expressionNames: obj({
-                    '#id': str('id'),
-                  }),
-                  expressionValues: obj({}),
-                }),
-              ),
+              compoundExpression([
+                set(ref('keyCondition'), obj({ id: obj({ attributeExists: bool(true) }) })),
+                qref(`$conditionObj["and"].add($keyCondition)`),
+              ]),
             ),
+          ]),
+          iff(
+            not(ref('ctx.stash.authCondition.isEmpty()')),
+            compoundExpression([qref('$conditionObj["and"].add($ctx.stash.authCondition)')]),
           ),
+          iff(not(ref('ctx.stash.condition.isEmpty()')), compoundExpression([qref('$conditionObj["and"].add($ctx.stash.condition)')])),
           ...(timestamps && timestamps.updatedAtField
             ? [
                 comment(`Automatically set the updatedAt timestamp.`),
@@ -543,41 +524,6 @@ export class ResourceFactory {
               ]
             : []),
           qref(`$context.args.input.put("__typename", "${type}")`),
-          comment('Update condition if type is @versioned'),
-          iff(
-            ref(ResourceConstants.SNIPPETS.VersionedCondition),
-            compoundExpression([
-              // tslint:disable-next-line
-              qref(
-                `$condition.put("expression", "($condition.expression) AND $${ResourceConstants.SNIPPETS.VersionedCondition}.expression")`,
-              ),
-              qref(`$condition.expressionNames.putAll($${ResourceConstants.SNIPPETS.VersionedCondition}.expressionNames)`),
-              qref(`$condition.expressionValues.putAll($${ResourceConstants.SNIPPETS.VersionedCondition}.expressionValues)`),
-            ]),
-          ),
-          iff(
-            ref('context.args.condition'),
-            compoundExpression([
-              set(
-                ref('conditionFilterExpressions'),
-                raw('$util.parseJson($util.transform.toDynamoDBConditionExpression($context.args.condition))'),
-              ),
-              // tslint:disable-next-line
-              qref(`$condition.put("expression", "($condition.expression) AND $conditionFilterExpressions.expression")`),
-              qref(`$condition.expressionNames.putAll($conditionFilterExpressions.expressionNames)`),
-              qref(`$condition.expressionValues.putAll($conditionFilterExpressions.expressionValues)`),
-            ]),
-          ),
-          iff(
-            and([ref('condition.expressionValues'), raw('$condition.expressionValues.size() == 0')]),
-            set(
-              ref('condition'),
-              obj({
-                expression: ref('condition.expression'),
-                expressionNames: ref('condition.expressionNames'),
-              }),
-            ),
-          ),
           DynamoDBMappingTemplate.updateItem({
             key: ifElse(
               ref(ResourceConstants.SNIPPETS.ModelObjectKey),
@@ -587,7 +533,7 @@ export class ResourceFactory {
               }),
               true,
             ),
-            condition: ref('util.toJson($condition)'),
+            condition: ref('util.transform.toDynamoDBFilterExpression($conditionObj)'),
             objectKeyVariable: ResourceConstants.SNIPPETS.ModelObjectKey,
             nameOverrideMap: ResourceConstants.SNIPPETS.DynamoDBNameOverrideMap,
             isSyncEnabled,
@@ -762,53 +708,20 @@ export class ResourceFactory {
       typeName: mutationTypeName,
       requestMappingTemplate: print(
         compoundExpression([
-          ifElse(
-            ref(ResourceConstants.SNIPPETS.AuthCondition),
-            compoundExpression([
-              set(ref('condition'), ref(ResourceConstants.SNIPPETS.AuthCondition)),
-              ifElse(
-                ref(ResourceConstants.SNIPPETS.ModelObjectKey),
-                forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
-                  qref('$condition.put("expression", "$condition.expression AND attribute_exists(#keyCondition$velocityCount)")'),
-                  qref('$condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key")'),
-                ]),
-                compoundExpression([
-                  qref('$condition.put("expression", "$condition.expression AND attribute_exists(#id)")'),
-                  qref('$condition.expressionNames.put("#id", "id")'),
-                ]),
-              ),
-            ]),
+          compoundExpression([
+            set(ref('keyCondition'), list([])),
             ifElse(
               ref(ResourceConstants.SNIPPETS.ModelObjectKey),
-              compoundExpression([
-                set(
-                  ref('condition'),
-                  obj({
-                    expression: str(''),
-                    expressionNames: obj({}),
-                  }),
-                ),
-                forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
-                  ifElse(
-                    raw('$velocityCount == 1'),
-                    qref('$condition.put("expression", "attribute_exists(#keyCondition$velocityCount)")'),
-                    qref('$condition.put(\
-"expression", "$condition.expression AND attribute_exists(#keyCondition$velocityCount)")'),
-                  ),
-                  qref('$condition.expressionNames.put("#keyCondition$velocityCount", "$entry.key")'),
-                ]),
+              forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
+                set(ref('keyCond'), obj({ '$entry.key': obj({ attributeExists: bool(true) }) })),
+                qref('$keyCondition.add($keyCond)'),
               ]),
-              set(
-                ref('condition'),
-                obj({
-                  expression: str('attribute_exists(#id)'),
-                  expressionNames: obj({
-                    '#id': str('id'),
-                  }),
-                }),
-              ),
+              compoundExpression([
+                set(ref('keyCond'), obj({ id: obj({ attributeExists: bool(true) }) })),
+                qref('$keyCondition.add($keyCond)'),
+              ]),
             ),
-          ),
+          ]),
           iff(
             ref(ResourceConstants.SNIPPETS.VersionedCondition),
             compoundExpression([

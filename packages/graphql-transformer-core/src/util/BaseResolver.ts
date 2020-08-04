@@ -125,6 +125,9 @@ export class BaseResolver {
         compoundExpression([
           qref(`$ctx.stash.put("typeName", "${this.typeName}")`),
           qref(`$ctx.stash.put("fieldName", "${this.fieldName}")`),
+          qref(`$ctx.stash.put("authCondition", {})`),
+          qref(`$ctx.stash.put("condition", {})`),
+          qref(`$ctx.stash.put("metadata", {})`),
           obj({}),
         ]),
       ),

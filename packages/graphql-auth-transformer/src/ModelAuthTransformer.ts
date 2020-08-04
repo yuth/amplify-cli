@@ -5,6 +5,7 @@ import {
   gql,
   getDirectiveArguments,
   getFieldArguments,
+  TransformerModelProvider,
 } from 'graphql-transformer-core';
 import GraphQLAPI from 'cloudform-types/types/appSync/graphQlApi';
 import Resolver from 'cloudform-types/types/appSync/resolver';
@@ -42,6 +43,8 @@ import { Expression, print, raw, iff, forEach, set, ref, list, compoundExpressio
 import { ModelDirectiveConfiguration, ModelDirectiveOperationType, ModelSubscriptionLevel } from './ModelDirectiveConfiguration';
 
 import { OWNER_AUTH_STRATEGY, GROUPS_AUTH_STRATEGY, DEFAULT_OWNER_FIELD, AUTH_NON_MODEL_TYPES } from './constants';
+import { type } from 'os';
+import { BaseResolver } from 'graphql-transformer-core/lib/util/BaseResolver';
 
 /**
  * Implements the ModelAuthTransformer.
@@ -149,6 +152,7 @@ export class ModelAuthTransformer extends Transformer {
   generateIAMPolicyforAuthRole: boolean;
   authPolicyResources: Set<string>;
   unauthPolicyResources: Set<string>;
+  private modelsWithAuth: Map<string, string[]> = new Map();
 
   constructor(config?: ModelAuthTransformerConfig) {
     super(
@@ -337,94 +341,97 @@ export class ModelAuthTransformer extends Transformer {
    * Implement the transform for an object type. Depending on which operations are to be protected
    */
   public object = (def: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext): void => {
-    const modelDirective = def.directives.find(dir => dir.name.value === 'model');
-    if (!modelDirective) {
-      throw new InvalidDirectiveError('Types annotated with @auth must also be annotated with @model.');
-    }
+    const typeName = def.name.value;
+    this.modelsWithAuth.set(typeName, []);
+    return;
+    // const modelDirective = def.directives.find(dir => dir.name.value === 'model');
+    // if (!modelDirective) {
+    //   throw new InvalidDirectiveError('Types annotated with @auth must also be annotated with @model.');
+    // }
 
-    // check if searchable is enabled on the type
-    const searchableDirective = def.directives.find(dir => dir.name.value === 'searchable');
+    // // check if searchable is enabled on the type
+    // const searchableDirective = def.directives.find(dir => dir.name.value === 'searchable');
 
-    // Get and validate the auth rules.
-    const rules = this.getAuthRulesFromDirective(directive);
-    // Assign default providers to rules where no provider was explicitly defined
-    this.ensureDefaultAuthProviderAssigned(rules);
-    this.validateRules(rules);
-    // Check the rules if we've to generate IAM policies for Unauth role or not
-    this.setAuthPolicyFlag(rules);
-    this.setUnauthPolicyFlag(rules);
+    // // Get and validate the auth rules.
+    // const rules = this.getAuthRulesFromDirective(directive);
+    // // Assign default providers to rules where no provider was explicitly defined
+    // this.ensureDefaultAuthProviderAssigned(rules);
+    // this.validateRules(rules);
+    // // Check the rules if we've to generate IAM policies for Unauth role or not
+    // this.setAuthPolicyFlag(rules);
+    // this.setUnauthPolicyFlag(rules);
 
-    // Check if the object type has fields of type without the @model directive.
-    // We've to make sure that appropriate @aws_* directive will be added and a policy entry for the
-    // type will be emitted as well in case of IAM.
-    this.propagateAuthDirectivesToNestedTypes(def, rules, ctx);
+    // // Check if the object type has fields of type without the @model directive.
+    // // We've to make sure that appropriate @aws_* directive will be added and a policy entry for the
+    // // type will be emitted as well in case of IAM.
+    // this.propagateAuthDirectivesToNestedTypes(def, rules, ctx);
 
-    const { operationRules, queryRules } = this.splitRules(rules);
+    // const { operationRules, queryRules } = this.splitRules(rules);
 
-    // Retrieve the configuration options for the related @model directive
-    const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, def);
-    // Get the directives we need to add to the GraphQL nodes
-    const directives = this.getDirectivesForRules(rules, false);
+    // // Retrieve the configuration options for the related @model directive
+    // const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, def);
+    // // Get the directives we need to add to the GraphQL nodes
+    // const directives = this.getDirectivesForRules(rules, false);
 
-    // Add the directives to the Type node itself
-    if (directives.length > 0) {
-      this.extendTypeWithDirectives(ctx, def.name.value, directives);
-    }
+    // // Add the directives to the Type node itself
+    // if (directives.length > 0) {
+    //   this.extendTypeWithDirectives(ctx, def.name.value, directives);
+    // }
 
-    this.addTypeToResourceReferences(def.name.value, rules);
+    // this.addTypeToResourceReferences(def.name.value, rules);
 
-    // For each operation evaluate the rules and apply the changes to the relevant resolver.
-    this.protectCreateMutation(
-      ctx,
-      ResolverResourceIDs.DynamoDBCreateResolverResourceID(def.name.value),
-      operationRules.create,
-      def,
-      modelConfiguration,
-    );
-    this.protectUpdateMutation(
-      ctx,
-      ResolverResourceIDs.DynamoDBUpdateResolverResourceID(def.name.value),
-      operationRules.update,
-      def,
-      modelConfiguration,
-    );
-    this.protectDeleteMutation(
-      ctx,
-      ResolverResourceIDs.DynamoDBDeleteResolverResourceID(def.name.value),
-      operationRules.delete,
-      def,
-      modelConfiguration,
-    );
-    this.protectGetQuery(ctx, ResolverResourceIDs.DynamoDBGetResolverResourceID(def.name.value), queryRules.get, def, modelConfiguration);
-    this.protectListQuery(
-      ctx,
-      ResolverResourceIDs.DynamoDBListResolverResourceID(def.name.value),
-      queryRules.list,
-      def,
-      modelConfiguration,
-    );
-    this.protectConnections(ctx, def, operationRules.read, modelConfiguration);
-    this.protectQueries(ctx, def, operationRules.read, modelConfiguration);
+    // // For each operation evaluate the rules and apply the changes to the relevant resolver.
+    // this.protectCreateMutation(
+    //   ctx,
+    //   ResolverResourceIDs.DynamoDBCreateResolverResourceID(def.name.value),
+    //   operationRules.create,
+    //   def,
+    //   modelConfiguration,
+    // );
+    // this.protectUpdateMutation(
+    //   ctx,
+    //   ResolverResourceIDs.DynamoDBUpdateResolverResourceID(def.name.value),
+    //   operationRules.update,
+    //   def,
+    //   modelConfiguration,
+    // );
+    // this.protectDeleteMutation(
+    //   ctx,
+    //   ResolverResourceIDs.DynamoDBDeleteResolverResourceID(def.name.value),
+    //   operationRules.delete,
+    //   def,
+    //   modelConfiguration,
+    // );
+    // this.protectGetQuery(ctx, ResolverResourceIDs.DynamoDBGetResolverResourceID(def.name.value), queryRules.get, def, modelConfiguration);
+    // this.protectListQuery(
+    //   ctx,
+    //   ResolverResourceIDs.DynamoDBListResolverResourceID(def.name.value),
+    //   queryRules.list,
+    //   def,
+    //   modelConfiguration,
+    // );
+    // this.protectConnections(ctx, def, operationRules.read, modelConfiguration);
+    // this.protectQueries(ctx, def, operationRules.read, modelConfiguration);
 
-    // protect search query if @searchable is enabled
-    if (searchableDirective) {
-      this.protectSearchQuery(ctx, def, ResolverResourceIDs.ElasticsearchSearchResolverResourceID(def.name.value), operationRules.read);
-    }
+    // // protect search query if @searchable is enabled
+    // if (searchableDirective) {
+    //   this.protectSearchQuery(ctx, def, ResolverResourceIDs.ElasticsearchSearchResolverResourceID(def.name.value), operationRules.read);
+    // }
 
-    // protect sync query if model is sync enabled
-    if (this.isSyncEnabled(ctx, def.name.value)) {
-      this.protectSyncQuery(ctx, def, ResolverResourceIDs.SyncResolverResourceID(def.name.value), operationRules.read);
-    }
+    // // protect sync query if model is sync enabled
+    // if (this.isSyncEnabled(ctx, def.name.value)) {
+    //   this.protectSyncQuery(ctx, def, ResolverResourceIDs.SyncResolverResourceID(def.name.value), operationRules.read);
+    // }
 
-    // Check if subscriptions is enabled
-    if (modelConfiguration.getName('level') !== 'off') {
-      this.protectOnCreateSubscription(ctx, operationRules.read, def, modelConfiguration);
-      this.protectOnUpdateSubscription(ctx, operationRules.read, def, modelConfiguration);
-      this.protectOnDeleteSubscription(ctx, operationRules.read, def, modelConfiguration);
-    }
+    // // Check if subscriptions is enabled
+    // if (modelConfiguration.getName('level') !== 'off') {
+    //   this.protectOnCreateSubscription(ctx, operationRules.read, def, modelConfiguration);
+    //   this.protectOnUpdateSubscription(ctx, operationRules.read, def, modelConfiguration);
+    //   this.protectOnDeleteSubscription(ctx, operationRules.read, def, modelConfiguration);
+    // }
 
-    // Update ModelXConditionInput type
-    this.updateMutationConditionInput(ctx, def, rules);
+    // // Update ModelXConditionInput type
+    // this.updateMutationConditionInput(ctx, def, rules);
   };
 
   public field = (
@@ -433,93 +440,278 @@ export class ModelAuthTransformer extends Transformer {
     directive: DirectiveNode,
     ctx: TransformerContext,
   ) => {
-    if (parent.kind === Kind.INTERFACE_TYPE_DEFINITION) {
-      throw new InvalidDirectiveError(
-        `The @auth directive cannot be placed on an interface's field. See ${parent.name.value}${definition.name.value}`,
-      );
-    }
-    const modelDirective = parent.directives.find(dir => dir.name.value === 'model');
-    const isParentTypeBuiltinType =
-      parent.name.value === ctx.getQueryTypeName() ||
-      parent.name.value === ctx.getMutationTypeName() ||
-      parent.name.value === ctx.getSubscriptionTypeName();
+    const typeName = parent.name.value;
+    const fieldName = definition.name.value;
+    const authFields = this.modelsWithAuth.has(typeName) ? this.modelsWithAuth.get(typeName) : [];
 
-    if (isParentTypeBuiltinType) {
-      console.warn(
-        `Be careful when using @auth directives on a field in a root type. @auth directives on field definitions use the source \
+    authFields.push(fieldName);
+    this.modelsWithAuth.set(typeName, authFields);
+    return;
+//     if (parent.kind === Kind.INTERFACE_TYPE_DEFINITION) {
+//       throw new InvalidDirectiveError(
+//         `The @auth directive cannot be placed on an interface's field. See ${parent.name.value}${definition.name.value}`,
+//       );
+//     }
+
+//     const modelDirective = parent.directives.find(dir => dir.name.value === 'model');
+//     const isParentTypeBuiltinType =
+//       parent.name.value === ctx.getQueryTypeName() ||
+//       parent.name.value === ctx.getMutationTypeName() ||
+//       parent.name.value === ctx.getSubscriptionTypeName();
+
+//     if (isParentTypeBuiltinType) {
+//       console.warn(
+//         `Be careful when using @auth directives on a field in a root type. @auth directives on field definitions use the source \
+// object to perform authorization logic and the source will be an empty object for fields on root types. \
+// Static group authorization should perform as expected.`,
+//       );
+//     }
+
+//     // Get and validate the auth rules.
+//     const rules = this.getAuthRulesFromDirective(directive);
+//     // Assign default providers to rules where no provider was explicitly defined
+//     this.ensureDefaultAuthProviderAssigned(rules);
+//     this.validateFieldRules(rules, isParentTypeBuiltinType, modelDirective !== undefined);
+//     // Check the rules if we've to generate IAM policies for Unauth role or not
+//     this.setAuthPolicyFlag(rules);
+//     this.setUnauthPolicyFlag(rules);
+
+//     this.addFieldToResourceReferences(parent.name.value, definition.name.value, rules);
+
+//     // Add the directives to the parent type as well, we've to add the default provider if
+//     // - The type has no @auth directives, so there are NO restrictions on the type
+//     // or
+//     // - The type has @auth rules for the default provider
+//     const includeDefault = this.isTypeNeedsDefaultProviderAccess(parent);
+//     // Should not propagate auth directives onto Query/Mutation/Subscription types
+//     const typeDirectives = isParentTypeBuiltinType ? [] : this.getDirectivesForRules(rules, includeDefault);
+
+//     if (typeDirectives.length > 0) {
+//       this.extendTypeWithDirectives(ctx, parent.name.value, typeDirectives);
+//     }
+
+//     const isOpRule = (op: ModelOperation) => (rule: AuthRule) => {
+//       if (rule.operations) {
+//         const matchesOp = rule.operations.find(o => o === op);
+//         return Boolean(matchesOp);
+//       }
+//       if (rule.operations === null) {
+//         return false;
+//       }
+//       return true;
+//     };
+
+//     // add rules if per field @auth is used with @model
+//     if (modelDirective) {
+//       const isReadRule = isOpRule('read');
+//       const isCreateRule = isOpRule('create');
+//       const isUpdateRule = isOpRule('update');
+//       const isDeleteRule = isOpRule('delete');
+
+//       // Retrieve the configuration options for the related @model directive
+//       const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, parent);
+//       // The field handler adds the read rule on the object
+//       const readRules = rules.filter((rule: AuthRule) => isReadRule(rule));
+//       this.protectReadForField(ctx, parent, definition, readRules, modelConfiguration);
+
+//       // Protect mutations when objects including this field are trying to be created.
+//       const createRules = rules.filter((rule: AuthRule) => isCreateRule(rule));
+//       this.protectCreateForField(ctx, parent, definition, createRules, modelConfiguration);
+
+//       // Protect update mutations when objects inluding this field are trying to be updated.
+//       const updateRules = rules.filter((rule: AuthRule) => isUpdateRule(rule));
+//       this.protectUpdateForField(ctx, parent, definition, updateRules, modelConfiguration);
+
+//       // Delete operations are only protected by @auth directives on objects.
+//       const deleteRules = rules.filter((rule: AuthRule) => isDeleteRule(rule));
+//       this.protectDeleteForField(ctx, parent, definition, deleteRules, modelConfiguration);
+//     } else {
+//       const directives = this.getDirectivesForRules(rules, false);
+
+//       if (directives.length > 0) {
+//         this.addDirectivesToField(ctx, parent.name.value, definition.name.value, directives);
+//       }
+
+//       // if @auth is used without @model only generate static group rules
+//       const staticGroupRules = rules.filter((rule: AuthRule) => rule.groups);
+//       this.protectField(ctx, parent, definition, staticGroupRules);
+//     }
+  };
+
+  validate = (ctx: TransformerContext): void => {
+    for (const [typeName, fieldsNamesWithAuth] of this.modelsWithAuth.entries()) {
+      // do the validation
+      const def = ctx.getObject(typeName);
+      if (!def) {
+        // Todo: Maintain an map of interfaces similar to that of Objects which could be useful
+        const nonModel = ctx.nodeMap[typeName];
+        if (nonModel.kind === Kind.INTERFACE_TYPE_DEFINITION) {
+          throw new InvalidDirectiveError(
+            `The @auth directive cannot be placed on an interface's field. See ${nonModel.name.value}${fieldsNamesWithAuth[0]}`,
+          );
+        }
+      }
+      const directive = def.directives.find(d => d.name.value === 'auth');
+      const modelDirective = def.directives.find(dir => dir.name.value === 'model');
+
+      if (!modelDirective) {
+        throw new InvalidDirectiveError('Types annotated with @auth must also be annotated with @model.');
+      }
+
+      // check if searchable is enabled on the type
+      const searchableDirective = def.directives.find(dir => dir.name.value === 'searchable');
+
+      // Get and validate the auth rules.
+      const rules = this.getAuthRulesFromDirective(directive);
+      // Assign default providers to rules where no provider was explicitly defined
+      this.ensureDefaultAuthProviderAssigned(rules);
+      this.validateRules(rules);
+      // Check the rules if we've to generate IAM policies for Unauth role or not
+      for (const fieldName of fieldsNamesWithAuth) {
+        const parent = def;
+        const field = parent.fields.find(f => f.name.value === fieldName);
+        const directive = field.directives.find(d => d.name.value === 'auth');
+        const isParentTypeBuiltinType =
+          parent.name.value === ctx.getQueryTypeName() ||
+          parent.name.value === ctx.getMutationTypeName() ||
+          parent.name.value === ctx.getSubscriptionTypeName();
+
+        if (isParentTypeBuiltinType) {
+          console.warn(
+            `Be careful when using @auth directives on a field in a root type. @auth directives on field definitions use the source \
 object to perform authorization logic and the source will be an empty object for fields on root types. \
 Static group authorization should perform as expected.`,
-      );
-    }
-
-    // Get and validate the auth rules.
-    const rules = this.getAuthRulesFromDirective(directive);
-    // Assign default providers to rules where no provider was explicitly defined
-    this.ensureDefaultAuthProviderAssigned(rules);
-    this.validateFieldRules(rules, isParentTypeBuiltinType, modelDirective !== undefined);
-    // Check the rules if we've to generate IAM policies for Unauth role or not
-    this.setAuthPolicyFlag(rules);
-    this.setUnauthPolicyFlag(rules);
-
-    this.addFieldToResourceReferences(parent.name.value, definition.name.value, rules);
-
-    // Add the directives to the parent type as well, we've to add the default provider if
-    // - The type has no @auth directives, so there are NO restrictions on the type
-    // or
-    // - The type has @auth rules for the default provider
-    const includeDefault = this.isTypeNeedsDefaultProviderAccess(parent);
-    // Should not propagate auth directives onto Query/Mutation/Subscription types
-    const typeDirectives = isParentTypeBuiltinType ? [] : this.getDirectivesForRules(rules, includeDefault);
-
-    if (typeDirectives.length > 0) {
-      this.extendTypeWithDirectives(ctx, parent.name.value, typeDirectives);
-    }
-
-    const isOpRule = (op: ModelOperation) => (rule: AuthRule) => {
-      if (rule.operations) {
-        const matchesOp = rule.operations.find(o => o === op);
-        return Boolean(matchesOp);
+          );
+        }
+        const fieldRules = this.getAuthRulesFromDirective(directive);
+        // Assign default providers to rules where no provider was explicitly defined
+        this.ensureDefaultAuthProviderAssigned(fieldRules);
+        this.validateFieldRules(fieldRules, isParentTypeBuiltinType, modelDirective !== undefined);
       }
-      if (rule.operations === null) {
-        return false;
-      }
-      return true;
-    };
+    }
+  };
 
-    // add rules if per field @auth is used with @model
-    if (modelDirective) {
-      const isReadRule = isOpRule('read');
-      const isCreateRule = isOpRule('create');
-      const isUpdateRule = isOpRule('update');
-      const isDeleteRule = isOpRule('delete');
+  transformSchema = (ctx: TransformerContext): void => {
+    for (const [typeName, fieldsNamesWithAuth] of this.modelsWithAuth.entries()) {
+      // do the validation
+      const def = ctx.getObject(typeName);
+      const directive = def.directives.find(d => d.name.value === 'auth');
+      const modelDirective = def.directives.find(dir => dir.name.value === 'model');
+      // Check if the object type has fields of type without the @model directive.
+      // We've to make sure that appropriate @aws_* directive will be added and a policy entry for the
+      // type will be emitted as well in case of IAM.
+      const rules = this.getAuthRulesFromDirective(directive);
+      this.propagateAuthDirectivesToNestedTypes(def, rules, ctx);
 
-      // Retrieve the configuration options for the related @model directive
-      const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, parent);
-      // The field handler adds the read rule on the object
-      const readRules = rules.filter((rule: AuthRule) => isReadRule(rule));
-      this.protectReadForField(ctx, parent, definition, readRules, modelConfiguration);
-
-      // Protect mutations when objects including this field are trying to be created.
-      const createRules = rules.filter((rule: AuthRule) => isCreateRule(rule));
-      this.protectCreateForField(ctx, parent, definition, createRules, modelConfiguration);
-
-      // Protect update mutations when objects inluding this field are trying to be updated.
-      const updateRules = rules.filter((rule: AuthRule) => isUpdateRule(rule));
-      this.protectUpdateForField(ctx, parent, definition, updateRules, modelConfiguration);
-
-      // Delete operations are only protected by @auth directives on objects.
-      const deleteRules = rules.filter((rule: AuthRule) => isDeleteRule(rule));
-      this.protectDeleteForField(ctx, parent, definition, deleteRules, modelConfiguration);
-    } else {
+      // Get the directives we need to add to the GraphQL nodes
       const directives = this.getDirectivesForRules(rules, false);
 
+      // Add the directives to the Type node itself
       if (directives.length > 0) {
-        this.addDirectivesToField(ctx, parent.name.value, definition.name.value, directives);
+        this.extendTypeWithDirectives(ctx, def.name.value, directives);
+      }
+      this.updateMutationConditionInput(ctx, def, rules);
+    }
+  };
+
+  generateResolvers = (ctx: TransformerContext): void => {
+    const ddbTransformer = ctx.getTransformerPluginInstance('DynamoDBModelTransformer') as TransformerModelProvider;
+    for (const [typeName, fieldsNamesWithAuth] of this.modelsWithAuth.entries()) {
+      // do the validation
+      const def = ctx.getObject(typeName);
+      const directive = def.directives.find(d => d.name.value === 'auth');
+      const modelDirective = def.directives.find(dir => dir.name.value === 'model');
+
+      // check if searchable is enabled on the type
+      const searchableDirective = def.directives.find(dir => dir.name.value === 'searchable');
+
+      // Get and validate the auth rules.
+      const rules = this.getAuthRulesFromDirective(directive);
+      // Assign default providers to rules where no provider was explicitly defined
+      this.ensureDefaultAuthProviderAssigned(rules);
+      // Check the rules if we've to generate IAM policies for Unauth role or not
+      this.setAuthPolicyFlag(rules);
+      this.setUnauthPolicyFlag(rules);
+
+      const { operationRules, queryRules } = this.splitRules(rules);
+
+      this.addTypeToResourceReferences(def.name.value, rules);
+      // Retrieve the configuration options for the related @model directive
+      const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, def);
+
+      // For each operation evaluate the rules and apply the changes to the relevant resolver.
+      // get the name of the fields from data source provider instead of hard coding them
+
+      const mutations = ddbTransformer.getMutationFieldNames(ctx, def);
+
+      for(const createMutationName of mutations.CREATE) {
+        const createResolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), createMutationName)
+      this.protectCreateMutation(
+        ctx,
+        createResolver,
+        operationRules.create,
+        def,
+        modelConfiguration,
+      );
       }
 
-      // if @auth is used without @model only generate static group rules
-      const staticGroupRules = rules.filter((rule: AuthRule) => rule.groups);
-      this.protectField(ctx, parent, definition, staticGroupRules);
+      for(const updateMutationName of mutations.UPDATE) {
+        const updateResolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), updateMutationName)
+        this.protectUpdateMutation(
+          ctx,
+          updateResolver,
+          operationRules.update,
+          def,
+          modelConfiguration,
+        );
+      }
+
+      // for(const deleteMuationName of mutations.DELETE) {
+      //   const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), deleteMuationName)
+      //   this.protectDeleteMutation(
+      //     ctx,
+      //     resolver,
+      //     operationRules.delete,
+      //     def,
+      //     modelConfiguration,
+      //   );
+      // }
+
+      // this.protectGetQuery(ctx, ResolverResourceIDs.DynamoDBGetResolverResourceID(def.name.value), queryRules.get, def, modelConfiguration);
+      // this.protectListQuery(
+      //   ctx,
+      //   ResolverResourceIDs.DynamoDBListResolverResourceID(def.name.value),
+      //   queryRules.list,
+      //   def,
+      //   modelConfiguration,
+      // );
+      // this.protectConnections(ctx, def, operationRules.read, modelConfiguration);
+      // this.protectQueries(ctx, def, operationRules.read, modelConfiguration);
+
+      // // protect search query if @searchable is enabled
+      // if (searchableDirective) {
+      //   this.protectSearchQuery(ctx, def, ResolverResourceIDs.ElasticsearchSearchResolverResourceID(def.name.value), operationRules.read);
+      // }
+
+      // // protect sync query if model is sync enabled
+      // if (this.isSyncEnabled(ctx, def.name.value)) {
+      //   this.protectSyncQuery(ctx, def, ResolverResourceIDs.SyncResolverResourceID(def.name.value), operationRules.read);
+      // }
+
+      // // Check if subscriptions is enabled
+      // if (modelConfiguration.getName('level') !== 'off') {
+      //   this.protectOnCreateSubscription(ctx, operationRules.read, def, modelConfiguration);
+      //   this.protectOnUpdateSubscription(ctx, operationRules.read, def, modelConfiguration);
+      //   this.protectOnDeleteSubscription(ctx, operationRules.read, def, modelConfiguration);
+      // }
+
+      // // Update ModelXConditionInput type
+      // this.updateMutationConditionInput(ctx, def, rules);
+      // for (const fieldName of fieldsNamesWithAuth) {
+      //   const parent = def;
+      //   const field = parent.fields.find(f => f.name.value === fieldName);
+      //   const directive = field.directives.find(d => d.name.value === 'auth');
+      // }
     }
   };
 
@@ -678,9 +870,10 @@ Either make the field optional, set auth on the object and not the field, or dis
     rules: AuthRule[],
     modelConfiguration: ModelDirectiveConfiguration,
   ) {
-    const resolverResourceId = ResolverResourceIDs.DynamoDBUpdateResolverResourceID(parent.name.value);
+    const resolver = ctx.resolvers.getResolver(parent.name.value, field.name.value);
+    // const resolverResourceId = ResolverResourceIDs.DynamoDBUpdateResolverResourceID(parent.name.value);
     const subscriptionOperation: ModelDirectiveOperationType = 'onUpdate';
-    this.protectUpdateMutation(ctx, resolverResourceId, rules, parent, modelConfiguration, field, subscriptionOperation);
+    this.protectUpdateMutation(ctx, resolver, rules, parent, modelConfiguration, field, subscriptionOperation);
   }
 
   private protectDeleteForField(
@@ -1287,12 +1480,11 @@ operations will be generated by the CLI.`,
    */
   private protectCreateMutation(
     ctx: TransformerContext,
-    resolverResourceId: string,
+    resolver: BaseResolver,
     rules: AuthRule[],
     parent: ObjectTypeDefinitionNode,
     modelConfiguration: ModelDirectiveConfiguration,
   ) {
-    const resolver = ctx.getResource(resolverResourceId);
     if (!rules || rules.length === 0 || !resolver) {
       return;
     } else {
@@ -1384,9 +1576,10 @@ operations will be generated by the CLI.`,
         // Create the authMode if block and add it to the resolver
         expressions.push(this.resources.getAuthModeCheckWrappedExpression(authModesToCheck, compoundExpression(authCheckExpressions)));
 
-        const templateParts = [print(compoundExpression(expressions)), resolver.Properties.RequestMappingTemplate];
-        resolver.Properties.RequestMappingTemplate = templateParts.join('\n\n');
-        ctx.setResource(resolverResourceId, resolver);
+        // const templateParts = [print(compoundExpression(expressions)), resolver.Properties.RequestMappingTemplate];
+        // resolver.Properties.RequestMappingTemplate = templateParts.join('\n\n');
+        // ctx.setResource(resolverResourceId, resolver);
+        resolver.addSlot('auth', print(compoundExpression(expressions)));
       }
     }
   }
@@ -1410,7 +1603,7 @@ operations will be generated by the CLI.`,
    */
   private protectUpdateOrDeleteMutation(
     ctx: TransformerContext,
-    resolverResourceId: string,
+    resolver: BaseResolver,
     rules: AuthRule[],
     parent: ObjectTypeDefinitionNode,
     modelConfiguration: ModelDirectiveConfiguration,
@@ -1419,7 +1612,6 @@ operations will be generated by the CLI.`,
     ifCondition?: Expression,
     subscriptionOperation?: ModelDirectiveOperationType,
   ) {
-    const resolver = ctx.getResource(resolverResourceId);
     if (!rules || rules.length === 0 || !resolver) {
       return;
     } else {
@@ -1529,35 +1721,36 @@ operations will be generated by the CLI.`,
         // Create the authMode if block and add it to the resolver
         expressions.push(this.resources.getAuthModeCheckWrappedExpression(authModesToCheck, authorizationLogic));
 
-        const templateParts = [
-          print(field && ifCondition ? iff(ifCondition, compoundExpression(expressions)) : compoundExpression(expressions)),
-          resolver.Properties.RequestMappingTemplate,
-        ];
-        resolver.Properties.RequestMappingTemplate = templateParts.join('\n\n');
-        ctx.setResource(resolverResourceId, resolver);
+        // const templateParts = [
+        //   print(field && ifCondition ? iff(ifCondition, compoundExpression(expressions)) : compoundExpression(expressions)),
+        //   resolver.Properties.RequestMappingTemplate,
+        // ];
+        // resolver.Properties.RequestMappingTemplate = templateParts.join('\n\n');
+        // ctx.setResource(resolverResourceId, resolver);
+        resolver.addSlot('auth', print(field && ifCondition ? iff(ifCondition, compoundExpression(expressions)) : compoundExpression(expressions)));
       }
 
       // if protect is for field and there is a subscription for update / delete then protect the field in that operation
-      if (
-        field &&
-        subscriptionOperation &&
-        modelConfiguration.shouldHave(subscriptionOperation) &&
-        (modelConfiguration.getName('level') as ModelSubscriptionLevel) === 'on'
-      ) {
-        let mutationResolver = resolver;
-        let mutationResolverResourceID = resolverResourceId;
-        // if we are protecting delete then we need to get the delete resolver
-        if (subscriptionOperation === 'onDelete') {
-          mutationResolverResourceID = ResolverResourceIDs.DynamoDBDeleteResolverResourceID(parent.name.value);
-          mutationResolver = ctx.getResource(mutationResolverResourceID);
-        }
-        const getTemplateParts = [mutationResolver.Properties.ResponseMappingTemplate];
-        if (!this.isOperationExpressionSet(mutationTypeName, mutationResolver.Properties.ResponseMappingTemplate)) {
-          getTemplateParts.unshift(this.resources.setOperationExpression(mutationTypeName));
-        }
-        mutationResolver.Properties.ResponseMappingTemplate = getTemplateParts.join('\n\n');
-        ctx.setResource(mutationResolverResourceID, mutationResolver);
-      }
+    //   if (
+    //     field &&
+    //     subscriptionOperation &&
+    //     modelConfiguration.shouldHave(subscriptionOperation) &&
+    //     (modelConfiguration.getName('level') as ModelSubscriptionLevel) === 'on'
+    //   ) {
+    //     let mutationResolver = resolver;
+    //     let mutationResolverResourceID = resolverResourceId;
+    //     // if we are protecting delete then we need to get the delete resolver
+    //     if (subscriptionOperation === 'onDelete') {
+    //       mutationResolverResourceID = ResolverResourceIDs.DynamoDBDeleteResolverResourceID(parent.name.value);
+    //       mutationResolver = ctx.getResource(mutationResolverResourceID);
+    //     }
+    //     const getTemplateParts = [mutationResolver.Properties.ResponseMappingTemplate];
+    //     if (!this.isOperationExpressionSet(mutationTypeName, mutationResolver.Properties.ResponseMappingTemplate)) {
+    //       getTemplateParts.unshift(this.resources.setOperationExpression(mutationTypeName));
+    //     }
+    //     mutationResolver.Properties.ResponseMappingTemplate = getTemplateParts.join('\n\n');
+    //     ctx.setResource(mutationResolverResourceID, mutationResolver);
+    //   }
     }
   }
 
@@ -1572,7 +1765,7 @@ operations will be generated by the CLI.`,
    */
   private protectUpdateMutation(
     ctx: TransformerContext,
-    resolverResourceId: string,
+    resolver: BaseResolver,
     rules: AuthRule[],
     parent: ObjectTypeDefinitionNode,
     modelConfiguration: ModelDirectiveConfiguration,
@@ -1581,7 +1774,7 @@ operations will be generated by the CLI.`,
   ) {
     return this.protectUpdateOrDeleteMutation(
       ctx,
-      resolverResourceId,
+      resolver,
       rules,
       parent,
       modelConfiguration,
@@ -1610,19 +1803,19 @@ operations will be generated by the CLI.`,
     field?: FieldDefinitionNode,
     subscriptionOperation?: ModelDirectiveOperationType,
   ) {
-    return this.protectUpdateOrDeleteMutation(
-      ctx,
-      resolverResourceId,
-      rules,
-      parent,
-      modelConfiguration,
-      false,
-      field,
-      field
-        ? raw(`$ctx.args.input.containsKey("${field.name.value}") && $util.isNull($ctx.args.input.get("${field.name.value}"))`)
-        : undefined,
-      subscriptionOperation,
-    );
+    // return this.protectUpdateOrDeleteMutation(
+    //   ctx,
+    //   resolverResourceId,
+    //   rules,
+    //   parent,
+    //   modelConfiguration,
+    //   false,
+    //   field,
+    //   field
+    //     ? raw(`$ctx.args.input.containsKey("${field.name.value}") && $util.isNull($ctx.args.input.get("${field.name.value}"))`)
+    //     : undefined,
+    // );
+    //   subscriptionOperation,
   }
 
   /**

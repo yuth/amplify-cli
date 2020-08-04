@@ -100,7 +100,7 @@ export class ResourceConstants {
     AuthCondition: 'authCondition',
     AuthMode: 'authMode',
     VersionedCondition: 'versionedCondition',
-    ModelObjectKey: 'modelObjectKey',
+    ModelObjectKey: 'context.stash.metadata.modelObjectKey',
     DynamoDBNameOverrideMap: 'dynamodbNameOverrideMap',
     ModelQueryExpression: 'modelQueryExpression',
     ModelQueryIndex: 'modelQueryIndex',

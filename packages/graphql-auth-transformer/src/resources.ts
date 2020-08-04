@@ -564,6 +564,8 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
       return comment(`No dynamic group authorization rules${fieldMention}`);
     }
 
+    const authConditionVarName = fieldBeingProtected ? `auth_${fieldBeingProtected}`: 'object_auth';
+
     let groupAuthorizationExpressions = [];
     let ruleNumber = 0;
     for (const rule of rules) {
@@ -584,19 +586,14 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
         this.setUserGroups(rule.groupClaim),
         forEach(ref('userGroup'), ref('userGroups'), [
           groupsFieldIsList
-            ? raw(`$util.qr($groupAuthExpressions.add("contains(#${groupsAttributeName}, :${groupName}$foreach.count)"))`)
-            : raw(`$util.qr($groupAuthExpressions.add("#${groupsAttributeName} = :${groupName}$foreach.count"))`),
-          raw(`$util.qr($groupAuthExpressionValues.put(":${groupName}$foreach.count", { "S": $userGroup }))`),
+            ? raw(`$util.qr(${authConditionVarName}.add({"${groupsAttribute}":{ "contains": "$userGroup"}}))`)
+            : raw(`$util.qr(${authConditionVarName}.add({"${groupsAttribute}":{ "eq": "$userGroup"}}))`),
         ]),
-        iff(raw('$userGroups.size() > 0'), raw(`$util.qr($groupAuthExpressionNames.put("#${groupsAttributeName}", "${groupsAttribute}"))`)),
       );
       ruleNumber++;
     }
-    // check for groupclaim here
     return block('Dynamic group authorization checks', [
-      set(ref('groupAuthExpressions'), list([])),
-      set(ref('groupAuthExpressionValues'), obj({})),
-      set(ref('groupAuthExpressionNames'), obj({})),
+      set(ref(authConditionVarName), list([])),
       ...groupAuthorizationExpressions,
     ]);
   }
