@@ -449,7 +449,7 @@ export class ResourceFactory {
     };
   }
 
-  public initalizeDefaultInputForCreateMutation(input: InputObjectTypeDefinitionNode, timestamps): string {
+  public initializeDefaultInputForCreateMutation(input: InputObjectTypeDefinitionNode, timestamps): string {
     const hasDefaultIdField = input.fields?.find(field => field.name.value === 'id' && ['ID', 'String'].includes(getBaseType(field.type)));
     return printBlock('Set default values')(
       compoundExpression([
@@ -595,51 +595,6 @@ export class ResourceFactory {
       ResponseMappingTemplate: print(DynamoDBMappingTemplate.dynamoDBResponse(true)),
     });
   }
-  /**
-   * Create a resolver that queries an item in DynamoDB.
-   * @param type
-   */
-  public makeQueryResolver(type: string, nameOverride?: string, isSyncEnabled: boolean = false, queryTypeName: string = 'Query') {
-    const fieldName = nameOverride ? nameOverride : graphqlName(`query${toUpper(type)}`);
-    return {
-      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
-      DataSourceName: Fn.GetAtt(ModelResourceIDs.ModelTableDataSourceID(type), 'Name'),
-      FieldName: fieldName,
-      TypeName: queryTypeName,
-      requestMappingTemplate: print(
-        compoundExpression([
-          set(ref('limit'), ref(`util.defaultIfNull($context.args.limit, ${ResourceConstants.DEFAULT_PAGE_LIMIT})`)),
-          DynamoDBMappingTemplate.query({
-            query: obj({
-              expression: str('#typename = :typename'),
-              expressionNames: obj({
-                '#typename': str('__typename'),
-              }),
-              expressionValues: obj({
-                ':typename': obj({
-                  S: str(type),
-                }),
-              }),
-            }),
-            scanIndexForward: ifElse(
-              ref('context.args.sortDirection'),
-              ifElse(equals(ref('context.args.sortDirection'), str('ASC')), bool(true), bool(false)),
-              bool(true),
-            ),
-            filter: ifElse(ref('context.args.filter'), ref('util.transform.toDynamoDBFilterExpression($ctx.args.filter)'), nul()),
-            limit: ref('limit'),
-            nextToken: ifElse(ref('context.args.nextToken'), ref('util.toJson($context.args.nextToken)'), nul()),
-          }),
-        ]),
-      ),
-      responseMappingTemplate: print(
-        DynamoDBMappingTemplate.dynamoDBResponse(
-          isSyncEnabled,
-          compoundExpression([iff(raw('!$result'), set(ref('result'), ref('ctx.result'))), raw('$util.toJson($result)')]),
-        ),
-      ),
-    };
-  }
 
   /**
    * Create a resolver that lists items in DynamoDB.
@@ -656,6 +611,13 @@ export class ResourceFactory {
       typeName: queryTypeName,
       requestMappingTemplate: print(
         compoundExpression([
+          set(ref('conditionObj'), obj({ and: list([]) })),
+          iff(
+            not(ref('ctx.stash.authCondition.isEmpty()')),
+            compoundExpression([qref('$conditionObj["and"].add($ctx.stash.authCondition)')]),
+          ),
+          iff(not(ref('ctx.stash.condition.isEmpty()')), compoundExpression([qref('$conditionObj["and"].add($ctx.stash.condition)')])),
+          iff(ref('context.args.filter'), compoundExpression([qref('$conditionObj["and"].add($ctx.args.filter)')])),
           set(ref('limit'), ref(`util.defaultIfNull($context.args.limit, ${ResourceConstants.DEFAULT_PAGE_LIMIT})`)),
           set(
             ref(requestVariable),
@@ -666,12 +628,14 @@ export class ResourceFactory {
           ),
           // PoI: Getting the snippet from stash
           iff(ref('context.args.nextToken'), set(ref(`${requestVariable}.nextToken`), ref('context.args.nextToken'))),
-          iff(
-            ref('context.args.filter'),
-            set(ref(`${requestVariable}.filter`), ref('util.parseJson("$util.transform.toDynamoDBFilterExpression($ctx.args.filter)")')),
-          ),
           iff(ref('context.stash.metadata.index'), set(ref(`${requestVariable}.index`), ref('context.stash.metadata.index'))),
-          set(ref(ResourceConstants.SNIPPETS.ModelQueryExpression), ref(`ctx.stash.${ResourceConstants.SNIPPETS.ModelQueryExpression}`)),
+          set(ref('condition'), ref('util.parseJson($util.transform.toDynamoDBFilterExpression($conditionObj))')),
+          iff(
+            ref('condition.expressionValues.isEmpty()'),
+            compoundExpression([set(ref('condition'), ref('util.map.copyAndRemoveAllKeys($condition, ["expressionValues"])'))]),
+          ),
+          iff(not(ref('util.isNullOrEmpty($condition.expression)')), set(ref(`${requestVariable}.filter`), ref('condition'))),
+
           ifElse(
             raw(`!$util.isNull($${ResourceConstants.SNIPPETS.ModelQueryExpression})
                         && !$util.isNullOrEmpty($${ResourceConstants.SNIPPETS.ModelQueryExpression}.expression)`),
@@ -708,58 +672,41 @@ export class ResourceFactory {
       typeName: mutationTypeName,
       requestMappingTemplate: print(
         compoundExpression([
-          compoundExpression([
-            set(ref('keyCondition'), list([])),
-            ifElse(
-              ref(ResourceConstants.SNIPPETS.ModelObjectKey),
+          set(
+            ref('conditionObj'),
+            obj({
+              and: list([]),
+            }),
+          ),
+
+          ifElse(
+            ref(ResourceConstants.SNIPPETS.ModelObjectKey),
+            compoundExpression([
+              set(ref('keyCondition'), list([])),
               forEach(ref('entry'), ref(`${ResourceConstants.SNIPPETS.ModelObjectKey}.entrySet()`), [
                 set(ref('keyCond'), obj({ '$entry.key': obj({ attributeExists: bool(true) }) })),
                 qref('$keyCondition.add($keyCond)'),
               ]),
-              compoundExpression([
-                set(ref('keyCond'), obj({ id: obj({ attributeExists: bool(true) }) })),
-                qref('$keyCondition.add($keyCond)'),
-              ]),
-            ),
-          ]),
-          iff(
-            ref(ResourceConstants.SNIPPETS.VersionedCondition),
+              qref(`$conditionObj["and"].add({"and": $keyCondition})`),
+            ]),
             compoundExpression([
-              // tslint:disable-next-line
-              qref(
-                `$condition.put("expression", "($condition.expression) AND $${ResourceConstants.SNIPPETS.VersionedCondition}.expression")`,
-              ),
-              qref(`$condition.expressionNames.putAll($${ResourceConstants.SNIPPETS.VersionedCondition}.expressionNames)`),
-              set(ref('expressionValues'), raw('$util.defaultIfNull($condition.expressionValues, {})')),
-              qref(`$expressionValues.putAll($${ResourceConstants.SNIPPETS.VersionedCondition}.expressionValues)`),
-              set(ref('condition.expressionValues'), ref('expressionValues')),
+              set(ref('keyCondition'), obj({ id: obj({ attributeExists: bool(true) }) })),
+              qref(`$conditionObj["and"].add($keyCondition)`),
             ]),
           ),
+          iff(
+            not(ref('ctx.stash.authCondition.isEmpty()')),
+            compoundExpression([qref('$conditionObj["and"].add($ctx.stash.authCondition)')]),
+          ),
+          iff(not(ref('ctx.stash.condition.isEmpty()')), compoundExpression([qref('$conditionObj["and"].add($ctx.stash.condition)')])),
           iff(
             ref('context.args.condition'),
-            compoundExpression([
-              set(
-                ref('conditionFilterExpressions'),
-                raw('$util.parseJson($util.transform.toDynamoDBConditionExpression($context.args.condition))'),
-              ),
-              // tslint:disable-next-line
-              qref(`$condition.put("expression", "($condition.expression) AND $conditionFilterExpressions.expression")`),
-              qref(`$condition.expressionNames.putAll($conditionFilterExpressions.expressionNames)`),
-              set(ref('conditionExpressionValues'), raw('$util.defaultIfNull($condition.expressionValues, {})')),
-              qref(`$conditionExpressionValues.putAll($conditionFilterExpressions.expressionValues)`),
-              set(ref('condition.expressionValues'), ref('conditionExpressionValues')),
-              qref(`$condition.expressionValues.putAll($conditionFilterExpressions.expressionValues)`),
-            ]),
+            compoundExpression([compoundExpression([qref('$conditionObj["and"].add($context.args.condition)')])]),
           ),
+          set(ref('condition'), ref('util.parseJson($util.transform.toDynamoDBFilterExpression($conditionObj))')),
           iff(
-            and([ref('condition.expressionValues'), raw('$condition.expressionValues.size() == 0')]),
-            set(
-              ref('condition'),
-              obj({
-                expression: ref('condition.expression'),
-                expressionNames: ref('condition.expressionNames'),
-              }),
-            ),
+            ref('condition.expressionValues.isEmpty()'),
+            compoundExpression([set(ref('condition'), ref('util.map.copyAndRemoveAllKeys($condition, ["expressionValues"])'))]),
           ),
           DynamoDBMappingTemplate.deleteItem({
             key: ifElse(

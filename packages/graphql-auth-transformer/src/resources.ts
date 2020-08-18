@@ -545,6 +545,10 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
     return compoundExpression([set(ref(variableToSet), raw(`false`)), ...ownershipAuthorizationExpressions]);
   }
 
+  private getAuthCheckVariableName(fieldBeingProtected?: string): string {
+    return fieldBeingProtected ? `auth_${fieldBeingProtected}` : 'object_auth';
+  }
+
   /**
    * Given a set of dynamic group authorization rules verifies w/ a conditional
    * expression that the existing object has the correct group expression.
@@ -564,16 +568,11 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
       return comment(`No dynamic group authorization rules${fieldMention}`);
     }
 
-    const authConditionVarName = fieldBeingProtected ? `auth_${fieldBeingProtected}`: 'object_auth';
+    const authConditionVarName = this.getAuthCheckVariableName(fieldBeingProtected);
 
     let groupAuthorizationExpressions = [];
-    let ruleNumber = 0;
     for (const rule of rules) {
       const groupsAttribute = rule.groupsField || DEFAULT_GROUPS_FIELD;
-      const groupsAttributeName = fieldBeingProtected
-        ? `${fieldBeingProtected}_groupsAttribute${ruleNumber}`
-        : `groupsAttribute${ruleNumber}`;
-      const groupName = fieldBeingProtected ? `${fieldBeingProtected}_group${ruleNumber}` : `group${ruleNumber}`;
       const groupClaimAttribute = rule.groupClaim || DEFAULT_GROUP_CLAIM;
 
       const groupsFieldIsList = fieldIsList(groupsAttribute);
@@ -586,16 +585,12 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
         this.setUserGroups(rule.groupClaim),
         forEach(ref('userGroup'), ref('userGroups'), [
           groupsFieldIsList
-            ? raw(`$util.qr(${authConditionVarName}.add({"${groupsAttribute}":{ "contains": "$userGroup"}}))`)
-            : raw(`$util.qr(${authConditionVarName}.add({"${groupsAttribute}":{ "eq": "$userGroup"}}))`),
+            ? raw(`$util.qr($${authConditionVarName}.add({"${groupsAttribute}":{ "contains": $userGroup}}))`)
+            : raw(`$util.qr($${authConditionVarName}.add({"${groupsAttribute}":{ "eq": $userGroup}}))`),
         ]),
       );
-      ruleNumber++;
     }
-    return block('Dynamic group authorization checks', [
-      set(ref(authConditionVarName), list([])),
-      ...groupAuthorizationExpressions,
-    ]);
+    return block('Dynamic group authorization checks', [set(ref(authConditionVarName), list([])), ...groupAuthorizationExpressions]);
   }
 
   /**
@@ -617,47 +612,37 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
       return comment(`No owner authorization rules${fieldMention}`);
     }
     let ownerAuthorizationExpressions = [];
-    let ruleNumber = 0;
+    const authConditionVarName = this.getAuthCheckVariableName(fieldBeingProtected);
     for (const rule of rules) {
       const ownerAttribute = rule.ownerField || DEFAULT_OWNER_FIELD;
       const rawUsername = rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_FIELD;
       const isUser = isUsername(rawUsername);
       const identityAttribute = replaceIfUsername(rawUsername);
       const ownerFieldIsList = fieldIsList(ownerAttribute);
-      const ownerName = fieldBeingProtected ? `${fieldBeingProtected}_owner${ruleNumber}` : `owner${ruleNumber}`;
-      const identityName = fieldBeingProtected ? `${fieldBeingProtected}_identity${ruleNumber}` : `identity${ruleNumber}`;
 
       ownerAuthorizationExpressions.push(
-        // tslint:disable:max-line-length
         comment(
           `Authorization rule${fieldMention}: { allow: ${rule.allow}, ownerField: "${ownerAttribute}", identityClaim: "${identityAttribute}" }`,
         ),
       );
-      if (ownerFieldIsList) {
-        ownerAuthorizationExpressions.push(raw(`$util.qr($ownerAuthExpressions.add("contains(#${ownerName}, :${identityName})"))`));
-      } else {
-        ownerAuthorizationExpressions.push(raw(`$util.qr($ownerAuthExpressions.add("#${ownerName} = :${identityName}"))`));
-      }
-      ownerAuthorizationExpressions = ownerAuthorizationExpressions.concat(
-        raw(`$util.qr($ownerAuthExpressionNames.put("#${ownerName}", "${ownerAttribute}"))`),
-        // tslint:disable
-        isUser
-          ? raw(
-              `$util.qr($ownerAuthExpressionValues.put(":${identityName}", $util.dynamodb.toDynamoDB($util.defaultIfNull($ctx.identity.claims.get("${rawUsername}"), $util.defaultIfNull($ctx.identity.claims.get("${identityAttribute}"), "${NONE_VALUE}")))))`,
-            )
-          : raw(
-              `$util.qr($ownerAuthExpressionValues.put(":${identityName}", $util.dynamodb.toDynamoDB($util.defaultIfNull($ctx.identity.claims.get("${identityAttribute}"), "${NONE_VALUE}"))))`,
-            ),
-        // tslint:enable
+
+      ownerAuthorizationExpressions.push(
+        set(
+          ref('identityValue'),
+          ref(
+            `util.defaultIfNull($ctx.identity.claims.get("${rawUsername}"), $util.defaultIfNull($ctx.identity.claims.get("${identityAttribute}"), "${NONE_VALUE}"))`,
+          ),
+        ),
       );
-      ruleNumber++;
+      if (ownerFieldIsList) {
+        ownerAuthorizationExpressions.push(
+          raw(`$util.qr($${authConditionVarName}.add({"${ownerAttribute}": {"contains": $identityValue}}))`),
+        );
+      } else {
+        ownerAuthorizationExpressions.push(raw(`$util.qr($${authConditionVarName}.add({"${ownerAttribute}": {"eq": $identityValue}}))`));
+      }
     }
-    return block('Owner Authorization Checks', [
-      set(ref('ownerAuthExpressions'), list([])),
-      set(ref('ownerAuthExpressionValues'), obj({})),
-      set(ref('ownerAuthExpressionNames'), obj({})),
-      ...ownerAuthorizationExpressions,
-    ]);
+    return block('Owner Authorization Checks', [...ownerAuthorizationExpressions]);
   }
 
   /**
@@ -786,78 +771,17 @@ identityClaim: "${rule.identityField || rule.identityClaim || DEFAULT_IDENTITY_F
   public throwIfNotStaticGroupAuthorizedOrAuthConditionIsEmpty(field?: FieldDefinitionNode): Expression {
     const staticGroupAuthorizedVariable = this.getStaticAuthorizationVariable(field);
     const ifUnauthThrow = iff(
-      not(parens(or([equals(ref(staticGroupAuthorizedVariable), raw('true')), parens(raw('$totalAuthExpression != ""'))]))),
+      not(parens(or([equals(ref(staticGroupAuthorizedVariable), raw('true')), not(parens(ref('ctx.stash.authCondition.isEmpty()')))]))),
       raw('$util.unauthorized()'),
     );
     return block('Throw if unauthorized', [ifUnauthThrow]);
   }
 
-  public collectAuthCondition(): Expression {
+  public collectAuthCondition(field?: FieldDefinitionNode): Expression {
+    const authConditionVarName = this.getAuthCheckVariableName(field?.name?.value);
     return block('Collect Auth Condition', [
-      set(
-        ref(ResourceConstants.SNIPPETS.AuthCondition),
-        raw(
-          `$util.defaultIfNull($authCondition, ${print(
-            obj({
-              expression: str(''),
-              expressionNames: obj({}),
-              expressionValues: obj({}),
-            }),
-          )})`,
-        ),
-      ),
-      set(ref('totalAuthExpression'), str('')),
-      comment('Add dynamic group auth conditions if they exist'),
-      iff(
-        ref('groupAuthExpressions'),
-        forEach(ref('authExpr'), ref('groupAuthExpressions'), [
-          set(ref('totalAuthExpression'), str(`$totalAuthExpression $authExpr`)),
-          iff(ref('foreach.hasNext'), set(ref('totalAuthExpression'), str(`$totalAuthExpression OR`))),
-        ]),
-      ),
-      iff(
-        ref('groupAuthExpressionNames'),
-        raw(`$util.qr($${ResourceConstants.SNIPPETS.AuthCondition}.expressionNames.putAll($groupAuthExpressionNames))`),
-      ),
-      iff(
-        ref('groupAuthExpressionValues'),
-        raw(`$util.qr($${ResourceConstants.SNIPPETS.AuthCondition}.expressionValues.putAll($groupAuthExpressionValues))`),
-      ),
-
-      comment('Add owner auth conditions if they exist'),
-      iff(
-        raw(`$totalAuthExpression != "" && $ownerAuthExpressions && $ownerAuthExpressions.size() > 0`),
-        set(ref('totalAuthExpression'), str(`$totalAuthExpression OR`)),
-      ),
-      iff(
-        ref('ownerAuthExpressions'),
-        forEach(ref('authExpr'), ref('ownerAuthExpressions'), [
-          set(ref('totalAuthExpression'), str(`$totalAuthExpression $authExpr`)),
-          iff(ref('foreach.hasNext'), set(ref('totalAuthExpression'), str(`$totalAuthExpression OR`))),
-        ]),
-      ),
-      iff(
-        ref('ownerAuthExpressionNames'),
-        raw(`$util.qr($${ResourceConstants.SNIPPETS.AuthCondition}.expressionNames.putAll($ownerAuthExpressionNames))`),
-      ),
-
-      iff(
-        ref('ownerAuthExpressionValues'),
-        raw(`$util.qr($${ResourceConstants.SNIPPETS.AuthCondition}.expressionValues.putAll($ownerAuthExpressionValues))`),
-      ),
-
-      comment('Set final expression if it has changed.'),
-      iff(
-        raw(`$totalAuthExpression != ""`),
-        ifElse(
-          raw(`$util.isNullOrEmpty($${ResourceConstants.SNIPPETS.AuthCondition}.expression)`),
-          set(ref(`${ResourceConstants.SNIPPETS.AuthCondition}.expression`), str(`($totalAuthExpression)`)),
-          set(
-            ref(`${ResourceConstants.SNIPPETS.AuthCondition}.expression`),
-            str(`$${ResourceConstants.SNIPPETS.AuthCondition}.expression AND ($totalAuthExpression)`),
-          ),
-        ),
-      ),
+      iff(not(ref('ctx.stash.authCondition.get("and")')), compoundExpression([set(ref('ctx.stash.authCondition["and"]'), list([]))])),
+      qref(`$ctx.stash.authCondition["and"].add({ "or": $${authConditionVarName} })`),
     ]);
   }
 

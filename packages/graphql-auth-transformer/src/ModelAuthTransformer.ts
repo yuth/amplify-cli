@@ -447,95 +447,95 @@ export class ModelAuthTransformer extends Transformer {
     authFields.push(fieldName);
     this.modelsWithAuth.set(typeName, authFields);
     return;
-//     if (parent.kind === Kind.INTERFACE_TYPE_DEFINITION) {
-//       throw new InvalidDirectiveError(
-//         `The @auth directive cannot be placed on an interface's field. See ${parent.name.value}${definition.name.value}`,
-//       );
-//     }
+    //     if (parent.kind === Kind.INTERFACE_TYPE_DEFINITION) {
+    //       throw new InvalidDirectiveError(
+    //         `The @auth directive cannot be placed on an interface's field. See ${parent.name.value}${definition.name.value}`,
+    //       );
+    //     }
 
-//     const modelDirective = parent.directives.find(dir => dir.name.value === 'model');
-//     const isParentTypeBuiltinType =
-//       parent.name.value === ctx.getQueryTypeName() ||
-//       parent.name.value === ctx.getMutationTypeName() ||
-//       parent.name.value === ctx.getSubscriptionTypeName();
+    //     const modelDirective = parent.directives.find(dir => dir.name.value === 'model');
+    //     const isParentTypeBuiltinType =
+    //       parent.name.value === ctx.getQueryTypeName() ||
+    //       parent.name.value === ctx.getMutationTypeName() ||
+    //       parent.name.value === ctx.getSubscriptionTypeName();
 
-//     if (isParentTypeBuiltinType) {
-//       console.warn(
-//         `Be careful when using @auth directives on a field in a root type. @auth directives on field definitions use the source \
-// object to perform authorization logic and the source will be an empty object for fields on root types. \
-// Static group authorization should perform as expected.`,
-//       );
-//     }
+    //     if (isParentTypeBuiltinType) {
+    //       console.warn(
+    //         `Be careful when using @auth directives on a field in a root type. @auth directives on field definitions use the source \
+    // object to perform authorization logic and the source will be an empty object for fields on root types. \
+    // Static group authorization should perform as expected.`,
+    //       );
+    //     }
 
-//     // Get and validate the auth rules.
-//     const rules = this.getAuthRulesFromDirective(directive);
-//     // Assign default providers to rules where no provider was explicitly defined
-//     this.ensureDefaultAuthProviderAssigned(rules);
-//     this.validateFieldRules(rules, isParentTypeBuiltinType, modelDirective !== undefined);
-//     // Check the rules if we've to generate IAM policies for Unauth role or not
-//     this.setAuthPolicyFlag(rules);
-//     this.setUnauthPolicyFlag(rules);
+    //     // Get and validate the auth rules.
+    //     const rules = this.getAuthRulesFromDirective(directive);
+    //     // Assign default providers to rules where no provider was explicitly defined
+    //     this.ensureDefaultAuthProviderAssigned(rules);
+    //     this.validateFieldRules(rules, isParentTypeBuiltinType, modelDirective !== undefined);
+    //     // Check the rules if we've to generate IAM policies for Unauth role or not
+    //     this.setAuthPolicyFlag(rules);
+    //     this.setUnauthPolicyFlag(rules);
 
-//     this.addFieldToResourceReferences(parent.name.value, definition.name.value, rules);
+    //     this.addFieldToResourceReferences(parent.name.value, definition.name.value, rules);
 
-//     // Add the directives to the parent type as well, we've to add the default provider if
-//     // - The type has no @auth directives, so there are NO restrictions on the type
-//     // or
-//     // - The type has @auth rules for the default provider
-//     const includeDefault = this.isTypeNeedsDefaultProviderAccess(parent);
-//     // Should not propagate auth directives onto Query/Mutation/Subscription types
-//     const typeDirectives = isParentTypeBuiltinType ? [] : this.getDirectivesForRules(rules, includeDefault);
+    //     // Add the directives to the parent type as well, we've to add the default provider if
+    //     // - The type has no @auth directives, so there are NO restrictions on the type
+    //     // or
+    //     // - The type has @auth rules for the default provider
+    //     const includeDefault = this.isTypeNeedsDefaultProviderAccess(parent);
+    //     // Should not propagate auth directives onto Query/Mutation/Subscription types
+    //     const typeDirectives = isParentTypeBuiltinType ? [] : this.getDirectivesForRules(rules, includeDefault);
 
-//     if (typeDirectives.length > 0) {
-//       this.extendTypeWithDirectives(ctx, parent.name.value, typeDirectives);
-//     }
+    //     if (typeDirectives.length > 0) {
+    //       this.extendTypeWithDirectives(ctx, parent.name.value, typeDirectives);
+    //     }
 
-//     const isOpRule = (op: ModelOperation) => (rule: AuthRule) => {
-//       if (rule.operations) {
-//         const matchesOp = rule.operations.find(o => o === op);
-//         return Boolean(matchesOp);
-//       }
-//       if (rule.operations === null) {
-//         return false;
-//       }
-//       return true;
-//     };
+    //     const isOpRule = (op: ModelOperation) => (rule: AuthRule) => {
+    //       if (rule.operations) {
+    //         const matchesOp = rule.operations.find(o => o === op);
+    //         return Boolean(matchesOp);
+    //       }
+    //       if (rule.operations === null) {
+    //         return false;
+    //       }
+    //       return true;
+    //     };
 
-//     // add rules if per field @auth is used with @model
-//     if (modelDirective) {
-//       const isReadRule = isOpRule('read');
-//       const isCreateRule = isOpRule('create');
-//       const isUpdateRule = isOpRule('update');
-//       const isDeleteRule = isOpRule('delete');
+    //     // add rules if per field @auth is used with @model
+    //     if (modelDirective) {
+    //       const isReadRule = isOpRule('read');
+    //       const isCreateRule = isOpRule('create');
+    //       const isUpdateRule = isOpRule('update');
+    //       const isDeleteRule = isOpRule('delete');
 
-//       // Retrieve the configuration options for the related @model directive
-//       const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, parent);
-//       // The field handler adds the read rule on the object
-//       const readRules = rules.filter((rule: AuthRule) => isReadRule(rule));
-//       this.protectReadForField(ctx, parent, definition, readRules, modelConfiguration);
+    //       // Retrieve the configuration options for the related @model directive
+    //       const modelConfiguration = new ModelDirectiveConfiguration(modelDirective, parent);
+    //       // The field handler adds the read rule on the object
+    //       const readRules = rules.filter((rule: AuthRule) => isReadRule(rule));
+    //       this.protectReadForField(ctx, parent, definition, readRules, modelConfiguration);
 
-//       // Protect mutations when objects including this field are trying to be created.
-//       const createRules = rules.filter((rule: AuthRule) => isCreateRule(rule));
-//       this.protectCreateForField(ctx, parent, definition, createRules, modelConfiguration);
+    //       // Protect mutations when objects including this field are trying to be created.
+    //       const createRules = rules.filter((rule: AuthRule) => isCreateRule(rule));
+    //       this.protectCreateForField(ctx, parent, definition, createRules, modelConfiguration);
 
-//       // Protect update mutations when objects inluding this field are trying to be updated.
-//       const updateRules = rules.filter((rule: AuthRule) => isUpdateRule(rule));
-//       this.protectUpdateForField(ctx, parent, definition, updateRules, modelConfiguration);
+    //       // Protect update mutations when objects inluding this field are trying to be updated.
+    //       const updateRules = rules.filter((rule: AuthRule) => isUpdateRule(rule));
+    //       this.protectUpdateForField(ctx, parent, definition, updateRules, modelConfiguration);
 
-//       // Delete operations are only protected by @auth directives on objects.
-//       const deleteRules = rules.filter((rule: AuthRule) => isDeleteRule(rule));
-//       this.protectDeleteForField(ctx, parent, definition, deleteRules, modelConfiguration);
-//     } else {
-//       const directives = this.getDirectivesForRules(rules, false);
+    //       // Delete operations are only protected by @auth directives on objects.
+    //       const deleteRules = rules.filter((rule: AuthRule) => isDeleteRule(rule));
+    //       this.protectDeleteForField(ctx, parent, definition, deleteRules, modelConfiguration);
+    //     } else {
+    //       const directives = this.getDirectivesForRules(rules, false);
 
-//       if (directives.length > 0) {
-//         this.addDirectivesToField(ctx, parent.name.value, definition.name.value, directives);
-//       }
+    //       if (directives.length > 0) {
+    //         this.addDirectivesToField(ctx, parent.name.value, definition.name.value, directives);
+    //       }
 
-//       // if @auth is used without @model only generate static group rules
-//       const staticGroupRules = rules.filter((rule: AuthRule) => rule.groups);
-//       this.protectField(ctx, parent, definition, staticGroupRules);
-//     }
+    //       // if @auth is used without @model only generate static group rules
+    //       const staticGroupRules = rules.filter((rule: AuthRule) => rule.groups);
+    //       this.protectField(ctx, parent, definition, staticGroupRules);
+    //     }
   };
 
   validate = (ctx: TransformerContext): void => {
@@ -644,51 +644,37 @@ Static group authorization should perform as expected.`,
 
       const mutations = ddbTransformer.getMutationFieldNames(ctx, def);
 
-      for(const createMutationName of mutations.CREATE) {
-        const createResolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), createMutationName)
-      this.protectCreateMutation(
-        ctx,
-        createResolver,
-        operationRules.create,
-        def,
-        modelConfiguration,
-      );
+      for (const createMutationName of mutations.CREATE) {
+        const createResolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), createMutationName);
+        this.protectCreateMutation(ctx, createResolver, operationRules.create, def, modelConfiguration);
       }
 
-      for(const updateMutationName of mutations.UPDATE) {
-        const updateResolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), updateMutationName)
-        this.protectUpdateMutation(
-          ctx,
-          updateResolver,
-          operationRules.update,
-          def,
-          modelConfiguration,
-        );
+      for (const updateMutationName of mutations.UPDATE) {
+        const updateResolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), updateMutationName);
+        this.protectUpdateMutation(ctx, updateResolver, operationRules.update, def, modelConfiguration);
       }
 
-      // for(const deleteMuationName of mutations.DELETE) {
-      //   const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), deleteMuationName)
-      //   this.protectDeleteMutation(
-      //     ctx,
-      //     resolver,
-      //     operationRules.delete,
-      //     def,
-      //     modelConfiguration,
-      //   );
-      // }
+      for (const deleteMutationName of mutations.DELETE) {
+        const resolver = ctx.resolvers.getResolver(ctx.getMutationTypeName(), deleteMutationName);
+        this.protectDeleteMutation(ctx, resolver, operationRules.delete, def, modelConfiguration);
+      }
 
-      // this.protectGetQuery(ctx, ResolverResourceIDs.DynamoDBGetResolverResourceID(def.name.value), queryRules.get, def, modelConfiguration);
-      // this.protectListQuery(
-      //   ctx,
-      //   ResolverResourceIDs.DynamoDBListResolverResourceID(def.name.value),
-      //   queryRules.list,
-      //   def,
-      //   modelConfiguration,
-      // );
-      // this.protectConnections(ctx, def, operationRules.read, modelConfiguration);
-      // this.protectQueries(ctx, def, operationRules.read, modelConfiguration);
+      const queries = ddbTransformer.getQueryFieldNames(ctx, def);
 
-      // // protect search query if @searchable is enabled
+      for (const getQueryName of queries.GET) {
+        const resolver = ctx.resolvers.getResolver(ctx.getQueryTypeName(), getQueryName);
+        this.protectGetQuery(ctx, resolver, queryRules.get, def, modelConfiguration);
+      }
+
+      for (const listQueryName of queries.LIST) {
+        const resolver = ctx.resolvers.getResolver(ctx.getQueryTypeName(), listQueryName);
+        this.protectListQuery(ctx, resolver, queryRules.list, def, modelConfiguration);
+      }
+
+      this.protectConnections(ctx, def, operationRules.read, modelConfiguration);
+      this.protectQueries(ctx, def, operationRules.read, modelConfiguration);
+
+      // protect search query if @searchable is enabled
       // if (searchableDirective) {
       //   this.protectSearchQuery(ctx, def, ResolverResourceIDs.ElasticsearchSearchResolverResourceID(def.name.value), operationRules.read);
       // }
@@ -885,7 +871,8 @@ Either make the field optional, set auth on the object and not the field, or dis
   ) {
     const resolverResourceId = ResolverResourceIDs.DynamoDBUpdateResolverResourceID(parent.name.value);
     const subscriptionOperation: ModelDirectiveOperationType = 'onDelete';
-    this.protectDeleteMutation(ctx, resolverResourceId, rules, parent, modelConfiguration, field, subscriptionOperation);
+    const resolver = ctx.resolvers.getResolver(parent.name.value, field.name.value);
+    this.protectDeleteMutation(ctx, resolver, rules, parent, modelConfiguration, field, subscriptionOperation);
   }
 
   /**
@@ -1215,12 +1202,11 @@ operations will be generated by the CLI.`,
    */
   private protectGetQuery(
     ctx: TransformerContext,
-    resolverResourceId: string,
+    resolver: BaseResolver,
     rules: AuthRule[],
     parent: ObjectTypeDefinitionNode | null,
     modelConfiguration: ModelDirectiveConfiguration,
   ) {
-    const resolver = ctx.getResource(resolverResourceId);
     if (!rules || rules.length === 0 || !resolver) {
       return;
     } else {
@@ -1246,9 +1232,8 @@ operations will be generated by the CLI.`,
       const authExpression = this.authorizationExpressionOnSingleObject(rules);
 
       if (authExpression) {
-        const templateParts = [print(authExpression), resolver.Properties.ResponseMappingTemplate];
-        resolver.Properties.ResponseMappingTemplate = templateParts.join('\n\n');
-        ctx.setResource(resolverResourceId, resolver);
+        const templateParts = [print(authExpression)];
+        resolver.addSlot('postDataLoad', templateParts.join('\n\n'));
       }
     }
   }
@@ -1333,13 +1318,12 @@ operations will be generated by the CLI.`,
    */
   private protectListQuery(
     ctx: TransformerContext,
-    resolverResourceId: string,
+    resolver: BaseResolver,
     rules: AuthRule[],
     parent: ObjectTypeDefinitionNode | null,
     modelConfiguration: ModelDirectiveConfiguration,
     explicitOperationName: string = undefined,
   ) {
-    const resolver = ctx.getResource(resolverResourceId);
     if (!rules || rules.length === 0 || !resolver) {
       return;
     }
@@ -1362,9 +1346,8 @@ operations will be generated by the CLI.`,
     const authExpression = this.authorizationExpressionForListResult(rules);
 
     if (authExpression) {
-      const templateParts = [print(authExpression), resolver.Properties.ResponseMappingTemplate];
-      resolver.Properties.ResponseMappingTemplate = templateParts.join('\n\n');
-      ctx.setResource(resolverResourceId, resolver);
+      const templateParts = [print(authExpression)];
+      resolver.addSlot('postDataLoad', templateParts.join('\n\n'));
     }
   }
 
@@ -1618,11 +1601,13 @@ operations will be generated by the CLI.`,
       const mutationTypeName = ctx.getMutationTypeName();
 
       if (modelConfiguration.shouldHave(isUpdate ? 'update' : 'delete')) {
+        // Todo: Use type enumeration to get update/delete field name for type
         const operationName = modelConfiguration.getName(isUpdate ? 'update' : 'delete');
         // If the parent type has any rules for this operation AND
         // the default provider we've to get directives including the default
         // as well.
         const includeDefault = Boolean(!field && this.isTypeHasRulesForOperation(parent, isUpdate ? 'update' : 'delete'));
+        // Todo: Move this to transformSchema method as this is specific to updating the schema
         const operationDirectives = this.getDirectivesForRules(rules, includeDefault);
 
         if (operationDirectives.length > 0) {
@@ -1645,7 +1630,7 @@ operations will be generated by the CLI.`,
         // Generate the expressions to validate each strategy.
         const staticGroupAuthorizationExpression = this.resources.staticGroupAuthorizationExpression(staticGroupAuthorizationRules, field);
 
-        const fieldIsList = (fieldName: string) => {
+        const isFieldAListType = (fieldName: string) => {
           const field = parent.fields.find(field => field.name.value === fieldName);
           if (field) {
             return isListType(field.type);
@@ -1657,13 +1642,13 @@ operations will be generated by the CLI.`,
         // are done before calling PutItem.
         const dynamicGroupAuthorizationExpression = this.resources.dynamicGroupAuthorizationExpressionForUpdateOrDeleteOperations(
           dynamicGroupAuthorizationRules,
-          fieldIsList,
+          isFieldAListType,
           field ? field.name.value : undefined,
         );
 
         const ownerAuthorizationExpression = this.resources.ownerAuthorizationExpressionForUpdateOrDeleteOperations(
           ownerAuthorizationRules,
-          fieldIsList,
+          isFieldAListType,
           field ? field.name.value : undefined,
         );
 
@@ -1721,36 +1706,33 @@ operations will be generated by the CLI.`,
         // Create the authMode if block and add it to the resolver
         expressions.push(this.resources.getAuthModeCheckWrappedExpression(authModesToCheck, authorizationLogic));
 
-        // const templateParts = [
-        //   print(field && ifCondition ? iff(ifCondition, compoundExpression(expressions)) : compoundExpression(expressions)),
-        //   resolver.Properties.RequestMappingTemplate,
-        // ];
-        // resolver.Properties.RequestMappingTemplate = templateParts.join('\n\n');
-        // ctx.setResource(resolverResourceId, resolver);
-        resolver.addSlot('auth', print(field && ifCondition ? iff(ifCondition, compoundExpression(expressions)) : compoundExpression(expressions)));
+        resolver.addSlot(
+          'auth',
+          print(field && ifCondition ? iff(ifCondition, compoundExpression(expressions)) : compoundExpression(expressions)),
+        );
       }
 
       // if protect is for field and there is a subscription for update / delete then protect the field in that operation
-    //   if (
-    //     field &&
-    //     subscriptionOperation &&
-    //     modelConfiguration.shouldHave(subscriptionOperation) &&
-    //     (modelConfiguration.getName('level') as ModelSubscriptionLevel) === 'on'
-    //   ) {
-    //     let mutationResolver = resolver;
-    //     let mutationResolverResourceID = resolverResourceId;
-    //     // if we are protecting delete then we need to get the delete resolver
-    //     if (subscriptionOperation === 'onDelete') {
-    //       mutationResolverResourceID = ResolverResourceIDs.DynamoDBDeleteResolverResourceID(parent.name.value);
-    //       mutationResolver = ctx.getResource(mutationResolverResourceID);
-    //     }
-    //     const getTemplateParts = [mutationResolver.Properties.ResponseMappingTemplate];
-    //     if (!this.isOperationExpressionSet(mutationTypeName, mutationResolver.Properties.ResponseMappingTemplate)) {
-    //       getTemplateParts.unshift(this.resources.setOperationExpression(mutationTypeName));
-    //     }
-    //     mutationResolver.Properties.ResponseMappingTemplate = getTemplateParts.join('\n\n');
-    //     ctx.setResource(mutationResolverResourceID, mutationResolver);
-    //   }
+      //   if (
+      //     field &&
+      //     subscriptionOperation &&
+      //     modelConfiguration.shouldHave(subscriptionOperation) &&
+      //     (modelConfiguration.getName('level') as ModelSubscriptionLevel) === 'on'
+      //   ) {
+      //     let mutationResolver = resolver;
+      //     let mutationResolverResourceID = resolverResourceId;
+      //     // if we are protecting delete then we need to get the delete resolver
+      //     if (subscriptionOperation === 'onDelete') {
+      //       mutationResolverResourceID = ResolverResourceIDs.DynamoDBDeleteResolverResourceID(parent.name.value);
+      //       mutationResolver = ctx.getResource(mutationResolverResourceID);
+      //     }
+      //     const getTemplateParts = [mutationResolver.Properties.ResponseMappingTemplate];
+      //     if (!this.isOperationExpressionSet(mutationTypeName, mutationResolver.Properties.ResponseMappingTemplate)) {
+      //       getTemplateParts.unshift(this.resources.setOperationExpression(mutationTypeName));
+      //     }
+      //     mutationResolver.Properties.ResponseMappingTemplate = getTemplateParts.join('\n\n');
+      //     ctx.setResource(mutationResolverResourceID, mutationResolver);
+      //   }
     }
   }
 
@@ -1796,25 +1778,25 @@ operations will be generated by the CLI.`,
    */
   private protectDeleteMutation(
     ctx: TransformerContext,
-    resolverResourceId: string,
+    resolver: BaseResolver,
     rules: AuthRule[],
     parent: ObjectTypeDefinitionNode,
     modelConfiguration: ModelDirectiveConfiguration,
     field?: FieldDefinitionNode,
     subscriptionOperation?: ModelDirectiveOperationType,
   ) {
-    // return this.protectUpdateOrDeleteMutation(
-    //   ctx,
-    //   resolverResourceId,
-    //   rules,
-    //   parent,
-    //   modelConfiguration,
-    //   false,
-    //   field,
-    //   field
-    //     ? raw(`$ctx.args.input.containsKey("${field.name.value}") && $util.isNull($ctx.args.input.get("${field.name.value}"))`)
-    //     : undefined,
-    // );
+    return this.protectUpdateOrDeleteMutation(
+      ctx,
+      resolver,
+      rules,
+      parent,
+      modelConfiguration,
+      false,
+      field,
+      field
+        ? raw(`$ctx.args.input.containsKey("${field.name.value}") && $util.isNull($ctx.args.input.get("${field.name.value}"))`)
+        : undefined,
+    );
     //   subscriptionOperation,
   }
 
@@ -1834,8 +1816,8 @@ operations will be generated by the CLI.`,
         for (const field of inputDef.fields) {
           const returnTypeName = getBaseType(field.type);
           if (fieldHasDirective(field, 'connection') && returnTypeName === thisModelName) {
-            const resolverResourceId = ResolverResourceIDs.ResolverResourceID(inputDef.name.value, field.name.value);
-
+            // const resolverResourceId = ResolverResourceIDs.ResolverResourceID(inputDef.name.value, field.name.value);
+            const resolver = ctx.resolvers.getResolver(def.name.value, field.name.value);
             // Add the auth directives to the connection to make sure the
             // member is accessible.
             const directives = this.getDirectivesForRules(rules, false);
@@ -1844,9 +1826,9 @@ operations will be generated by the CLI.`,
             }
 
             if (isListType(field.type)) {
-              this.protectListQuery(ctx, resolverResourceId, rules, null, modelConfiguration);
+              this.protectListQuery(ctx, resolver, rules, null, modelConfiguration);
             } else {
-              this.protectGetQuery(ctx, resolverResourceId, rules, null, modelConfiguration);
+              this.protectGetQuery(ctx, resolver, rules, null, modelConfiguration);
             }
           }
         }
@@ -1874,8 +1856,8 @@ operations will be generated by the CLI.`,
     });
     for (const keyWithQuery of secondaryKeyDirectivesWithQueries) {
       const args = getDirectiveArguments(keyWithQuery);
-      const resolverResourceId = ResolverResourceIDs.ResolverResourceID(ctx.getQueryTypeName(), args.queryField);
-      this.protectListQuery(ctx, resolverResourceId, rules, null, modelConfiguration, args.queryField);
+      const resolver = ctx.resolvers.getResolver(ctx.getQueryTypeName(), args.queryField);
+      this.protectListQuery(ctx, resolver, rules, null, modelConfiguration, args.queryField);
     }
   }
 

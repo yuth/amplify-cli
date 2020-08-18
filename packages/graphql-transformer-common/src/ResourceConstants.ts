@@ -102,7 +102,7 @@ export class ResourceConstants {
     VersionedCondition: 'versionedCondition',
     ModelObjectKey: 'context.stash.metadata.modelObjectKey',
     DynamoDBNameOverrideMap: 'dynamodbNameOverrideMap',
-    ModelQueryExpression: 'modelQueryExpression',
+    ModelQueryExpression: 'context.stash.metadata.modelQueryExpression',
     ModelQueryIndex: 'modelQueryIndex',
     IsDynamicGroupAuthorizedVariable: 'isDynamicGroupAuthorized',
     IsLocalDynamicGroupAuthorizedVariable: 'isLocalDynamicGroupAuthorized',

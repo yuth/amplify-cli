@@ -133,16 +133,16 @@ export class KeyTransformer extends Transformer {
     }
   };
 
-  public getDirectiveArgs = (defination: ObjectTypeDefinitionNode| InterfaceTypeDefinitionNode): KeyArguments[] => {
-    return defination.directives
+  public getDirectiveArgs = (definition: ObjectTypeDefinitionNode | InterfaceTypeDefinitionNode): KeyArguments[] => {
+    return definition.directives
       .filter(d => d.name.value === 'key')
       .map(d => {
         return getDirectiveArguments(d);
       });
   };
 
-  public getDirectiveArgument = (defination: ObjectTypeDefinitionNode): KeyArguments[] => {
-    const directives = defination.directives.filter(d => d.name.value == 'key');
+  public getDirectiveArgument = (definition: ObjectTypeDefinitionNode): KeyArguments[] => {
+    const directives = definition.directives.filter(d => d.name.value == 'key');
     return directives.map(d => getDirectiveArguments(d));
   };
 
@@ -317,50 +317,58 @@ export class KeyTransformer extends Transformer {
   // If the get field exists, update its arguments with primary key information.
   private updateGetField = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
     let query = ctx.getQuery();
-    const getResourceID = ResolverResourceIDs.DynamoDBGetResolverResourceID(definition.name.value);
-    const getResolverResource = ctx.getResource(getResourceID);
-    if (getResolverResource && this.isPrimaryKey(directive)) {
+    const ddbTransformer: TransformerModelProvider = ctx.getTransformerPluginInstance(
+      'DynamoDBModelTransformer',
+    ) as TransformerModelProvider;
+    const queries = ddbTransformer.getQueryFieldNames(ctx, definition);
+    const getFieldNames = queries.GET;
+    // const getResourceID = ResolverResourceIDs.DynamoDBGetResolverResourceID(definition.name.value);
+    // const getResolverResource = ctx.getResource(getResourceID);
+    if (getFieldNames.length && this.isPrimaryKey(directive)) {
       // By default takes a single argument named 'id'. Replace it with the updated primary key structure.
-      let getField: FieldDefinitionNode = query.fields.find(
-        field => field.name.value === getResolverResource.Properties.FieldName,
-      ) as FieldDefinitionNode;
-      const args: KeyArguments = getDirectiveArguments(directive);
-      const getArguments = args.fields.map(keyAttributeName => {
-        const keyField = definition.fields.find(field => field.name.value === keyAttributeName);
-        const keyArgument = makeInputValueDefinition(keyAttributeName, makeNonNullType(makeNamedType(getBaseType(keyField.type))));
-        return keyArgument;
-      });
-      getField = { ...getField, arguments: getArguments };
-      query = { ...query, fields: query.fields.map(field => (field.name.value === getField.name.value ? getField : field)) };
-      ctx.putType(query);
+      for (const fieldName of getFieldNames) {
+        let getField: FieldDefinitionNode = query.fields.find(field => field.name.value === fieldName) as FieldDefinitionNode;
+        const args: KeyArguments = getDirectiveArguments(directive);
+        const getArguments = args.fields.map(keyAttributeName => {
+          const keyField = definition.fields.find(field => field.name.value === keyAttributeName);
+          const keyArgument = makeInputValueDefinition(keyAttributeName, makeNonNullType(makeNamedType(getBaseType(keyField.type))));
+          return keyArgument;
+        });
+        getField = { ...getField, arguments: getArguments };
+        query = { ...query, fields: query.fields.map(field => (field.name.value === getField.name.value ? getField : field)) };
+        ctx.putType(query);
+      }
     }
   };
 
   // If the list field exists, update its arguments with primary key information.
   private updateListField = (definition: ObjectTypeDefinitionNode, directive: DirectiveNode, ctx: TransformerContext) => {
-    const listResourceID = ResolverResourceIDs.DynamoDBListResolverResourceID(definition.name.value);
-    const listResolverResource = ctx.getResource(listResourceID);
-    if (listResolverResource && this.isPrimaryKey(directive)) {
+    const ddbTransformer: TransformerModelProvider = ctx.getTransformerPluginInstance(
+      'DynamoDBModelTransformer',
+    ) as TransformerModelProvider;
+    const queries = ddbTransformer.getQueryFieldNames(ctx, definition);
+    const listFieldNames = queries.LIST;
+    if (listFieldNames.length && this.isPrimaryKey(directive)) {
       // By default takes a single argument named 'id'. Replace it with the updated primary key structure.
-      let query = ctx.getQuery();
-      let listField: FieldDefinitionNode = query.fields.find(
-        field => field.name.value === listResolverResource.Properties.FieldName,
-      ) as FieldDefinitionNode;
-      let listArguments: InputValueDefinitionNode[] = [...listField.arguments];
-      const args: KeyArguments = getDirectiveArguments(directive);
-      if (args.fields.length > 2) {
-        listArguments = addCompositeSortKey(definition, args, listArguments);
-        listArguments = addHashField(definition, args, listArguments);
-      } else if (args.fields.length === 2) {
-        listArguments = addSimpleSortKey(ctx, definition, args, listArguments);
-        listArguments = addHashField(definition, args, listArguments);
-      } else {
-        listArguments = addHashField(definition, args, listArguments);
+      for (const fieldName of listFieldNames) {
+        let query = ctx.getQuery();
+        let listField: FieldDefinitionNode = query.fields.find(field => field.name.value === fieldName) as FieldDefinitionNode;
+        let listArguments: InputValueDefinitionNode[] = [...listField.arguments];
+        const args: KeyArguments = getDirectiveArguments(directive);
+        if (args.fields.length > 2) {
+          listArguments = addCompositeSortKey(definition, args, listArguments);
+          listArguments = addHashField(definition, args, listArguments);
+        } else if (args.fields.length === 2) {
+          listArguments = addSimpleSortKey(ctx, definition, args, listArguments);
+          listArguments = addHashField(definition, args, listArguments);
+        } else {
+          listArguments = addHashField(definition, args, listArguments);
+        }
+        listArguments.push(makeInputValueDefinition('sortDirection', makeNamedType('ModelSortDirection')));
+        listField = { ...listField, arguments: listArguments };
+        query = { ...query, fields: query.fields.map(field => (field.name.value === listField.name.value ? listField : field)) };
+        ctx.putType(query);
       }
-      listArguments.push(makeInputValueDefinition('sortDirection', makeNamedType('ModelSortDirection')));
-      listField = { ...listField, arguments: listArguments };
-      query = { ...query, fields: query.fields.map(field => (field.name.value === listField.name.value ? listField : field)) };
-      ctx.putType(query);
     }
   };
 
@@ -893,12 +901,6 @@ function setQuerySnippet(definition: ObjectTypeDefinitionNode, directive: Direct
     set(ref(ResourceConstants.SNIPPETS.ModelQueryExpression), obj({})),
     applyKeyExpressionForCompositeKey(keys, keyTypes, ResourceConstants.SNIPPETS.ModelQueryExpression),
   );
-
-  // PoI: set the query expression
-  expressions.push(
-    set(ref(`ctx.stash.${ResourceConstants.SNIPPETS.ModelQueryExpression}`), ref(ResourceConstants.SNIPPETS.ModelQueryExpression)),
-  );
-
   return block(`Set query expression for @key`, expressions);
 }
 

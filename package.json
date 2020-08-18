@@ -20,7 +20,7 @@
     "setup-dev": "yarn dev-build && yarn rm-dev-link && yarn link-dev && yarn rm-aa-dev-link && yarn link-aa-dev",
     "link-win": "node ./scripts/link-bin.js packages/amplify-cli/bin/amplify",
     "setup-dev-win": "yarn dev-build && yarn link-win && yarn link-caa",
-    "split-e2e-tests":"yarn ts-node ./scripts/split-e2e-tests.ts && git add .circleci/config.yml",
+    "split-e2e-tests": "yarn ts-node ./scripts/split-e2e-tests.ts && git add .circleci/config.yml",
     "publish:master": "lerna publish --canary --force-publish --preid=alpha --exact --include-merged-tags --conventional-prerelease --yes",
     "publish:beta": "lerna publish --exact --dist-tag=beta --preid=beta --conventional-commits --conventional-prerelease --message 'chore(release): Publish [ci skip]' --yes",
     "publish:release": "lerna publish --conventional-commits --exact --yes --message 'chore(release): Publish [ci skip]'",
@@ -50,6 +50,7 @@
   "author": "Amazon Web Services",
   "license": "Apache-2.0",
   "dependencies": {
+    "iam-policy-generator": "^1.2.0",
     "lerna": "^3.16.4"
   },
   "workspaces": [
@@ -60,9 +61,9 @@
     "@commitlint/config-conventional": "^8.1.0",
     "@commitlint/config-lerna-scopes": "^8.1.0",
     "@types/jest": "^25.2.1",
+    "@types/js-yaml": "^3.12.3",
     "@typescript-eslint/eslint-plugin": "^2.16.0",
     "@typescript-eslint/parser": "^2.16.0",
-    "@types/js-yaml":"^3.12.3",
     "cmd-shim": "^3.0.3",
     "codecov": "^3.7.0",
     "commitizen": "^3.1.2",
@@ -88,8 +89,8 @@
     "prettier-eslint": "^9.0.1",
     "pretty-quick": "^2.0.1",
     "rimraf": "^3.0.0",
-    "ts-node": "^8.10.1",
     "ts-jest": "^25.5.0",
+    "ts-node": "^8.10.1",
     "typescript": "^3.8.3"
   },
   "config": {

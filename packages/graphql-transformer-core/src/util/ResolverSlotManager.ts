@@ -1,4 +1,3 @@
-import { } from '.'
 export class ResolverSlotManager {
   private slots: Map<string, string[]> = new Map();
   constructor(private slotsNames: string[]) {

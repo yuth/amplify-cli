@@ -359,7 +359,7 @@ export class DynamoDBModelTransformer extends Transformer implements Transformer
         createResolver.responseMappingTemplate,
       );
 
-      const hositedInitalization = this.resources.initalizeDefaultInputForCreateMutation(createInput, timestampFields);
+      const hositedInitalization = this.resources.initializeDefaultInputForCreateMutation(createInput, timestampFields);
       resolver.addSlot('init', hositedInitalization);
       const resourceId = ResolverResourceIDs.DynamoDBCreateResolverResourceID(typeName);
       resolver.mapResourceToStack(typeName);
