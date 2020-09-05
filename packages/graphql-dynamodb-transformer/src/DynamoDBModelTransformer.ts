@@ -11,6 +11,8 @@ import {
   ModelResourceIDs,
   ResolverResourceIDs,
   getBaseType,
+  isListType,
+  ResourceConstants,
 } from 'graphql-transformer-common';
 import { getDirectiveArguments, gql, Transformer, TransformerContext, SyncConfig } from 'graphql-transformer-core';
 import {
@@ -30,6 +32,7 @@ import {
 } from './definitions';
 import { ModelDirectiveArgs, getCreatedAtFieldName, getUpdatedAtFieldName } from './ModelDirectiveArgs';
 import { ResourceFactory } from './resources';
+import { ref, print } from 'graphql-mapping-template';
 
 const METADATA_KEY = 'DynamoDBTransformerMetadata';
 
@@ -190,6 +193,10 @@ export class DynamoDBModelTransformer extends Transformer {
     this.createQueries(def, directive, ctx);
     this.createMutations(def, directive, ctx, nonModelArray);
     this.createSubscriptions(def, directive, ctx);
+
+    // add a resolver to fields that are of [] type to ensure that field is never null. When the field is null, return and empty []
+    // https://github.com/aws-amplify/amplify-cli/issues/5139
+    this.addDefaultListTypeResolvers(ctx, def);
 
     // Update ModelXConditionInput type
     this.updateMutationConditionInput(ctx, def);
@@ -740,5 +747,38 @@ export class DynamoDBModelTransformer extends Transformer {
       [resourceId]: initCodeGenerator,
     };
     ctx.metadata.set(METADATA_KEY, ddbMetadata);
+  }
+  /**
+   * Create a resolver that replaces null values for field that is a list type to an empty list
+   * @param type The name of the type to delete an item of.
+   * @param nameOverride A user provided override for the field name.
+   */
+  private makeListFieldResolver(ctx: TransformerContext, parent: ObjectTypeDefinitionNode, field: FieldDefinitionNode) {
+    const resolverResourceId = ResolverResourceIDs.ResolverResourceID(parent.name.value, field.name.value);
+    // If the resolver exists (e.g. @connection use it else make a blank one against None)
+    let resolver = ctx.getResource(resolverResourceId);
+    if (!resolver) {
+      // If we need a none data source for the blank resolver, add it.
+      const noneDS = ctx.getResource(ResourceConstants.RESOURCES.NoneDataSource);
+      if (!noneDS) {
+        ctx.setResource(ResourceConstants.RESOURCES.NoneDataSource, this.resources.noneDataSource());
+      }
+      // We also need to add a stack mapping so that this resolver is added to the model stack.
+      ctx.mapResourceToStack(parent.name.value, resolverResourceId);
+      resolver = this.resources.blankResolver(parent.name.value, field.name.value);
+    }
+    const templateParts = [
+      print(ref(`util.toJson($util.defaultIfNull($ctx.source.${field.name.value}, []) )`)),
+      resolver.Properties.ResponseMappingTemplate,
+    ];
+    resolver.Properties.ResponseMappingTemplate = templateParts.join('\n');
+    ctx.setResource(resolverResourceId, resolver);
+  }
+
+  private addDefaultListTypeResolvers(ctx: TransformerContext, parent: ObjectTypeDefinitionNode) {
+    // https://github.com/aws-amplify/amplify-cli/issues/5139
+    // generate an array of fields with are of [] type, to ensure that the result always return an empty list if the value is null
+    const fieldsWithListType = parent.fields.filter(f => isListType(f.type));
+    fieldsWithListType.forEach(field => this.makeListFieldResolver(ctx, parent, field));
   }
 }

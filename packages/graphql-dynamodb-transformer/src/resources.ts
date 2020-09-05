@@ -863,4 +863,30 @@ export class ResourceFactory {
       ...(syncConfig && { SyncConfig: SyncUtils.syncResolverConfig(syncConfig) }),
     });
   }
+
+  // Todo: move this to a common module, this is used in auth transformer as well
+  public blankResolver(type: string, field: string) {
+    return new AppSync.Resolver({
+      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+      DataSourceName: 'NONE',
+      FieldName: field,
+      TypeName: type,
+      RequestMappingTemplate: print(
+        obj({
+          version: str(RESOLVER_VERSION_ID),
+          payload: obj({}),
+        }),
+      ),
+      ResponseMappingTemplate: '',
+    });
+  }
+
+  // Todo: move this to a common module, this is used in auth transformer as well
+  public noneDataSource() {
+    return new AppSync.DataSource({
+      ApiId: Fn.GetAtt(ResourceConstants.RESOURCES.GraphQLAPILogicalID, 'ApiId'),
+      Name: 'NONE',
+      Type: 'NONE',
+    });
+  }
 }
