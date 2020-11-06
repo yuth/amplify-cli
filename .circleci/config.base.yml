@@ -690,6 +690,7 @@ workflows:
                 - graphqlschemae2e
                 - graphql_e2e_testing
                 - feat-import
+                - transformer-redesign-e2e
           requires:
             - build
             - mock_e2e_tests
@@ -712,6 +713,7 @@ workflows:
                 - graphqlschemae2e
                 - beta
                 - feat-import
+                - transformer-redesign-e2e
           requires:
             - build
       - amplify_sudo_install_test:
@@ -728,6 +730,7 @@ workflows:
                 - master
                 - graphqlschemae2e
                 - feat-import
+                - transformer-redesign-e2e
           requires:
             - publish_to_local_registry
       - amplify_migration_tests_latest:
