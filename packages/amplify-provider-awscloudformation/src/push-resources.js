@@ -53,17 +53,27 @@ async function run(context, resourceDefinition) {
       minify: options['minify'],
     });
 
+    // run resource manager with sanity checks
+
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
     await prePushGraphQLCodegen(context, resourcesToBeCreated, resourcesToBeUpdated);
     await updateS3Templates(context, resources, projectDetails.amplifyMeta);
 
     spinner.start();
-
     projectDetails = context.amplify.getProjectDetails();
 
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
+      // assess results from resource manager here
+      /** if iterative and featureFlag
+       * stackFormationStackPush
+       *
+       * createStateMachine(.....)
+
+       * else
+       * await updateCloudFormationNestedStack(......);
+       * */
       await updateCloudFormationNestedStack(context, formNestedStack(context, projectDetails), resourcesToBeCreated, resourcesToBeUpdated);
     }
 
@@ -400,9 +410,17 @@ async function updateCloudFormationNestedStack(context, nestedStack, resourcesTo
   const backEndDir = context.amplify.pathManager.getBackendDirPath();
   const nestedStackFilepath = path.normalize(path.join(backEndDir, providerName, nestedStackFileName));
 
+  const jsonString = JSON.stringify(nestedStack, null, '\t');
+  context.filesystem.write(nestedStackFilepath, jsonString);
+
+  const cfnItem = new Cloudformation(context, generateUserAgentAction(resourcesToBeCreated, resourcesToBeUpdated));
+
+  await cfnItem.updateResourceStack(path.normalize(path.join(backEndDir, providerName)), nestedStackFileName);
+}
+
+function generateUserAgentAction(resourcesToBeCreated, resourcesToBeUpdated) {
   const uniqueCategoriesAdded = getAllUniqueCategories(resourcesToBeCreated);
   const uniqueCategoriesUpdated = getAllUniqueCategories(resourcesToBeUpdated);
-
   let userAgentAction = '';
 
   if (uniqueCategoriesAdded.length > 0) {
@@ -423,13 +441,7 @@ async function updateCloudFormationNestedStack(context, nestedStack, resourcesTo
       userAgentAction += `${category}:u `;
     });
   }
-
-  const jsonString = JSON.stringify(nestedStack, null, '\t');
-  context.filesystem.write(nestedStackFilepath, jsonString);
-
-  const cfnItem = await new Cloudformation(context, userAgentAction);
-
-  await cfnItem.updateResourceStack(path.normalize(path.join(backEndDir, providerName)), nestedStackFileName);
+  return userAgentAction;
 }
 
 function getAllUniqueCategories(resources) {
