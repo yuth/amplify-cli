@@ -54,6 +54,7 @@ async function run(context, resourceDefinition) {
     });
 
     // run resource manager with sanity checks
+    // await resourceManager(context)
 
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);

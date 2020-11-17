@@ -31,8 +31,8 @@ export async function check(
   const diffRules: DiffRule[] = [
     cantEditKeySchema,
     cantAddLSILater,
-    cantEditGSIKeySchema,
     cantEditLSIKeySchema,
+    cantEditGSIKeySchema,
     cantAddAndRemoveGSIAtSameTime,
   ];
   // Project rules run on the full set of diffs, the current build, and the next build.

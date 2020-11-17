@@ -133,7 +133,7 @@ interface AmplifyToolkit {
   makeId: () => $TSAny;
   openEditor: () => $TSAny;
   onCategoryOutputsChange: (context: $TSContext, currentAmplifyMeta: $TSMeta | undefined, amplifyMeta?: $TSMeta) => $TSAny;
-  pathManager: () => $TSAny;
+  pathManager: $TSAny;
   pressEnterToContinue: () => $TSAny;
   pushResources: () => $TSAny;
   storeCurrentCloudBackend: () => $TSAny;
