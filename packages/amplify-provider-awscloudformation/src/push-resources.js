@@ -15,6 +15,7 @@ const { prePushAuthTransform } = require('./auth-transform');
 const { transformGraphQLSchema } = require('./transform-graphql-schema');
 const { displayHelpfulURLs } = require('./display-helpful-urls');
 const { downloadAPIModels } = require('./download-api-models');
+const { executeResourceManager } = require('./amplify-resource-manager');
 const { loadResourceParameters } = require('./resourceParams');
 const { uploadAuthTriggerFiles } = require('./upload-auth-trigger-files');
 const archiver = require('./utils/archiver');
@@ -54,7 +55,7 @@ async function run(context, resourceDefinition) {
     });
 
     // run resource manager with sanity checks
-    // const listStates = await resourceManager(context);
+    await executeResourceManager(context);
 
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
