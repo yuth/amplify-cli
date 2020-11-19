@@ -54,7 +54,7 @@ async function run(context, resourceDefinition) {
     });
 
     // run resource manager with sanity checks
-    // await resourceManager(context)
+    // const listStates = await resourceManager(context);
 
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
@@ -67,14 +67,12 @@ async function run(context, resourceDefinition) {
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
       // assess results from resource manager here
-      /** if iterative and featureFlag
-       * stackFormationStackPush
-       *
-       * createStateMachine(.....)
-
-       * else
-       * await updateCloudFormationNestedStack(......);
+      /** if (listStates)
+       *  const dm =  new DeployManager();
+       *  dm.add(list);
+       *  await dm.deploy();
        * */
+      // this piece does does the schema update
       await updateCloudFormationNestedStack(context, formNestedStack(context, projectDetails), resourcesToBeCreated, resourcesToBeUpdated);
     }
 

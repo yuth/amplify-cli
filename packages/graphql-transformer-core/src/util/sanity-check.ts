@@ -1,19 +1,10 @@
 const fs = require('fs-extra');
 import { basename } from 'path';
-import { diff as getDiffs } from 'deep-diff';
+import { diff as getDiffs, Diff as DeepDiff } from 'deep-diff';
 import { readFromPath } from './fileUtils';
-import { InvalidMigrationError } from '../errors';
+import { InvalidMigrationError, InvalidGSIMigrationError } from '../errors';
 import { Template } from 'cloudform-types';
 import { TRANSFORM_CONFIG_FILE_NAME } from '..';
-
-interface Diff {
-  kind: 'N' | 'E' | 'D' | 'A';
-  path: string[];
-  lhs?: any;
-  rhs?: any;
-  index?: number;
-  item?: any;
-}
 
 /**
  * Calculates a diff between the last saved cloud backend's build directory
@@ -29,9 +20,11 @@ export async function check(
 
   // Diff rules rule on a single Diff.
   const diffRules: DiffRule[] = [
+    // LSI
     cantEditKeySchema,
     cantAddLSILater,
     cantEditLSIKeySchema,
+    // GSI
     cantEditGSIKeySchema,
     cantAddAndRemoveGSIAtSameTime,
   ];
@@ -59,6 +52,7 @@ export async function check(
 /**
  * Rules
  */
+type Diff = DeepDiff<DiffableProject, DiffableProject>;
 type DiffRule = (diff: Diff, currentBuild: DiffableProject, nextBuild: DiffableProject) => void;
 type ProjectRule = (diffs: Diff[], currentBuild: DiffableProject, nextBuild: DiffableProject) => void;
 
@@ -117,7 +111,7 @@ export function cantAddLSILater(diff: Diff) {
  */
 export function cantEditGSIKeySchema(diff: Diff, currentBuild: DiffableProject, nextBuild: DiffableProject) {
   function throwError(indexName: string, stackName: string, tableName: string) {
-    throw new InvalidMigrationError(
+    throw new InvalidGSIMigrationError(
       `Attempting to edit the global secondary index ${indexName} on the ${tableName} table in the ${stackName} stack. `,
       'The key schema of a global secondary index cannot be changed after being deployed.',
       'If using @key, first add a new @key, run `amplify push`, ' +
@@ -171,7 +165,7 @@ export function cantEditGSIKeySchema(diff: Diff, currentBuild: DiffableProject, 
  */
 export function cantAddAndRemoveGSIAtSameTime(diff: Diff, currentBuild: DiffableProject, nextBuild: DiffableProject) {
   function throwError(stackName: string, tableName: string) {
-    throw new InvalidMigrationError(
+    throw new InvalidGSIMigrationError(
       `Attempting to add and remove a global secondary index at the same time on the ${tableName} table in the ${stackName} stack. `,
       'You may only change one global secondary index in a single CloudFormation stack update. ',
       'If using @key, change one @key at a time. ' +
@@ -221,7 +215,7 @@ export function cantAddAndRemoveGSIAtSameTime(diff: Diff, currentBuild: Diffable
  */
 export function cantMutateMultipleGSIAtUpdateTime(diffs: Diff[], currentBuild: DiffableProject, nextBuild: DiffableProject) {
   function throwError(stackName: string, tableName: string) {
-    throw new InvalidMigrationError(
+    throw new InvalidGSIMigrationError(
       `Attempting to mutate more than 1 global secondary index at the same time on the ${tableName} table in the ${stackName} stack. `,
       'You may only mutate one global secondary index in a single CloudFormation stack update. ',
       'If using @key, include one @key at a time. ' +

@@ -1,12 +1,10 @@
-import { Template } from "cloudform-types";
+import { Template } from 'cloudform-types';
+import { GlobalSecondaryIndex, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
 import fs from 'fs-extra';
 import path from 'path';
 import _ from 'lodash';
 
-export function loadDiffableProject(
-  path: string,
-  rootStackName: string
-): DiffableProject {
+export function loadDiffableProject(path: string, rootStackName: string): DiffableProject {
   const project = readFromPath(path);
   const currentStacks = project.stacks || {};
   const diffableProject: DiffableProject = {
@@ -40,6 +38,19 @@ export function readFromPath(directory: string): any {
   return accum;
 }
 
+export interface GSIRecord {
+  attributeDefinition: AttributeDefinition[];
+  gsi: GlobalSecondaryIndex;
+}
+
+export enum GSIStatus {
+  add = 'add',
+  edit = 'edit',
+  delete = 'delete',
+  batchAdd = 'batchAdd',
+  batchDelete = 'batchDelete',
+  none = 'none',
+}
 export interface DiffableProject {
   stacks: {
     [stackName: string]: Template;
@@ -53,8 +64,12 @@ export interface StateMachinePage {
   parameters?: Object;
 }
 
-export class TemplateState {
+export interface GSIRecord {
+  attributeDefinition: AttributeDefinition[];
+  gsi: GlobalSecondaryIndex;
+}
 
+export class TemplateState {
   private changes: { [key: string]: string[] } = {};
 
   public has(key: string) {
@@ -79,7 +94,7 @@ export class TemplateState {
 
   public pop(key: string): Template {
     const template = this.changes[key].shift();
-    if(_.isEmpty(this.changes[key])) {
+    if (_.isEmpty(this.changes[key])) {
       delete this.changes[key];
     }
     return JSON.parse(template);
