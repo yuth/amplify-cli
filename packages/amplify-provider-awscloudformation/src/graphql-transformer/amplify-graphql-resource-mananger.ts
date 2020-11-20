@@ -103,8 +103,8 @@ export class GraphQLResourceManager {
     this.cfnClient = props.cfnClient;
     this.resourceMeta = props.resourceMeta;
     this.cloudBuildDir = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName, 'build');
-    this.buildDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName, 'build');
-    this.backendDir = props.backendDir;
+    this.backendDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName);
+    this.buildDir = path.join(this.backendDir, 'build');
     this.rootStackFileName = props.rootStackFileName;
     this.iterativeChangeEnabled = props.iterativeChangeEnabled;
     // gsi changes
