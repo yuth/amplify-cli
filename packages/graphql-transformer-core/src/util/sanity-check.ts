@@ -208,6 +208,16 @@ export function cantAddAndRemoveGSIAtSameTime(diff: Diff, currentBuild: Diffable
     }
   }
 }
+// export function cantBatchMutateGSIAtUpdateTime(diffs: Diff, currentBuild: DiffableProject, nextBuild: DiffableProject) {
+//   function throwError(stackName: string, tableName: string) {
+//     throw new InvalidGSIMigrationError(
+//       `Attempting to batch add or remove global secondary indexes at the same time on the ${tableName} table in the ${stackName} stack`,
+//       'Ypu may only mutate one global secondary index in a single Cloudformation stack update.',
+//       'If using @key, include one @key at a time.'+
+//       ''
+//     )
+//   }
+// }
 
 /**
  * Throws a helpful error when a customer is trying to complete an invalid migration.

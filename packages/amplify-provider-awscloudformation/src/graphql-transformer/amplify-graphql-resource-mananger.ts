@@ -10,6 +10,7 @@ import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-
 import { $TSContext, JSONUtilities } from 'amplify-cli-core';
 import configurationManager from '../configuration-manager';
 import { DeploymentStep } from '../iterative-deployment/state-machine';
+import { hashDirectory } from '../upload-appsync-files';
 /**
  * Rules
  */
@@ -48,6 +49,7 @@ export class GraphQLResourceManager {
   rootStackFileName: string;
   cloudBuildDir: string;
   buildDir: string;
+  backendDir: string;
   currentState: DiffableProject;
   nextState: DiffableProject;
   templateState: TemplateState;
@@ -62,8 +64,8 @@ export class GraphQLResourceManager {
   ) => {
 
     const getResource = (resourceStatus: any): any => {
-      const { resourcesToBeCreated, resourcesToBeUpdated } = resourceStatus;
-      let resources = resourcesToBeCreated.concat(resourcesToBeUpdated);
+      const { resourcesToBeUpdated } = resourceStatus;
+      let resources = resourcesToBeUpdated;
       if (resources.length > 0) {
         const resource = resources[0];
         if (resource.providerPlugin !== 'awscloudformation') {
@@ -102,6 +104,7 @@ export class GraphQLResourceManager {
     this.resourceMeta = props.resourceMeta;
     this.cloudBuildDir = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName, 'build');
     this.buildDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName, 'build');
+    this.backendDir = props.backendDir;
     this.rootStackFileName = props.rootStackFileName;
     this.iterativeChangeEnabled = props.iterativeChangeEnabled;
     // gsi changes
@@ -134,6 +137,7 @@ export class GraphQLResourceManager {
     const gqlSteps = new Array<DeploymentStep>();
     const stateFileDir = path.join(this.cloudBuildDir, 'states');
     const parameters = this.getParameters();
+    const S3RootKey = hashDirectory(this.backendDir);
     fs.mkdirSync(stateFileDir);
     while (!this.templateState.isEmpty()) {
       fs.copySync(this.buildDir, path.join(stateFileDir, `${count}`));
@@ -146,7 +150,7 @@ export class GraphQLResourceManager {
       });
       gqlSteps.push({
         stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
-        parameters: { ...parameters, S3DeploymentRootKey: `${parameters.S3DeploymentRootKey}/states/${count}`},
+        parameters: { ...parameters, S3DeploymentRootKey: `${S3RootKey}/states/${count}`},
         stackName: this.resourceMeta.stackId,
         tableNames: tableArns,
       })
