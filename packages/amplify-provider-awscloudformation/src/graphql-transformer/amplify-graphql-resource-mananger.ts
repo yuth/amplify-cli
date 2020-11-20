@@ -10,7 +10,7 @@ import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-
 import { $TSContext, JSONUtilities } from 'amplify-cli-core';
 import configurationManager from '../configuration-manager';
 import { DeploymentStep } from '../iterative-deployment/state-machine';
-import { hashDirectory } from '../upload-appsync-files';
+import { hashDirectory, ROOT_APPSYNC_S3_KEY } from '../upload-appsync-files';
 /**
  * Rules
  */
@@ -107,7 +107,6 @@ export class GraphQLResourceManager {
     this.buildDir = path.join(this.backendDir, 'build');
     this.rootStackFileName = props.rootStackFileName;
     this.iterativeChangeEnabled = props.iterativeChangeEnabled;
-    // gsi changes
     this.templateState = new TemplateState();
     this.tableArnMap = new Map<string, string>();
     this.diffs = this.createDiffs();
@@ -137,7 +136,7 @@ export class GraphQLResourceManager {
     const gqlSteps = new Array<DeploymentStep>();
     const stateFileDir = path.join(this.cloudBuildDir, 'states');
     const parameters = this.getParameters();
-    const S3RootKey = await hashDirectory(this.backendDir);
+    const buildHash = await hashDirectory(this.backendDir);
     fs.mkdirSync(stateFileDir);
     while (!this.templateState.isEmpty()) {
       fs.copySync(this.buildDir, path.join(stateFileDir, `${count}`));
@@ -150,7 +149,7 @@ export class GraphQLResourceManager {
       });
       gqlSteps.push({
         stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
-        parameters: { ...parameters, S3DeploymentRootKey: `${S3RootKey}/states/${count}`},
+        parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${count}`},
         stackName: this.resourceMeta.stackId,
         tableNames: tableArns,
       })
