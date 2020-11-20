@@ -32,7 +32,7 @@ export function readFromPath(directory: string): any {
   const accum = {};
   for (const fileName of files) {
     const fullPath = path.join(directory, fileName);
-    const value = this.readFromPath(fullPath);
+    const value = readFromPath(fullPath);
     accum[fileName] = value;
   }
   return accum;
@@ -57,18 +57,6 @@ export interface DiffableProject {
   };
   root: Template;
 }
-
-export interface StateMachinePage {
-  stackName: string;
-  tables: Array<string>;
-  parameters?: Object;
-}
-
-export interface GSIRecord {
-  attributeDefinition: AttributeDefinition[];
-  gsi: GlobalSecondaryIndex;
-}
-
 export class TemplateState {
   private changes: { [key: string]: string[] } = {};
 

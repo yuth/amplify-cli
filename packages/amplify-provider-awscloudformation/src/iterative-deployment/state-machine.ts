@@ -3,7 +3,7 @@ import { send } from 'xstate/lib/actions';
 import { extractStackInfoFromContext, hasMoreDeployment, hasMoreRollback, stackPollerActivity } from './helpers';
 
 export type DeploymentStep = {
-  stackTemplatePath: string;
+  stackTemplatePath?: string;
   parameters: Record<string, string>;
   tableNames: string[];
   stackName: string;

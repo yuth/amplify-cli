@@ -15,12 +15,13 @@ const { prePushAuthTransform } = require('./auth-transform');
 const { transformGraphQLSchema } = require('./transform-graphql-schema');
 const { displayHelpfulURLs } = require('./display-helpful-urls');
 const { downloadAPIModels } = require('./download-api-models');
-const { executeResourceManager } = require('./amplify-resource-manager');
+const { GraphQLResourceManager } = require('./graphql-transformer');
 const { loadResourceParameters } = require('./resourceParams');
 const { uploadAuthTriggerFiles } = require('./upload-auth-trigger-files');
 const archiver = require('./utils/archiver');
 const amplifyServiceManager = require('./amplify-service-manager');
 const { stateManager } = require('amplify-cli-core');
+const { DeploymentManager } = require('./iterative-deployment');
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -55,7 +56,9 @@ async function run(context, resourceDefinition) {
     });
 
     // run resource manager with sanity checks
-    await executeResourceManager(context);
+    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
+    const gqlManager = await GraphQLResourceManager.createInstance(context, meta.StackId, true);
+    const deploymentSteps = await gqlManager.run();
 
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
@@ -68,12 +71,13 @@ async function run(context, resourceDefinition) {
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
       // assess results from resource manager here
-      /** if (listStates)
-       *  const dm =  new DeployManager();
-       *  dm.add(list);
-       *  await dm.deploy();
-       * */
-      // this piece does does the schema update
+      if(deploymentSteps) {
+        const deployManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
+        deployManager.addStep(...deploymentSteps);
+        await deployManager.deploy().catch( err => {
+          throw err;
+        });
+      }
       await updateCloudFormationNestedStack(context, formNestedStack(context, projectDetails), resourcesToBeCreated, resourcesToBeUpdated);
     }
 

@@ -1,32 +1,50 @@
-import * as aws from 'aws-sdk';
+import { CloudFormation } from 'aws-sdk';
 import path from 'path';
 import fs from 'fs-extra';
-import assert from 'assert';
 import _ from 'lodash';
 import { diff as getDiffs, Diff } from 'deep-diff';
 import { DiffableProject, loadDiffableProject, GSIStatus, GSIRecord, TemplateState } from '../utils/amplify-resource-state-utils';
-import { InvalidGSIMigrationError, sanityCheck } from 'graphql-transformer-core';
+import { sanityCheck } from 'graphql-transformer-core';
 import { Template, DynamoDB } from 'cloudform-types';
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
-import { $TSContext } from 'amplify-cli-core';
+import { $TSContext, JSONUtilities } from 'amplify-cli-core';
 import configurationManager from '../configuration-manager';
+import { DeploymentStep } from '../iterative-deployment/state-machine';
 /**
  * Rules
  */
 type DiffChanges<T> = Array<Diff<DiffableProject, DiffableProject>>;
 
 export type GQLResourceManagerProps = {
-  resourceStatus: any;
+  cfnClient: CloudFormation;
+  resourceMeta: $ResourceMeta;
   backendDir: string;
   cloudBackendDir: string;
   iterativeChangeEnabled?: boolean;
   rootStackFileName?: string;
 };
 
+export type $ResourceMeta = {
+  category: string;
+  providerPlugin: string;
+  resourceName: string;
+  service: string
+  output: any;
+  providerMetadata: {
+    s3TemplateURL: string;
+    logicalId: string;
+  };
+  stackId: string,
+  DeploymentBucketName: string
+  [key: string]: any;
+}
+
 export class GraphQLResourceManager {
   static serviceName: string = 'AppSync';
   static categoryName: string = 'api';
+  cfnClient: CloudFormation;
   resourceName: string;
+  resourceMeta: $ResourceMeta;
   rootStackFileName: string;
   cloudBuildDir: string;
   buildDir: string;
@@ -35,86 +53,142 @@ export class GraphQLResourceManager {
   templateState: TemplateState;
   iterativeChangeEnabled: boolean;
   diffs: DiffChanges<DiffableProject>;
-  // this.diffRules
+  tableArnMap: Map<string, string>;
 
-  public static createInstance = async(
+  public static createInstance = async (
     context: $TSContext,
-    resourceStatus: any,
-    backendDir: string,
-    cloudBackendDir: string,
+    StackId: string,
     iterativeChangeEnabled: boolean = true,
-    rootStackFileName: string = 'cloudformation-template.json',
   ) => {
+
+    const getResource = (resourceStatus: any): any => {
+      const { resourcesToBeCreated, resourcesToBeUpdated } = resourceStatus;
+      let resources = resourcesToBeCreated.concat(resourcesToBeUpdated);
+      if (resources.length > 0) {
+        const resource = resources[0];
+        if (resource.providerPlugin !== 'awscloudformation') {
+          return;
+        }
+        return resource;
+      } else {
+        // No resource to update/add
+        return null;
+      }
+    }
     try {
       const cred = await configurationManager.loadConfiguration(context);
-      assert(cred.region);
+      const cfn = new CloudFormation(cred);
+      const resourceStatus = await context.amplify.getResourceStatus(GraphQLResourceManager.categoryName);
+      const resourceMeta = getResource(resourceStatus);
+      const apiStack = await cfn.describeStackResources({ StackName: StackId, LogicalResourceId: resourceMeta.providerMetadata.logicalId }).promise();
       return new GraphQLResourceManager({
-        resourceStatus,
-        backendDir,
-        cloudBackendDir,
+        cfnClient: cfn,
+        resourceMeta: { ...getResource(resourceStatus), stackId: apiStack.StackResources[0].PhysicalResourceId },
+        backendDir: context.amplify.pathManager.getBackendDirPath(),
+        cloudBackendDir: context.amplify.pathManager.getCurrentCloudBackendDirPath(),
         iterativeChangeEnabled,
-        rootStackFileName
+        rootStackFileName: 'cloudformation-template.json'
       });
     } catch (err) {
-      throw new Error('Could not load Credentials');
+      throw err;
     }
   }
 
   constructor(props: GQLResourceManagerProps) {
-    this.resourceName = this.getResourceName(props.resourceStatus);
-    if (!this.resourceName) {
+    if (!props.resourceMeta) {
       throw Error('No GraphQL API enabled.');
     }
-    this.cloudBuildDir = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceName, 'build');
-    this.buildDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceName, 'build');
+    this.cfnClient = props.cfnClient;
+    this.resourceMeta = props.resourceMeta;
+    this.cloudBuildDir = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName, 'build');
+    this.buildDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName, 'build');
     this.rootStackFileName = props.rootStackFileName;
     this.iterativeChangeEnabled = props.iterativeChangeEnabled;
     // gsi changes
     this.templateState = new TemplateState();
+    this.tableArnMap = new Map<string, string>();
     this.diffs = this.createDiffs();
   }
 
-  async run() {
+  run = async (): Promise<DeploymentStep[]> => {
     // run sanity checks
     let needsIterativeDeployments = false;
     try {
       sanityCheck(this.diffs, this.currentState, this.nextState);
     } catch (err) {
-      if (err instanceof InvalidGSIMigrationError && this.iterativeChangeEnabled) {
+      if (err.name === 'InvalidGSIMigrationError' && this.iterativeChangeEnabled) {
         needsIterativeDeployments = true;
       } else {
         throw err;
       }
     }
     if (needsIterativeDeployments) {
-      this.gsiStateManagement();
+      this.gsiManagement();
+      await this.getTableARNS();
+      return this.getDeploymentSteps();
     }
   }
   // save states to build with a copy of build on every deploy
-  saveStates() {
+  private getDeploymentSteps = (): Array<DeploymentStep> => {
     let count = 0;
-    const stateFileDir = path.join(process.cwd(), 'states');
+    const gqlSteps = new Array<DeploymentStep>();
+    const stateFileDir = path.join(this.cloudBuildDir, 'states');
+    const parameters = this.getParameters();
     fs.mkdirSync(stateFileDir);
     while (!this.templateState.isEmpty()) {
       fs.copySync(this.buildDir, path.join(stateFileDir, `${count}`));
-      this.templateState.getKeys().forEach(key => {
-        // cp dir of the build
-        const filepath = path.join(stateFileDir, `${count}`, 'stacks', key);
+      const tables = this.templateState.getKeys();
+      const tableArns = [];
+      tables.forEach(key => {
+        tableArns.push(this.tableArnMap.get(key));
+        const filepath = path.join(stateFileDir, `${count}`, 'stacks', `${key}.json`);
         fs.writeFileSync(filepath, JSON.stringify(this.templateState.pop(key), null, 2));
       });
+      gqlSteps.push({
+        stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
+        parameters: { ...parameters, S3DeploymentRootKey: `${parameters.S3DeploymentRootKey}/states/${count}`},
+        stackName: this.resourceMeta.stackId,
+        tableNames: tableArns,
+      })
       count++;
     }
     fs.moveSync(stateFileDir, path.join(this.buildDir, 'states'));
+    return gqlSteps;
   }
 
-  gsiStateManagement() {
+  private getTableARNS = async () => {
+    const tables = this.templateState.getKeys();
+    const apiResources = await this.cfnClient.describeStackResources({
+      StackName: this.resourceMeta.stackId,
+    }).promise();
+    for (const resource of apiResources.StackResources) {
+      if(tables.includes(resource.LogicalResourceId)) {
+        const tableStack = await this.cfnClient.describeStacks({
+          StackName: resource.PhysicalResourceId
+        }).promise();
+        const tableARN = tableStack.Stacks[0].Outputs.reduce( (acc, out) => {
+          if (out.OutputKey === `GetAtt${resource.LogicalResourceId}TableName`) {
+            acc.push(out.OutputValue);
+          }
+          return acc;
+        }, []);
+        this.tableArnMap.set(resource.LogicalResourceId, tableARN[0]);
+      }
+    }
+  }
+
+  private getParameters = (): any => {
+    return JSONUtilities.readJson(path.join(this.buildDir, 'parameters.json'));
+  }
+
+  private gsiManagement = () => {
     const gsiChanges = _.filter(this.diffs, diff => {
       return _.includes(diff.path, 'GlobalSecondaryIndexes');
     });
     // we need to make sure that the gsi changes are greater than 1 otherwise we can do this in one push
     for (const gsiChange of gsiChanges) {
-      const stackName = gsiChange.path[1];
       const tableName = gsiChange.path[3];
+      const stackName = gsiChange.path[1].split('.')[0];
       const gsiStatus = this.gsiChangeStatus(gsiChange);
       const ddbResource = this.templateState.getLatest(stackName) || this.getStack(stackName, 'current');
 
@@ -163,7 +237,7 @@ export class GraphQLResourceManager {
     }
   }
 
-  gsiChangeStatus(gsiChange: Diff<any, any>): GSIStatus {
+  private gsiChangeStatus = (gsiChange: Diff<any, any>): GSIStatus => {
     if (gsiChange.kind === 'A') {
       if (gsiChange.item.kind === 'D' && gsiChange.item.lhs) {
         return GSIStatus.delete;
@@ -195,7 +269,7 @@ export class GraphQLResourceManager {
     return GSIStatus.none;
   }
 
-  createDiffs(): DiffChanges<DiffableProject> {
+  private createDiffs = (): DiffChanges<DiffableProject> => {
     // run sanity checks to determine if iterative changes are required
     const cloudBuildDirExists = fs.existsSync(this.cloudBuildDir);
     const buildDirExists = fs.existsSync(this.buildDir);
@@ -207,36 +281,21 @@ export class GraphQLResourceManager {
     throw Error('Need CloudBuild and Local Build to exist to find diffs');
   }
 
-  getResourceName(resourceStatus: any): string | null {
-    const { resourcesToBeCreated, resourcesToBeUpdated } = resourceStatus;
-    let resources = resourcesToBeCreated.concat(resourcesToBeUpdated);
-    if (resources.length > 0) {
-      const resource = resources[0];
-      if (resource.providerPlugin !== 'awscloudformation') {
-        return;
-      }
-      return resource.resourceName;
-    } else {
-      // No resource to update/add
-      return null;
-    }
-  }
-
-  getTable(gsiChange: Diff<any, any>, state: 'current' | 'next'): DynamoDB.Table {
+  private getTable = (gsiChange: Diff<any, any>, state: 'current' | 'next'): DynamoDB.Table => {
     if (state === 'current') {
       return this.currentState.stacks[gsiChange.path[1]].Resources[gsiChange.path[3]] as DynamoDB.Table;
     }
     return this.nextState.stacks[gsiChange.path[1]].Resources[gsiChange.path[3]] as DynamoDB.Table;
   }
 
-  getStack(stackName: string, state: 'current' | 'next'): Template {
+  private getStack(stackName: string, state: 'current' | 'next'): Template {
     if (state === 'current') {
-      return this.currentState.stacks[stackName];
+      return this.currentState.stacks[`${stackName}.json`];
     }
-    return this.nextState.stacks[stackName];
+    return this.nextState.stacks[`${stackName}.json`];
   }
 
-  private getInnerDiffs(gsiChange: Diff<any, any>) {
+  private getInnerDiffs = (gsiChange: Diff<any, any>) => {
     const pathToGSIs = gsiChange.path.slice(0, 6);
     const oldIndexes = _.get(this.currentState, pathToGSIs);
     const newIndexes = _.get(this.nextState, pathToGSIs);
@@ -247,7 +306,7 @@ export class GraphQLResourceManager {
   /**
    * GSI Operations
    */
-  private getGSIRecord(indexName: string, table: DynamoDB.Table): GSIRecord {
+  private getGSIRecord = (indexName: string, table: DynamoDB.Table): GSIRecord => {
     const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
     const addedGSI = (_.filter(gsis, {
       IndexName: indexName,
@@ -262,7 +321,7 @@ export class GraphQLResourceManager {
     return { gsi: addedGSI, attributeDefinition: attrDef };
   }
 
-  private addGSI(gsiRecord: GSIRecord, tableName: string, template: Template): void {
+  private addGSI = (gsiRecord: GSIRecord, tableName: string, template: Template): void => {
     const table = template.Resources[tableName];
     const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
     gsis.push(gsiRecord.gsi);
@@ -270,7 +329,7 @@ export class GraphQLResourceManager {
     attrDefs.concat(gsiRecord.attributeDefinition);
   }
 
-  private deleteGSI(indexName: string, tableName: string, template: Template): void {
+  private deleteGSI = (indexName: string, tableName: string, template: Template): void => {
     const table = template.Resources[tableName];
     const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
     const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];

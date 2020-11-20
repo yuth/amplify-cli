@@ -41,11 +41,6 @@ export async function buildProject(opts: ProjectOptions) {
       opts.buildParameters,
       opts.minify,
     );
-    if (opts.currentCloudBackendDirectory) {
-      const lastBuildPath = path.join(opts.currentCloudBackendDirectory, 'build');
-      const thisBuildPath = path.join(opts.projectDirectory, 'build');
-      // await Sanity.check(lastBuildPath, thisBuildPath, opts.rootStackFileName);
-    }
   }
 
   return builtProject;
