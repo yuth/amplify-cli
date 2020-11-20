@@ -12,7 +12,9 @@ export const stackPollerActivity = (stackEventPollFn: (stack: Readonly<StackPara
   return (context: Readonly<DeployMachineContext>) => {
     if (context.currentIndex >= 0 && context.currentIndex < context.stacks.length) {
       const stack = context.stacks[context.currentIndex];
-      const stackTemplateUrl = `${context.deploymentBucket}/${stack.stackTemplatePath}`;
+      const stackTemplateUrl = stack.stackTemplatePath.startsWith('https://')
+        ? stack.stackTemplatePath
+        : `${context.deploymentBucket}/${stack.stackTemplatePath}`;
       return stackEventPollFn({
         ...stack,
         region: context.region,
@@ -29,7 +31,9 @@ export const extractStackInfoFromContext = (
   return (ctx: DeployMachineContext) => {
     if (ctx.currentIndex >= 0 && ctx.currentIndex < ctx.stacks.length) {
       const stack = ctx.stacks[ctx.currentIndex];
-      const stackTemplateUrl = `${ctx.deploymentBucket}/${stack.stackTemplatePath}`;
+      const stackTemplateUrl = stack.stackTemplatePath.startsWith('https://')
+        ? stack.stackTemplatePath
+        : `${ctx.deploymentBucket}/${stack.stackTemplatePath}`;
       return fn({ ...stack, stackTemplateUrl, region: ctx.region });
     }
     return Promise.resolve();

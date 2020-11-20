@@ -1,3 +1,4 @@
+// @ts-check
 const _ = require('lodash');
 const fs = require('fs-extra');
 const path = require('path');
@@ -71,10 +72,10 @@ async function run(context, resourceDefinition) {
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
       // assess results from resource manager here
-      if(deploymentSteps) {
+      if (deploymentSteps) {
         const deployManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
-        deployManager.addStep(...deploymentSteps);
-        await deployManager.deploy().catch( err => {
+        deploymentSteps.forEach(step => deployManager.addStep(step));
+        await deployManager.deploy().catch(err => {
           throw err;
         });
       }
@@ -417,8 +418,7 @@ async function updateCloudFormationNestedStack(context, nestedStack, resourcesTo
   const jsonString = JSON.stringify(nestedStack, null, '\t');
   context.filesystem.write(nestedStackFilepath, jsonString);
 
-  const cfnItem = new Cloudformation(context, generateUserAgentAction(resourcesToBeCreated, resourcesToBeUpdated));
-
+  const cfnItem = await new Cloudformation(context, generateUserAgentAction(resourcesToBeCreated, resourcesToBeUpdated));
   await cfnItem.updateResourceStack(path.normalize(path.join(backEndDir, providerName)), nestedStackFileName);
 }
 

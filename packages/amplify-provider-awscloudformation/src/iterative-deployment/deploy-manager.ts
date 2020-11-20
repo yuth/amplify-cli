@@ -166,7 +166,7 @@ export class DeploymentManager {
     const parameters = Object.entries(currentStack.parameters).map(([key, val]) => {
       return {
         ParameterKey: key,
-        ParameterValue: val,
+        ParameterValue: val.toString(),
       };
     });
     try {
