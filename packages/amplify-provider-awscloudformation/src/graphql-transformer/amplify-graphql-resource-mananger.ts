@@ -128,16 +128,16 @@ export class GraphQLResourceManager {
     if (needsIterativeDeployments) {
       this.gsiManagement();
       await this.getTableARNS();
-      return this.getDeploymentSteps();
+      return await this.getDeploymentSteps();
     }
   }
   // save states to build with a copy of build on every deploy
-  private getDeploymentSteps = (): Array<DeploymentStep> => {
+  private getDeploymentSteps = async (): Promise<DeploymentStep[]> => {
     let count = 0;
     const gqlSteps = new Array<DeploymentStep>();
     const stateFileDir = path.join(this.cloudBuildDir, 'states');
     const parameters = this.getParameters();
-    const S3RootKey = hashDirectory(this.backendDir);
+    const S3RootKey = await hashDirectory(this.backendDir);
     fs.mkdirSync(stateFileDir);
     while (!this.templateState.isEmpty()) {
       fs.copySync(this.buildDir, path.join(stateFileDir, `${count}`));
