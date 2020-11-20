@@ -17,7 +17,15 @@ export async function check(
 ) {
   const cloudBackendDirectoryExists = await fs.exists(currentCloudBackendDir);
   const buildDirectoryExists = await fs.exists(buildDirectory);
+  if (cloudBackendDirectoryExists && buildDirectoryExists) {
+    const current = await loadDiffableProject(currentCloudBackendDir, rootStackName);
+    const next = await loadDiffableProject(buildDirectory, rootStackName);
+    const diffs = getDiffs(current, next);
+    runChecks(diffs, current, next);
+  }
+}
 
+export function runChecks(diffs: Diff[], current: DiffableProject, next: DiffableProject) {
   // Diff rules rule on a single Diff.
   const diffRules: DiffRule[] = [
     // LSI
@@ -30,21 +38,16 @@ export async function check(
   ];
   // Project rules run on the full set of diffs, the current build, and the next build.
   const projectRules: ProjectRule[] = [cantHaveMoreThan500Resources, cantMutateMultipleGSIAtUpdateTime];
-  if (cloudBackendDirectoryExists && buildDirectoryExists) {
-    const current = await loadDiffableProject(currentCloudBackendDir, rootStackName);
-    const next = await loadDiffableProject(buildDirectory, rootStackName);
-    const diffs = getDiffs(current, next);
-    // Loop through the diffs and call each DiffRule.
-    // We loop once so each rule does not need to loop.
-    if (diffs) {
-      for (const diff of diffs) {
-        for (const rule of diffRules) {
-          rule(diff, current, next);
-        }
+  // Loop through the diffs and call each DiffRule.
+  // We loop once so each rule does not need to loop.
+  if (diffs) {
+    for (const diff of diffs) {
+      for (const rule of diffRules) {
+        rule(diff, current, next);
       }
-      for (const projectRule of projectRules) {
-        projectRule(diffs, current, next);
-      }
+    }
+    for (const projectRule of projectRules) {
+      projectRule(diffs, current, next);
     }
   }
 }

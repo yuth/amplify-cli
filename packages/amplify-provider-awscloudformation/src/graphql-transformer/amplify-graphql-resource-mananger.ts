@@ -1,11 +1,15 @@
+import * as aws from 'aws-sdk';
 import path from 'path';
 import fs from 'fs-extra';
+import assert from 'assert';
 import _ from 'lodash';
 import { diff as getDiffs, Diff } from 'deep-diff';
 import { DiffableProject, loadDiffableProject, GSIStatus, GSIRecord, TemplateState } from '../utils/amplify-resource-state-utils';
 import { InvalidGSIMigrationError, sanityCheck } from 'graphql-transformer-core';
 import { Template, DynamoDB } from 'cloudform-types';
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
+import { $TSContext } from 'amplify-cli-core';
+import configurationManager from '../configuration-manager';
 /**
  * Rules
  */
@@ -33,6 +37,29 @@ export class GraphQLResourceManager {
   diffs: DiffChanges<DiffableProject>;
   // this.diffRules
 
+  public static createInstance = async(
+    context: $TSContext,
+    resourceStatus: any,
+    backendDir: string,
+    cloudBackendDir: string,
+    iterativeChangeEnabled: boolean = true,
+    rootStackFileName: string = 'cloudformation-template.json',
+  ) => {
+    try {
+      const cred = await configurationManager.loadConfiguration(context);
+      assert(cred.region);
+      return new GraphQLResourceManager({
+        resourceStatus,
+        backendDir,
+        cloudBackendDir,
+        iterativeChangeEnabled,
+        rootStackFileName
+      });
+    } catch (err) {
+      throw new Error('Could not load Credentials');
+    }
+  }
+
   constructor(props: GQLResourceManagerProps) {
     this.resourceName = this.getResourceName(props.resourceStatus);
     if (!this.resourceName) {
@@ -40,7 +67,7 @@ export class GraphQLResourceManager {
     }
     this.cloudBuildDir = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceName, 'build');
     this.buildDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceName, 'build');
-    this.rootStackFileName = props.rootStackFileName || 'cloudformation-template.json';
+    this.rootStackFileName = props.rootStackFileName;
     this.iterativeChangeEnabled = props.iterativeChangeEnabled;
     // gsi changes
     this.templateState = new TemplateState();
@@ -51,7 +78,7 @@ export class GraphQLResourceManager {
     // run sanity checks
     let needsIterativeDeployments = false;
     try {
-      await sanityCheck(this.cloudBuildDir, this.buildDir);
+      sanityCheck(this.diffs, this.currentState, this.nextState);
     } catch (err) {
       if (err instanceof InvalidGSIMigrationError && this.iterativeChangeEnabled) {
         needsIterativeDeployments = true;
