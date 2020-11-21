@@ -184,7 +184,10 @@ export class GraphQLResourceManager {
     const apiStackInfo = await this.cfnClient.describeStacks({
       StackName: this.resourceMeta.stackId,
     }).promise();
-    return apiStackInfo.Stacks[0].Parameters;
+    return apiStackInfo.Stacks[0].Parameters.reduce( (acc, param) => {
+      acc[param.ParameterKey] = param.ParameterValue;
+      return acc;
+    }, {});
   }
 
   private gsiManagement = () => {
