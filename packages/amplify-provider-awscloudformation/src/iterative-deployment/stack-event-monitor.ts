@@ -91,6 +91,9 @@ export class StackEventMonitor {
     const events: StackEvent[] = [];
     this.lastPolledStackIndex = (this.lastPolledStackIndex + 1) % this.stacksBeingMonitored.length;
     const stackName = this.stacksBeingMonitored[this.lastPolledStackIndex];
+    if (!stackName) {
+      return;
+    }
     try {
       let nextToken: string | undefined;
       let finished = false;
@@ -149,7 +152,7 @@ export class StackEventMonitor {
     if (event.ResourceType === 'AWS::CloudFormation::Stack') {
       const physicalResourceId = event.PhysicalResourceId!;
       const idx = this.stacksBeingMonitored.indexOf(physicalResourceId);
-      if (idx >= 0 && event.ResourceStatus!.endsWith('_COMPLETE')) {
+      if (idx >= 0 && event.ResourceStatus!.endsWith('_COMPLETE') && physicalResourceId !== this.stackName) {
         this.stacksBeingMonitored.splice(idx, 1);
         this.completedStacks.add(physicalResourceId);
       } else if (!this.completedStacks.has(physicalResourceId)) {

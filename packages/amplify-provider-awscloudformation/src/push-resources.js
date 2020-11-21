@@ -75,11 +75,20 @@ async function run(context, resourceDefinition) {
       if (deploymentSteps) {
         const deployManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
         deploymentSteps.forEach(step => deployManager.addStep(step));
-        await deployManager.deploy().catch(err => {
+        spinner.stop();
+        try {
+          await deployManager.deploy();
+          spinner.start();
+          await updateCloudFormationNestedStack(
+            context,
+            formNestedStack(context, projectDetails),
+            resourcesToBeCreated,
+            resourcesToBeUpdated,
+          );
+        } catch (err) {
           throw err;
-        });
+        }
       }
-      await updateCloudFormationNestedStack(context, formNestedStack(context, projectDetails), resourcesToBeCreated, resourcesToBeUpdated);
     }
 
     await postPushGraphQLCodegen(context);

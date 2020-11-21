@@ -88,7 +88,7 @@ export class DeploymentManager {
           }
 
           switch (state.value) {
-            case 'Deployed':
+            case 'deployed':
               return resolve();
             case 'rolledBack':
             case 'failed':
@@ -113,10 +113,14 @@ export class DeploymentManager {
   };
 
   private getTableStatus = async (tableName: string, region: string): Promise<boolean | undefined> => {
+    assert(tableName, 'table name should be passed');
     const dbClient = new aws.DynamoDB({ region });
-    const response = await dbClient.describeTable({ TableName: tableName }).promise();
-
-    return response.Table?.GlobalSecondaryIndexes?.every(idx => idx.IndexStatus === 'ACTIVE');
+    try {
+      const response = await dbClient.describeTable({ TableName: tableName }).promise();
+      return response.Table?.GlobalSecondaryIndexes?.every(idx => idx.IndexStatus === 'ACTIVE');
+    } catch (e) {
+      throw e;
+    }
   };
 
   private waitForIndices = async (stackParams: StackParameter) => {
@@ -129,7 +133,7 @@ export class DeploymentManager {
           const areIndexesReady = await throttledGetTableStatus(name, this.region);
           if (areIndexesReady) {
             clearInterval(interval);
-            resolve();
+            resolve(undefined);
           }
         }, this.options.throttleDelay);
       });
@@ -145,6 +149,7 @@ export class DeploymentManager {
 
   private stackPollFn = (deploymentStep: DeploymentStep): (() => void) => {
     let monitor: StackEventMonitor;
+    assert(deploymentStep.stackName, 'stack name should be passed to stackPollFn');
     if (this.printer) {
       monitor = new StackEventMonitor(this.cfnClient, deploymentStep.stackName, this.printer);
       monitor.start();
@@ -163,6 +168,8 @@ export class DeploymentManager {
     region: string;
   }): Promise<void> => {
     const cfn = this.cfnClient;
+    assert(currentStack.stackName, 'stack name should be passed to doDeploy');
+    assert(currentStack.stackTemplateUrl, 'stackTemplateUrl must be passed to doDeploy');
     const parameters = Object.entries(currentStack.parameters).map(([key, val]) => {
       return {
         ParameterKey: key,
@@ -184,6 +191,7 @@ export class DeploymentManager {
 
   private waitForDeployment = async (stackParams: StackParameter): Promise<void> => {
     const cfnClient = this.cfnClient;
+    assert(stackParams.stackName, 'stackName should be passed to waitForDeployment');
     try {
       await cfnClient
         .waitFor('stackUpdateComplete', {
