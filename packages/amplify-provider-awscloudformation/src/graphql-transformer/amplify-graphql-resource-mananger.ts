@@ -135,7 +135,7 @@ export class GraphQLResourceManager {
     let count = 0;
     const gqlSteps = new Array<DeploymentStep>();
     const stateFileDir = path.join(this.cloudBuildDir, 'states');
-    const parameters = this.getParameters();
+    const parameters = await this.getParameters();
     const buildHash = await hashDirectory(this.backendDir);
     fs.mkdirSync(stateFileDir);
     while (!this.templateState.isEmpty()) {
@@ -180,8 +180,11 @@ export class GraphQLResourceManager {
     }
   }
 
-  private getParameters = (): any => {
-    return JSONUtilities.readJson(path.join(this.buildDir, 'parameters.json'));
+  private getParameters = async (): Promise<any> => {
+    const apiStackInfo = await this.cfnClient.describeStacks({
+      StackName: this.resourceMeta.stackId,
+    }).promise();
+    return apiStackInfo.Stacks[0].Parameters;
   }
 
   private gsiManagement = () => {
