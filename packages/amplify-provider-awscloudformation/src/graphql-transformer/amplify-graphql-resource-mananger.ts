@@ -29,16 +29,16 @@ export type $ResourceMeta = {
   category: string;
   providerPlugin: string;
   resourceName: string;
-  service: string
+  service: string;
   output: any;
   providerMetadata: {
     s3TemplateURL: string;
     logicalId: string;
   };
-  stackId: string,
-  DeploymentBucketName: string
+  stackId: string;
+  DeploymentBucketName: string;
   [key: string]: any;
-}
+};
 
 export class GraphQLResourceManager {
   static serviceName: string = 'AppSync';
@@ -57,12 +57,7 @@ export class GraphQLResourceManager {
   diffs: DiffChanges<DiffableProject>;
   tableArnMap: Map<string, string>;
 
-  public static createInstance = async (
-    context: $TSContext,
-    StackId: string,
-    iterativeChangeEnabled: boolean = true,
-  ) => {
-
+  public static createInstance = async (context: $TSContext, StackId: string, iterativeChangeEnabled: boolean = true) => {
     const getResource = (resourceStatus: any): any => {
       const { resourcesToBeUpdated } = resourceStatus;
       let resources = resourcesToBeUpdated;
@@ -76,25 +71,27 @@ export class GraphQLResourceManager {
         // No resource to update/add
         return null;
       }
-    }
+    };
     try {
       const cred = await configurationManager.loadConfiguration(context);
       const cfn = new CloudFormation(cred);
       const resourceStatus = await context.amplify.getResourceStatus(GraphQLResourceManager.categoryName);
       const resourceMeta = getResource(resourceStatus);
-      const apiStack = await cfn.describeStackResources({ StackName: StackId, LogicalResourceId: resourceMeta.providerMetadata.logicalId }).promise();
+      const apiStack = await cfn
+        .describeStackResources({ StackName: StackId, LogicalResourceId: resourceMeta.providerMetadata.logicalId })
+        .promise();
       return new GraphQLResourceManager({
         cfnClient: cfn,
         resourceMeta: { ...getResource(resourceStatus), stackId: apiStack.StackResources[0].PhysicalResourceId },
         backendDir: context.amplify.pathManager.getBackendDirPath(),
         cloudBackendDir: context.amplify.pathManager.getCurrentCloudBackendDirPath(),
         iterativeChangeEnabled,
-        rootStackFileName: 'cloudformation-template.json'
+        rootStackFileName: 'cloudformation-template.json',
       });
     } catch (err) {
       throw err;
     }
-  }
+  };
 
   constructor(props: GQLResourceManagerProps) {
     if (!props.resourceMeta) {
@@ -129,7 +126,7 @@ export class GraphQLResourceManager {
       await this.getTableARNS();
       return await this.getDeploymentSteps();
     }
-  }
+  };
   // save states to build with a copy of build on every deploy
   private getDeploymentSteps = async (): Promise<DeploymentStep[]> => {
     let count = 0;
@@ -137,7 +134,7 @@ export class GraphQLResourceManager {
     const stateFileDir = path.join(this.cloudBuildDir, 'states');
     const parameters = await this.getParameters();
     const buildHash = await hashDirectory(this.backendDir);
-    fs.mkdirSync(stateFileDir);
+    fs.ensureDirSync(stateFileDir);
     while (!this.templateState.isEmpty()) {
       fs.copySync(this.buildDir, path.join(stateFileDir, `${count}`));
       const tables = this.templateState.getKeys();
@@ -149,27 +146,31 @@ export class GraphQLResourceManager {
       });
       gqlSteps.push({
         stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
-        parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${count}`},
+        parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${count}` },
         stackName: this.resourceMeta.stackId,
         tableNames: tableArns,
-      })
+      });
       count++;
     }
     fs.moveSync(stateFileDir, path.join(this.buildDir, 'states'));
     return gqlSteps;
-  }
+  };
 
   private getTableARNS = async () => {
     const tables = this.templateState.getKeys();
-    const apiResources = await this.cfnClient.describeStackResources({
-      StackName: this.resourceMeta.stackId,
-    }).promise();
+    const apiResources = await this.cfnClient
+      .describeStackResources({
+        StackName: this.resourceMeta.stackId,
+      })
+      .promise();
     for (const resource of apiResources.StackResources) {
-      if(tables.includes(resource.LogicalResourceId)) {
-        const tableStack = await this.cfnClient.describeStacks({
-          StackName: resource.PhysicalResourceId
-        }).promise();
-        const tableARN = tableStack.Stacks[0].Outputs.reduce( (acc, out) => {
+      if (tables.includes(resource.LogicalResourceId)) {
+        const tableStack = await this.cfnClient
+          .describeStacks({
+            StackName: resource.PhysicalResourceId,
+          })
+          .promise();
+        const tableARN = tableStack.Stacks[0].Outputs.reduce((acc, out) => {
           if (out.OutputKey === `GetAtt${resource.LogicalResourceId}TableName`) {
             acc.push(out.OutputValue);
           }
@@ -178,17 +179,19 @@ export class GraphQLResourceManager {
         this.tableArnMap.set(resource.LogicalResourceId, tableARN[0]);
       }
     }
-  }
+  };
 
   private getParameters = async (): Promise<any> => {
-    const apiStackInfo = await this.cfnClient.describeStacks({
-      StackName: this.resourceMeta.stackId,
-    }).promise();
-    return apiStackInfo.Stacks[0].Parameters.reduce( (acc, param) => {
+    const apiStackInfo = await this.cfnClient
+      .describeStacks({
+        StackName: this.resourceMeta.stackId,
+      })
+      .promise();
+    return apiStackInfo.Stacks[0].Parameters.reduce((acc, param) => {
       acc[param.ParameterKey] = param.ParameterValue;
       return acc;
     }, {});
-  }
+  };
 
   private gsiManagement = () => {
     const gsiChanges = _.filter(this.diffs, diff => {
@@ -225,9 +228,9 @@ export class GraphQLResourceManager {
         this.deleteGSI(removedGSI.IndexName as string, tableName, ddbResource);
         this.templateState.add(stackName, JSON.stringify(ddbResource));
       } else if (gsiStatus === GSIStatus.batchAdd) {
-      /**
-       * batch gsi actions
-       */
+        /**
+         * batch gsi actions
+         */
         const addedGSIs = (gsiChange as any).lhs as GlobalSecondaryIndex[];
         for (const gsi of addedGSIs) {
           // grab added gsi resources
@@ -244,7 +247,7 @@ export class GraphQLResourceManager {
         }
       }
     }
-  }
+  };
 
   private gsiChangeStatus = (gsiChange: Diff<any, any>): GSIStatus => {
     if (gsiChange.kind === 'A') {
@@ -276,7 +279,7 @@ export class GraphQLResourceManager {
       return GSIStatus.batchDelete;
     }
     return GSIStatus.none;
-  }
+  };
 
   private createDiffs = (): DiffChanges<DiffableProject> => {
     // run sanity checks to determine if iterative changes are required
@@ -288,14 +291,14 @@ export class GraphQLResourceManager {
       return getDiffs(this.currentState, this.nextState);
     }
     throw Error('Need CloudBuild and Local Build to exist to find diffs');
-  }
+  };
 
   private getTable = (gsiChange: Diff<any, any>, state: 'current' | 'next'): DynamoDB.Table => {
     if (state === 'current') {
       return this.currentState.stacks[gsiChange.path[1]].Resources[gsiChange.path[3]] as DynamoDB.Table;
     }
     return this.nextState.stacks[gsiChange.path[1]].Resources[gsiChange.path[3]] as DynamoDB.Table;
-  }
+  };
 
   private getStack(stackName: string, state: 'current' | 'next'): Template {
     if (state === 'current') {
@@ -311,7 +314,7 @@ export class GraphQLResourceManager {
     const oldIndexesDiffable = _.keyBy(oldIndexes, 'IndexName');
     const newIndexesDiffable = _.keyBy(newIndexes, 'IndexName');
     return getDiffs(oldIndexesDiffable, newIndexesDiffable) || [];
-  }
+  };
   /**
    * GSI Operations
    */
@@ -328,7 +331,7 @@ export class GraphQLResourceManager {
       return attrDefs.includes(defs.AttributeName);
     });
     return { gsi: addedGSI, attributeDefinition: attrDef };
-  }
+  };
 
   private addGSI = (gsiRecord: GSIRecord, tableName: string, template: Template): void => {
     const table = template.Resources[tableName];
@@ -336,7 +339,7 @@ export class GraphQLResourceManager {
     gsis.push(gsiRecord.gsi);
     const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];
     table.Properties.AttributeDefinitions = _.unionBy(attrDefs, gsiRecord.attributeDefinition, 'AttributeName');
-  }
+  };
 
   private deleteGSI = (indexName: string, tableName: string, template: Template): void => {
     const table = template.Resources[tableName];
@@ -350,5 +353,5 @@ export class GraphQLResourceManager {
     // values in removedGSIKS that is not existent in currentKS will be removed
     const attrToRemove = _.differenceBy(removedGSIKS, currentKS, 'AttributeName');
     _.pullAllBy(attrDefs, attrToRemove, 'AttributeName');
-  }
+  };
 }

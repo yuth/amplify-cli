@@ -124,8 +124,8 @@ export class DeploymentManager {
   };
 
   private waitForIndices = async (stackParams: StackParameter) => {
-    if (stackParams.tableNames.length) console.log('Waiting for table indices to be created/deleted');
-    const throttledGetTableStatus = throttle(this.getTableStatus, 1000);
+    if (stackParams.tableNames.length) console.log('\nWaiting for DynamoDB table indices to be ready');
+    const throttledGetTableStatus = throttle(this.getTableStatus, this.options.throttleDelay);
 
     const waiters = stackParams.tableNames.map(name => {
       return new Promise(resolve => {
