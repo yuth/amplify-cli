@@ -109,7 +109,7 @@ export class GraphQLResourceManager {
     this.tableArnMap = new Map<string, string>();
     this.diffs = this.createDiffs();
     // don't run resource manager if there are no diffs
-    if(this.diffs) {
+    if (this.diffs) {
       return;
     }
   }
@@ -351,13 +351,15 @@ export class GraphQLResourceManager {
     const table = template.Resources[tableName];
     const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
     const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];
-    const removedGSIKS = _.remove(gsis, { IndexName: indexName })[0].KeySchema as Array<KeySchema>;
+    const removedGSIKS = _.remove(gsis, { IndexName: indexName })[0]?.KeySchema as Array<KeySchema>;
     const currentKS = gsis.reduce((acc, gsi) => {
       acc.push(...(gsi.KeySchema as Array<KeySchema>));
       return acc;
     }, []);
     // values in removedGSIKS that is not existent in currentKS will be removed
-    const attrToRemove = _.differenceBy(removedGSIKS, currentKS, 'AttributeName');
-    _.pullAllBy(attrDefs, attrToRemove, 'AttributeName');
+    if (removedGSIKS) {
+      const attrToRemove = _.differenceBy(removedGSIKS, currentKS, 'AttributeName');
+      _.pullAllBy(attrDefs, attrToRemove, 'AttributeName');
+    }
   };
 }

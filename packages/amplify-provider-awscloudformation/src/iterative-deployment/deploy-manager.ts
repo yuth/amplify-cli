@@ -8,6 +8,7 @@ import { StackProgressPrinter } from './stack-progress-printer';
 import ora from 'ora';
 import configurationManager from '../configuration-manager';
 import { $TSContext } from 'amplify-cli-core';
+import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
 
 interface DeploymentManagerOptions {
   throttleDelay?: number;
@@ -27,7 +28,7 @@ export class DeploymentManager {
     try {
       const cred = await configurationManager.loadConfiguration(context);
       assert(cred.region);
-      return new DeploymentManager(new aws.CloudFormation(cred), cred.region, deploymentBucket, printer, options);
+      return new DeploymentManager(cred, cred.region, deploymentBucket, printer, options);
     } catch (e) {
       throw new Error('Could not load the credentials');
     }
@@ -35,11 +36,13 @@ export class DeploymentManager {
 
   private deployment: DeploymentStep[] = [];
   private options: Required<DeploymentManagerOptions>;
-
+  private cfnClient: aws.CloudFormation;
+  private s3Client: aws.S3;
   private constructor(
-    private cfnClient: aws.CloudFormation,
+    creds: ConfigurationOptions,
     private region: string,
     private deploymentBucket: string,
+    // private deployedTemplatePath: string,
     private printer: IStackProgressPrinter = new StackProgressPrinter(),
     options: DeploymentManagerOptions = {},
   ) {
@@ -48,9 +51,27 @@ export class DeploymentManager {
       eventPollingDelay: 1_000,
       ...options,
     };
+    this.s3Client = new aws.S3(creds);
+    this.cfnClient = new aws.CloudFormation(creds);
   }
 
   public deploy = async (): Promise<void> => {
+    // try {
+    //   await this.s3Client
+    //     .headObject({
+    //       Bucket: this.deploymentBucket,
+    //       Key: this.deployedTemplatePath,
+    //     })
+    //     .promise();
+    // } catch (e) {
+    //   if (e.code === 404) {
+    //     throw new Error(`The deployed template s3://${this.deploymentBucket}/${this.deployedTemplatePath} does not exist`);
+    //   }
+    // }
+
+    // sanity check before deployment
+    await Promise.all(this.deployment.map(d => this.ensureTemplateExists(d.stackTemplatePath)));
+
     const fns: StateMachineHelperFunctions = {
       deployFn: this.doDeploy,
       deploymentWaitFn: this.waitForDeployment,
@@ -112,7 +133,34 @@ export class DeploymentManager {
     this.printer = printer;
   };
 
-  private getTableStatus = async (tableName: string, region: string): Promise<boolean | undefined> => {
+  /**
+   * Ensure that the stack is present and can be deployed
+   * @param stackName name of the stack
+   */
+  private ensureStack = async (stackName: string): Promise<boolean> => {
+    const result = await this.cfnClient.describeStacks({ StackName: stackName }).promise();
+    return result.Stacks[0].StackStatus.endsWith('_COMPLETE');
+  };
+
+  /**
+   * Checks the file exists in the path
+   * @param path path of the cloudformation file
+   */
+  private ensureTemplateExists = async (path: string): Promise<boolean> => {
+    let key = path;
+    try {
+      const bucketKey = this.getBucketKey(this.deploymentBucket, path);
+      await this.s3Client.headObject({ Bucket: this.deploymentBucket, Key: bucketKey }).promise();
+      return true;
+    } catch (e) {
+      if (e.ccode === 'NotFound') {
+        throw new Error(`The cloudformation template ${path} was not found in deployment bucket ${this.deploymentBucket}`);
+      }
+      throw e;
+    }
+  };
+
+  private getTableStatus = async (tableName: string, region: string): Promise<boolean> => {
     assert(tableName, 'table name should be passed');
     const dbClient = new aws.DynamoDB({ region });
     try {
@@ -167,10 +215,12 @@ export class DeploymentManager {
     parameters: Record<string, string>;
     stackTemplateUrl: string;
     region: string;
+    capabilities?: string[];
   }): Promise<void> => {
     const cfn = this.cfnClient;
     assert(currentStack.stackName, 'stack name should be passed to doDeploy');
     assert(currentStack.stackTemplateUrl, 'stackTemplateUrl must be passed to doDeploy');
+    await this.ensureStack(currentStack.stackName);
     const parameters = Object.entries(currentStack.parameters).map(([key, val]) => {
       return {
         ParameterKey: key,
@@ -183,6 +233,7 @@ export class DeploymentManager {
           StackName: currentStack.stackName,
           Parameters: parameters,
           TemplateURL: currentStack.stackTemplateUrl,
+          Capabilities: currentStack.capabilities,
         })
         .promise();
     } catch (e) {
@@ -207,5 +258,12 @@ export class DeploymentManager {
 
   private rollBackStack = async (currentStack: Readonly<StackParameter>): Promise<void> => {
     await this.doDeploy(currentStack);
+  };
+
+  private getBucketKey = (bucketName: string, bucketPath: string): string => {
+    if (bucketPath.startsWith('https://') && bucketPath.includes(bucketName)) {
+      return bucketPath.substring(bucketPath.indexOf(bucketName) + bucketName.length + 1);
+    }
+    return bucketPath;
   };
 }
