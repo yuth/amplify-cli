@@ -117,7 +117,8 @@ export class DeploymentManager {
     const dbClient = new aws.DynamoDB({ region });
     try {
       const response = await dbClient.describeTable({ TableName: tableName }).promise();
-      return response.Table?.GlobalSecondaryIndexes?.every(idx => idx.IndexStatus === 'ACTIVE');
+      const gsis = response.Table?.GlobalSecondaryIndexes;
+      return gsis ? gsis.every(idx => idx.IndexStatus === 'ACTIVE') : true;
     } catch (e) {
       throw e;
     }

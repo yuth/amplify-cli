@@ -56,7 +56,6 @@ async function run(context, resourceDefinition) {
       minify: options['minify'],
     });
 
-    // run resource manager with sanity checks
     const meta = context.amplify.getProjectMeta().providers.awscloudformation;
     const gqlManager = await GraphQLResourceManager.createInstance(context, meta.StackId, true);
     const deploymentSteps = await gqlManager.run();
@@ -71,24 +70,26 @@ async function run(context, resourceDefinition) {
 
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
-      // assess results from resource manager here
       if (deploymentSteps) {
+        // create deploy manager
         const deployManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
         deploymentSteps.forEach(step => deployManager.addStep(step));
         spinner.stop();
         try {
           await deployManager.deploy();
           spinner.start();
-          await updateCloudFormationNestedStack(
-            context,
-            formNestedStack(context, projectDetails),
-            resourcesToBeCreated,
-            resourcesToBeUpdated,
-          );
         } catch (err) {
           throw err;
         }
       }
+
+      // TODO: Add the last deployment inside the deployment manager if executed
+      await updateCloudFormationNestedStack(
+        context,
+        formNestedStack(context, projectDetails),
+        resourcesToBeCreated,
+        resourcesToBeUpdated,
+      );
     }
 
     await postPushGraphQLCodegen(context);

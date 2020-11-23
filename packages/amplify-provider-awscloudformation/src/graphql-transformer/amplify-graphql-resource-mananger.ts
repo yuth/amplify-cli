@@ -40,6 +40,7 @@ export type $ResourceMeta = {
   [key: string]: any;
 };
 
+// TODO: Add unit testing
 export class GraphQLResourceManager {
   static serviceName: string = 'AppSync';
   static categoryName: string = 'api';
@@ -107,6 +108,10 @@ export class GraphQLResourceManager {
     this.templateState = new TemplateState();
     this.tableArnMap = new Map<string, string>();
     this.diffs = this.createDiffs();
+    // don't run resource manager if there are no diffs
+    if(this.diffs) {
+      return;
+    }
   }
 
   run = async (): Promise<DeploymentStep[]> => {
@@ -124,6 +129,7 @@ export class GraphQLResourceManager {
     if (needsIterativeDeployments) {
       this.gsiManagement();
       await this.getTableARNS();
+      // TODO: Should return deployment steps on run?
       return await this.getDeploymentSteps();
     }
   };
@@ -290,7 +296,7 @@ export class GraphQLResourceManager {
       this.nextState = loadDiffableProject(this.buildDir, this.rootStackFileName);
       return getDiffs(this.currentState, this.nextState);
     }
-    throw Error('Need CloudBuild and Local Build to exist to find diffs');
+    return null;
   };
 
   private getTable = (gsiChange: Diff<any, any>, state: 'current' | 'next'): DynamoDB.Table => {
