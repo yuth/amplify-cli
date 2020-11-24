@@ -1,9 +1,7 @@
 import { Template } from 'cloudform-types';
 import { GlobalSecondaryIndex, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
-import fs from 'fs-extra';
-import path from 'path';
-import _ from 'lodash';
 import { CloudFormation } from 'aws-sdk';
+import _ from 'lodash';
 
 export interface GSIRecord {
   attributeDefinition: AttributeDefinition[];
@@ -19,16 +17,17 @@ export enum GSIStatus {
   none = 'none',
 }
 
-export const getStackParameters = async(cfnClient: CloudFormation, StackId: string): Promise<any> => {
+export const getStackParameters = async (cfnClient: CloudFormation, StackId: string): Promise<any> => {
   const apiStackInfo = await cfnClient
     .describeStacks({
       StackName: StackId,
-    }).promise();
+    })
+    .promise();
   return apiStackInfo.Stacks[0].Parameters.reduce((acc, param) => {
     acc[param.ParameterKey] = param.ParameterValue;
     return acc;
   }, {});
-}
+};
 
 export const getTableARNS = async (cfnClient: CloudFormation, tables: string[], StackId: string): Promise<Map<string, string>> => {
   const arnMap: Map<string, string> = new Map();

@@ -37,7 +37,7 @@ export const getGQLDiff = (currentBackendDir: string, cloudBackendDir: string): 
 export const getGqlUpdatedResource = (resources: any[]) => {
   if (resources.length > 0) {
     const resource = resources[0];
-    if (resource.providerPlugin === 'awscloudformation' && resource.providerMetadata && resource.providerMetadata.logicalId) {
+    if (resource.service === 'AppSync' && resource.providerMetadata && resource.providerMetadata.logicalId) {
       return resource;
     }
   }

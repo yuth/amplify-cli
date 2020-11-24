@@ -243,6 +243,7 @@ export class GraphQLResourceManager {
     table.Properties.GlobalSecondaryIndexes = gsis;
     const attrDefs = (table.Properties.AttributeDefinitions ?? []) as AttributeDefinition[];
     table.Properties.AttributeDefinitions = _.unionBy(attrDefs, gsiRecord.attributeDefinition, 'AttributeName');
+    table.Properties.GlobalSecondaryIndex = gsis;
   };
 
   private deleteGSI = (indexName: string, tableName: string, template: Template): void => {

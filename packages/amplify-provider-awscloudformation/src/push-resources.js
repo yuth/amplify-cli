@@ -38,6 +38,7 @@ const parametersJson = 'parameters.json';
 async function run(context, resourceDefinition) {
   try {
     const { resourcesToBeCreated, resourcesToBeUpdated, resourcesToBeSynced, resourcesToBeDeleted, allResources } = resourceDefinition;
+    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
     const {
       parameters: { options },
     } = context;
