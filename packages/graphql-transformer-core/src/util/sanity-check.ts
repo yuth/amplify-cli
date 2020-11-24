@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 import { basename } from 'path';
-import { diff as getDiffs, Diff as DeepDiff } from 'deep-diff';
+import { diff as getDiffs, Diff as DeepDiff, diff } from 'deep-diff';
 import { readFromPath } from './fileUtils';
 import { InvalidMigrationError, InvalidGSIMigrationError } from '../errors';
 import { Template } from 'cloudform-types';
@@ -35,6 +35,7 @@ export function runChecks(diffs: Diff[], current: DiffableProject, next: Diffabl
     // GSI
     cantEditGSIKeySchema,
     cantAddAndRemoveGSIAtSameTime,
+    cantBatchMutateGSIAtUpdateTime,
   ];
   // Project rules run on the full set of diffs, the current build, and the next build.
   const projectRules: ProjectRule[] = [cantHaveMoreThan500Resources, cantMutateMultipleGSIAtUpdateTime];
@@ -208,16 +209,21 @@ export function cantAddAndRemoveGSIAtSameTime(diff: Diff, currentBuild: Diffable
     }
   }
 }
-// export function cantBatchMutateGSIAtUpdateTime(diffs: Diff, currentBuild: DiffableProject, nextBuild: DiffableProject) {
-//   function throwError(stackName: string, tableName: string) {
-//     throw new InvalidGSIMigrationError(
-//       `Attempting to batch add or remove global secondary indexes at the same time on the ${tableName} table in the ${stackName} stack`,
-//       'Ypu may only mutate one global secondary index in a single Cloudformation stack update.',
-//       'If using @key, include one @key at a time.'+
-//       ''
-//     )
-//   }
-// }
+export function cantBatchMutateGSIAtUpdateTime(diff: Diff, currentBuild: DiffableProject, nextBuild: DiffableProject) {
+  // path indicating adding new gsis or removing gsis from table
+  // ['stacks', 'Book.json', 'Resources', 'BookTable', 'Properties', 'GlobalSecondaryIndexes']
+  if ((diff.kind === 'D' || diff.kind === 'N') && diff.path.length === 6 && diff.path.slice(-1)[0] === 'GlobalSecondaryIndexes') {
+    const tableName = diff.path[3];
+    const stackName = diff.path[1];
+    throw new InvalidGSIMigrationError(
+      `Attempting to add and remove a global secondary index at the same time on the ${tableName} table in the ${stackName} stack. `,
+      'You may only change one global secondary index in a single CloudFormation stack update. ',
+      'If using @key, change one @key at a time. ' +
+        'If using @connection, add the new @connection, run `amplify push`, ' +
+        'and then remove the new @connection with the new configuration.',
+    );
+  }
+}
 
 /**
  * Throws a helpful error when a customer is trying to complete an invalid migration.

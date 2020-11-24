@@ -23,6 +23,7 @@ const archiver = require('./utils/archiver');
 const amplifyServiceManager = require('./amplify-service-manager');
 const { stateManager } = require('amplify-cli-core');
 const { DeploymentManager } = require('./iterative-deployment');
+const { getGqlUpdatedResource } = require('./graphql-transformer/utils');
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -55,10 +56,13 @@ async function run(context, resourceDefinition) {
       handleMigration: opts => updateStackForAPIMigration(context, 'api', undefined, opts),
       minify: options['minify'],
     });
-
-    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
-    const gqlManager = await GraphQLResourceManager.createInstance(context, meta.StackId, true);
-    const deploymentSteps = await gqlManager.run();
+    let deploymentSteps = [];
+    const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
+    if(gqlResource) {
+      const meta = context.amplify.getProjectMeta().providers.awscloudformation;
+      const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
+      deploymentSteps = await gqlManager.run();
+    }
 
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
