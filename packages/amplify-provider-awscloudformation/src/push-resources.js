@@ -23,6 +23,7 @@ const archiver = require('./utils/archiver');
 const amplifyServiceManager = require('./amplify-service-manager');
 const { stateManager } = require('amplify-cli-core');
 const { DeploymentManager } = require('./iterative-deployment');
+const { getGqlUpdatedResource } = require('./graphql-transformer/utils');
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -36,6 +37,7 @@ const parametersJson = 'parameters.json';
 async function run(context, resourceDefinition) {
   try {
     const { resourcesToBeCreated, resourcesToBeUpdated, resourcesToBeSynced, resourcesToBeDeleted, allResources } = resourceDefinition;
+    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
     const {
       parameters: { options },
     } = context;
@@ -56,14 +58,17 @@ async function run(context, resourceDefinition) {
       minify: options['minify'],
     });
 
-    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
-
     // Check if iterative updates are enabled or not and generate the required deployment steps if needed.
     let deploymentSteps;
 
     if (FeatureFlags.getBoolean('graphQLTransformer.enableIterativeGSIUpdates')) {
-      const gqlManager = await GraphQLResourceManager.createInstance(context, meta.StackId);
-      deploymentSteps = await gqlManager.run();
+      const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
+
+      if (gqlResource) {
+        const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
+
+        deploymentSteps = await gqlManager.run();
+      }
     }
 
     await uploadAppSyncFiles(context, resources, allResources);

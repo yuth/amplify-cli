@@ -1,42 +1,7 @@
 import { Template } from 'cloudform-types';
 import { GlobalSecondaryIndex, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
-import fs from 'fs-extra';
-import path from 'path';
+import { CloudFormation } from 'aws-sdk';
 import _ from 'lodash';
-
-export function loadDiffableProject(path: string, rootStackName: string): DiffableProject {
-  const project = readFromPath(path);
-  const currentStacks = project.stacks || {};
-  const diffableProject: DiffableProject = {
-    stacks: {},
-    root: {},
-  };
-  for (const key of Object.keys(currentStacks)) {
-    diffableProject.stacks[key] = JSON.parse(project.stacks[key]);
-  }
-  diffableProject.root = JSON.parse(project[rootStackName]);
-  return diffableProject;
-}
-
-export function readFromPath(directory: string): any {
-  const pathExists = fs.pathExistsSync(directory);
-  if (!pathExists) {
-    return;
-  }
-  const dirStats = fs.lstatSync(directory);
-  if (!dirStats.isDirectory()) {
-    const buf = fs.readFileSync(directory);
-    return buf.toString();
-  }
-  const files = fs.readdirSync(directory);
-  const accum = {};
-  for (const fileName of files) {
-    const fullPath = path.join(directory, fileName);
-    const value = readFromPath(fullPath);
-    accum[fileName] = value;
-  }
-  return accum;
-}
 
 export interface GSIRecord {
   attributeDefinition: AttributeDefinition[];
@@ -51,12 +16,44 @@ export enum GSIStatus {
   batchDelete = 'batchDelete',
   none = 'none',
 }
-export interface DiffableProject {
-  stacks: {
-    [stackName: string]: Template;
-  };
-  root: Template;
-}
+
+export const getStackParameters = async (cfnClient: CloudFormation, StackId: string): Promise<any> => {
+  const apiStackInfo = await cfnClient
+    .describeStacks({
+      StackName: StackId,
+    })
+    .promise();
+  return apiStackInfo.Stacks[0].Parameters.reduce((acc, param) => {
+    acc[param.ParameterKey] = param.ParameterValue;
+    return acc;
+  }, {});
+};
+
+export const getTableARNS = async (cfnClient: CloudFormation, tables: string[], StackId: string): Promise<Map<string, string>> => {
+  const arnMap: Map<string, string> = new Map();
+  const apiResources = await cfnClient
+    .describeStackResources({
+      StackName: StackId,
+    })
+    .promise();
+  for (const resource of apiResources.StackResources) {
+    if (tables.includes(resource.LogicalResourceId)) {
+      const tableStack = await cfnClient
+        .describeStacks({
+          StackName: resource.PhysicalResourceId,
+        })
+        .promise();
+      const tableARN = tableStack.Stacks[0].Outputs.reduce((acc, out) => {
+        if (out.OutputKey === `GetAtt${resource.LogicalResourceId}TableName`) {
+          acc.push(out.OutputValue);
+        }
+        return acc;
+      }, []);
+      arnMap.set(resource.LogicalResourceId, tableARN[0]);
+    }
+  }
+  return arnMap;
+};
 export class TemplateState {
   private changes: { [key: string]: string[] } = {};
 
