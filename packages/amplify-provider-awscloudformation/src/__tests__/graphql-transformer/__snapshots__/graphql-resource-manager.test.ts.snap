@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`graphql resource manager test with two key change 1`] = `
+Array [
+  Object {
+    "parameters": Object {
+      "Bucket": "Name-apibookstoreID",
+      "Root": "sdasdasdasd",
+      "S3DeploymentRootKey": "undefined/hashbuild/states/0",
+    },
+    "stackName": "apibookstoreID",
+    "stackTemplatePath": "https://storage.myservice.com/mybookstore/template.json",
+    "tableNames": Array [
+      "Book-apibookstoreID-dev",
+    ],
+  },
+  Object {
+    "parameters": Object {
+      "Bucket": "Name-apibookstoreID",
+      "Root": "sdasdasdasd",
+      "S3DeploymentRootKey": "undefined/hashbuild/states/1",
+    },
+    "stackName": "apibookstoreID",
+    "stackTemplatePath": "https://storage.myservice.com/mybookstore/template.json",
+    "tableNames": Array [
+      "Book-apibookstoreID-dev",
+    ],
+  },
+]
+`;

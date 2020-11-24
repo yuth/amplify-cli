@@ -74,7 +74,7 @@ export class GraphQLResourceManager {
     this.templateState = new TemplateState();
   }
 
-  run = async (): Promise<DeploymentStep[]> | null => {
+  run = async (): Promise<DeploymentStep[] | null> => {
     const gqlDiff = getGQLDiff(this.backendDir, this.cloudBackendDir);
     try {
       sanityCheck(gqlDiff.diff, gqlDiff.current, gqlDiff.next);
@@ -152,7 +152,7 @@ export class GraphQLResourceManager {
         this.deleteGSI(removedGSI.IndexName as string, tableName, ddbResource);
         this.templateState.add(stackName, JSON.stringify(ddbResource));
       } else if (gsiStatus === GSIStatus.batchAdd) {
-        const addedGSIs = (gsiChange as any).lhs as GlobalSecondaryIndex[];
+        const addedGSIs = (gsiChange as any).rhs as GlobalSecondaryIndex[];
         for (const gsi of addedGSIs) {
           // grab added gsi resources
           let gsiRecord = this.getGSIRecord(gsi.IndexName as string, this.getTable(gsiChange, nextState));
@@ -238,10 +238,11 @@ export class GraphQLResourceManager {
 
   private addGSI = (gsiRecord: GSIRecord, tableName: string, template: Template): void => {
     const table = template.Resources[tableName];
-    const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
+    const gsis = (table.Properties.GlobalSecondaryIndexes || []) as GlobalSecondaryIndex[] ;
     gsis.push(gsiRecord.gsi);
     const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];
     table.Properties.AttributeDefinitions = _.unionBy(attrDefs, gsiRecord.attributeDefinition, 'AttributeName');
+    table.Properties.GlobalSecondaryIndex = gsis;
   };
 
   private deleteGSI = (indexName: string, tableName: string, template: Template): void => {

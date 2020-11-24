@@ -1,9 +1,7 @@
 import { Template } from 'cloudform-types';
 import { GlobalSecondaryIndex, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
-import fs from 'fs-extra';
-import path from 'path';
-import _ from 'lodash';
 import { CloudFormation } from 'aws-sdk';
+import _ from 'lodash';
 
 export interface GSIRecord {
   attributeDefinition: AttributeDefinition[];
