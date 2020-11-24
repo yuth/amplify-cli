@@ -14,7 +14,7 @@ export const stackPollerActivity = (stackEventPollFn: (stack: Readonly<StackPara
       const stack = context.stacks[context.currentIndex];
       const stackTemplateUrl = stack.stackTemplatePath.startsWith('https://')
         ? stack.stackTemplatePath
-        : `${context.deploymentBucket}/${stack.stackTemplatePath}`;
+        : `https://https://s3.amazonaws.com/${context.deploymentBucket}/${stack.stackTemplatePath}`;
       return stackEventPollFn({
         ...stack,
         region: context.region,
@@ -33,7 +33,7 @@ export const extractStackInfoFromContext = (
       const stack = ctx.stacks[ctx.currentIndex];
       const stackTemplateUrl = stack.stackTemplatePath.startsWith('https://')
         ? stack.stackTemplatePath
-        : `${ctx.deploymentBucket}/${stack.stackTemplatePath}`;
+        : `https://https://s3.amazonaws.com/${ctx.deploymentBucket}/${stack.stackTemplatePath}`;
       return fn({ ...stack, stackTemplateUrl, region: ctx.region });
     }
     return Promise.resolve();
