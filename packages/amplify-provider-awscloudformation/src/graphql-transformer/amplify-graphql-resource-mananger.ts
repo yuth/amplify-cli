@@ -79,7 +79,7 @@ export class GraphQLResourceManager {
     this.templateState = new TemplateState();
   }
 
-  run = async (): Promise<DeploymentStep[]> | null => {
+  run = async (): Promise<DeploymentStep[]> => {
     const gqlDiff = getGQLDiff(this.backendDir, this.cloudBackendDir);
 
     try {
