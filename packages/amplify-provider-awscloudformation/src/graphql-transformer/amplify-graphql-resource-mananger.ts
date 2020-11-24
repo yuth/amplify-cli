@@ -96,7 +96,6 @@ export class GraphQLResourceManager {
     const tableArnMap = await getTableARNS(this.cfnClient, this.templateState.getKeys(), this.resourceMeta.stackId);
     const parameters = await getStackParameters(this.cfnClient, this.resourceMeta.stackId);
     const buildHash = await hashDirectory(this.backendDir);
-    fs.ensureDirSync(tempDir);
     while (!this.templateState.isEmpty()) {
       fs.copySync(stateFileDir, path.join(tempDir, `${count}`));
       const tables = this.templateState.getKeys();
@@ -104,6 +103,7 @@ export class GraphQLResourceManager {
       tables.forEach(key => {
         tableArns.push(tableArnMap.get(key));
         const filepath = path.join(stateFileDir, `${count}`, 'stacks', `${key}.json`);
+        fs.ensureDirSync(path.dirname(filepath));
         fs.writeFileSync(filepath, JSON.stringify(this.templateState.pop(key), null, 2));
       });
       gqlSteps.push({
@@ -152,7 +152,7 @@ export class GraphQLResourceManager {
         this.deleteGSI(removedGSI.IndexName as string, tableName, ddbResource);
         this.templateState.add(stackName, JSON.stringify(ddbResource));
       } else if (gsiStatus === GSIStatus.batchAdd) {
-        const addedGSIs = (gsiChange as any).lhs as GlobalSecondaryIndex[];
+        const addedGSIs = (gsiChange as any).rhs as GlobalSecondaryIndex[];
         for (const gsi of addedGSIs) {
           // grab added gsi resources
           let gsiRecord = this.getGSIRecord(gsi.IndexName as string, this.getTable(gsiChange, nextState));
@@ -238,9 +238,10 @@ export class GraphQLResourceManager {
 
   private addGSI = (gsiRecord: GSIRecord, tableName: string, template: Template): void => {
     const table = template.Resources[tableName];
-    const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
+    const gsis = (table.Properties.GlobalSecondaryIndexes ?? []) as GlobalSecondaryIndex[];
     gsis.push(gsiRecord.gsi);
-    const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];
+    table.Properties.GlobalSecondaryIndexes = gsis;
+    const attrDefs = (table.Properties.AttributeDefinitions ?? []) as AttributeDefinition[];
     table.Properties.AttributeDefinitions = _.unionBy(attrDefs, gsiRecord.attributeDefinition, 'AttributeName');
   };
 

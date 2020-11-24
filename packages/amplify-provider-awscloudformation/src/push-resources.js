@@ -4,7 +4,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const cfnLint = require('cfn-lint');
 const glob = require('glob');
-const { pathManager, PathConstants } = require('amplify-cli-core');
+const { pathManager, PathConstants, JSONUtilities } = require('amplify-cli-core');
 const ora = require('ora');
 const { S3 } = require('./aws-utils/aws-s3');
 const Cloudformation = require('./aws-utils/aws-cfn');
@@ -23,7 +23,8 @@ const archiver = require('./utils/archiver');
 const amplifyServiceManager = require('./amplify-service-manager');
 const { stateManager } = require('amplify-cli-core');
 const { DeploymentManager } = require('./iterative-deployment');
-const { getGqlUpdatedResource } = require('./graphql-transformer/utils');
+
+import { getGqlUpdatedResource } from './graphql-transformer/utils';
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -57,9 +58,9 @@ async function run(context, resourceDefinition) {
       minify: options['minify'],
     });
     let deploymentSteps = [];
+    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
     const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
-    if(gqlResource) {
-      const meta = context.amplify.getProjectMeta().providers.awscloudformation;
+    if (gqlResource) {
       const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
       deploymentSteps = await gqlManager.run();
     }
@@ -74,26 +75,52 @@ async function run(context, resourceDefinition) {
 
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
-      if (deploymentSteps) {
+      if (deploymentSteps.length) {
         // create deploy manager
         const deployManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
         deploymentSteps.forEach(step => deployManager.addStep(step));
         spinner.stop();
+
+        // generate nested stack
+        const backEndDir = context.amplify.pathManager.getBackendDirPath();
+        const nestedStackFilepath = path.normalize(path.join(backEndDir, providerName, nestedStackFileName));
+        const nestedStack = formNestedStack(context, projectDetails);
+        JSONUtilities.writeJson(nestedStackFilepath, nestedStack);
+
+        // upload the nested stack
+        const s3Client = await S3.getInstance(context);
+        const s3Params = {
+          Body: fs.createReadStream(nestedStackFilepath),
+          Key: nestedStackFileName,
+        };
+        await s3Client.uploadFile(s3Params, false);
+        const finalStep = {
+          stackTemplatePath: nestedStackFileName,
+          tableNames: [],
+          stackName: meta.StackName,
+          parameters: {
+            DeploymentBucketName: meta.DeploymentBucketName,
+            AuthRoleName: meta.AuthRoleName,
+            UnauthRoleName: meta.UnauthRoleName,
+          },
+          capabilities: ['CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
+        };
+        deployManager.addStep(finalStep);
+
         try {
           await deployManager.deploy();
           spinner.start();
         } catch (err) {
           throw err;
         }
+      } else {
+        await updateCloudFormationNestedStack(
+          context,
+          formNestedStack(context, projectDetails),
+          resourcesToBeCreated,
+          resourcesToBeUpdated,
+        );
       }
-
-      // TODO: Add the last deployment inside the deployment manager if executed
-      await updateCloudFormationNestedStack(
-        context,
-        formNestedStack(context, projectDetails),
-        resourcesToBeCreated,
-        resourcesToBeUpdated,
-      );
     }
 
     await postPushGraphQLCodegen(context);

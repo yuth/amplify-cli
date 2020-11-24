@@ -26,25 +26,23 @@ export interface GQLDiff {
 export const getGQLDiff = (currentBackendDir: string, cloudBackendDir: string): GQLDiff => {
   const currentBuildDir = path.join(currentBackendDir, 'build');
   const cloudBuildDir = path.join(cloudBackendDir, 'build');
-  if (cloudBuildDir && currentBuildDir) {
+  if (fs.existsSync(cloudBuildDir) && fs.existsSync(currentBuildDir)) {
     const current = loadDiffableProject(cloudBuildDir, ROOT_STACK_FILE_NAME);
-    const next = loadDiffableProject(currentBackendDir, ROOT_STACK_FILE_NAME);
+    const next = loadDiffableProject(currentBuildDir, ROOT_STACK_FILE_NAME);
     return { current, next, diff: getDiffs(current, next) };
   }
   return null;
-}
+};
 
 export const getGqlUpdatedResource = (resources: any[]) => {
   if (resources.length > 0) {
     const resource = resources[0];
-    if (resource.providerPlugin === 'awscloudformation' &&
-        resource.providerMetadata &&
-        resource.providerMetadata.logicalId) {
+    if (resource.providerPlugin === 'awscloudformation' && resource.providerMetadata && resource.providerMetadata.logicalId) {
       return resource;
     }
   }
   return null;
-}
+};
 
 export function loadDiffableProject(path: string, rootStackName: string): DiffableProject {
   const project = readFromPath(path);
