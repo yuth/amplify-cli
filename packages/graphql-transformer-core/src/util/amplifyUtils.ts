@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import * as path from 'path';
 import glob from 'glob';
 import { CloudFormation, Fn, Template } from 'cloudform-types';
@@ -7,8 +7,17 @@ import { GraphQLTransform, StackMapping } from '../GraphQLTransform';
 import { ResourceConstants } from 'graphql-transformer-common';
 import { readFromPath, writeToPath, throwIfNotJSONExt, emptyDirectory, handleFile, FileHandler } from './fileUtils';
 import { writeConfig, TransformConfig, TransformMigrationConfig, loadProject, readSchema, loadConfig } from './transformConfig';
-import * as Sanity from './sanity-check';
 import { FeatureFlagProvider } from '../FeatureFlags';
+import {
+  cantAddAndRemoveGSIAtSameTimeRule,
+  cantAddLSILaterRule,
+  cantBatchMutateGSIAtUpdateTimeRule,
+  cantEditGSIKeySchemaRule,
+  cantEditKeySchemaRule,
+  cantEditLSIKeySchemaRule,
+  DiffRule,
+  sanityCheckProject,
+} from './sanity-check';
 
 export const CLOUDFORMATION_FILE_NAME = 'cloudformation-template.json';
 export const PARAMETERS_FILE_NAME = 'parameters.json';
@@ -41,6 +50,37 @@ export async function buildProject(opts: ProjectOptions) {
       opts.buildParameters,
       opts.minify,
     );
+
+    if (opts.currentCloudBackendDirectory) {
+      let diffRules: DiffRule[];
+
+      // If we have iterative GSI upgrades enabled it means we only do sanity check on LSIs
+      // as the other checks will be carried out as series of updates.
+      if (opts.featureFlags.getBoolean('enableIterativeGSIUpdates')) {
+        diffRules = [
+          // LSI
+          cantEditKeySchemaRule,
+          cantAddLSILaterRule,
+          cantEditLSIKeySchemaRule,
+        ];
+      } else {
+        diffRules = [
+          // LSI
+          cantEditKeySchemaRule,
+          cantAddLSILaterRule,
+          cantEditLSIKeySchemaRule,
+          // GSI
+          cantEditGSIKeySchemaRule,
+          cantAddAndRemoveGSIAtSameTimeRule,
+          cantBatchMutateGSIAtUpdateTimeRule,
+        ];
+      }
+
+      const lastBuildPath = path.join(opts.currentCloudBackendDirectory, 'build');
+      const thisBuildPath = path.join(opts.projectDirectory, 'build');
+
+      await sanityCheckProject(lastBuildPath, thisBuildPath, opts.rootStackFileName, diffRules);
+    }
   }
 
   return builtProject;

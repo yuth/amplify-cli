@@ -4,7 +4,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const cfnLint = require('cfn-lint');
 const glob = require('glob');
-const { pathManager, PathConstants } = require('amplify-cli-core');
+const { pathManager, PathConstants, FeatureFlags } = require('amplify-cli-core');
 const ora = require('ora');
 const { S3 } = require('./aws-utils/aws-s3');
 const Cloudformation = require('./aws-utils/aws-cfn');
@@ -57,8 +57,14 @@ async function run(context, resourceDefinition) {
     });
 
     const meta = context.amplify.getProjectMeta().providers.awscloudformation;
-    const gqlManager = await GraphQLResourceManager.createInstance(context, meta.StackId, true);
-    const deploymentSteps = await gqlManager.run();
+
+    // Check if iterative updates are enabled or not and generate the required deployment steps if needed.
+    let deploymentSteps;
+
+    if (FeatureFlags.getBoolean('graphQLTransformer.enableIterativeGSIUpdates')) {
+      const gqlManager = await GraphQLResourceManager.createInstance(context, meta.StackId);
+      deploymentSteps = await gqlManager.run();
+    }
 
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
@@ -71,12 +77,16 @@ async function run(context, resourceDefinition) {
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
       if (deploymentSteps) {
-        // create deploy manager
-        const deployManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
-        deploymentSteps.forEach(step => deployManager.addStep(step));
+        // create deployment manager
+        const deploymentManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName);
+
+        deploymentSteps.forEach(step => deploymentManager.addStep(step));
+
         spinner.stop();
+
         try {
-          await deployManager.deploy();
+          await deploymentManager.deploy();
+
           spinner.start();
         } catch (err) {
           throw err;
@@ -84,12 +94,7 @@ async function run(context, resourceDefinition) {
       }
 
       // TODO: Add the last deployment inside the deployment manager if executed
-      await updateCloudFormationNestedStack(
-        context,
-        formNestedStack(context, projectDetails),
-        resourcesToBeCreated,
-        resourcesToBeUpdated,
-      );
+      await updateCloudFormationNestedStack(context, formNestedStack(context, projectDetails), resourcesToBeCreated, resourcesToBeUpdated);
     }
 
     await postPushGraphQLCodegen(context);

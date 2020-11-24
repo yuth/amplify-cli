@@ -4,7 +4,12 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 import { diff as getDiffs, Diff } from 'deep-diff';
 import { DiffableProject, loadDiffableProject, GSIStatus, GSIRecord, TemplateState } from '../utils/amplify-resource-state-utils';
-import { sanityCheck } from 'graphql-transformer-core';
+import {
+  sanityCheckDiffs,
+  cantAddAndRemoveGSIAtSameTimeRule,
+  cantBatchMutateGSIAtUpdateTimeRule,
+  cantEditGSIKeySchemaRule,
+} from 'graphql-transformer-core';
 import { Template, DynamoDB } from 'cloudform-types';
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
 import { $TSContext, JSONUtilities } from 'amplify-cli-core';
@@ -21,7 +26,6 @@ export type GQLResourceManagerProps = {
   resourceMeta: $ResourceMeta;
   backendDir: string;
   cloudBackendDir: string;
-  iterativeChangeEnabled?: boolean;
   rootStackFileName?: string;
 };
 
@@ -54,11 +58,10 @@ export class GraphQLResourceManager {
   currentState: DiffableProject;
   nextState: DiffableProject;
   templateState: TemplateState;
-  iterativeChangeEnabled: boolean;
   diffs: DiffChanges<DiffableProject>;
   tableArnMap: Map<string, string>;
 
-  public static createInstance = async (context: $TSContext, StackId: string, iterativeChangeEnabled: boolean = true) => {
+  public static createInstance = async (context: $TSContext, StackId: string) => {
     const getResource = (resourceStatus: any): any => {
       const { resourcesToBeUpdated } = resourceStatus;
       let resources = resourcesToBeUpdated;
@@ -86,7 +89,6 @@ export class GraphQLResourceManager {
         resourceMeta: { ...getResource(resourceStatus), stackId: apiStack.StackResources[0].PhysicalResourceId },
         backendDir: context.amplify.pathManager.getBackendDirPath(),
         cloudBackendDir: context.amplify.pathManager.getCurrentCloudBackendDirPath(),
-        iterativeChangeEnabled,
         rootStackFileName: 'cloudformation-template.json',
       });
     } catch (err) {
@@ -104,7 +106,6 @@ export class GraphQLResourceManager {
     this.backendDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName);
     this.buildDir = path.join(this.backendDir, 'build');
     this.rootStackFileName = props.rootStackFileName;
-    this.iterativeChangeEnabled = props.iterativeChangeEnabled;
     this.templateState = new TemplateState();
     this.tableArnMap = new Map<string, string>();
     this.diffs = this.createDiffs();
@@ -117,22 +118,34 @@ export class GraphQLResourceManager {
   run = async (): Promise<DeploymentStep[]> => {
     // run sanity checks
     let needsIterativeDeployments = false;
+
     try {
-      sanityCheck(this.diffs, this.currentState, this.nextState);
+      const diffRules = [
+        // GSI
+        cantEditGSIKeySchemaRule,
+        cantBatchMutateGSIAtUpdateTimeRule,
+        cantAddAndRemoveGSIAtSameTimeRule,
+      ];
+
+      sanityCheckDiffs(this.diffs, this.currentState, this.nextState, diffRules);
     } catch (err) {
-      if (err.name === 'InvalidGSIMigrationError' && this.iterativeChangeEnabled) {
+      if (err.name === 'InvalidGSIMigrationError') {
         needsIterativeDeployments = true;
       } else {
         throw err;
       }
     }
+
     if (needsIterativeDeployments) {
       this.gsiManagement();
+
       await this.getTableARNS();
+
       // TODO: Should return deployment steps on run?
       return await this.getDeploymentSteps();
     }
   };
+
   // save states to build with a copy of build on every deploy
   private getDeploymentSteps = async (): Promise<DeploymentStep[]> => {
     let count = 0;
