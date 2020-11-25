@@ -10,7 +10,7 @@ import {
   sanityCheckDiffs,
 } from 'graphql-transformer-core';
 import { Template, DynamoDB } from 'cloudform-types';
-import { $TSContext, JSONUtilities } from 'amplify-cli-core';
+import { $TSContext, JSONUtilities, pathManager } from 'amplify-cli-core';
 import { CloudFormation } from 'aws-sdk';
 import { getStackParameters, GSIStatus, GSIRecord, TemplateState, getTableNames } from '../utils/amplify-resource-state-utils';
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
@@ -60,8 +60,8 @@ export class GraphQLResourceManager {
       return new GraphQLResourceManager({
         cfnClient: cfn,
         resourceMeta: { ...gqlResource, stackId: apiStack.StackResources[0].PhysicalResourceId },
-        backendDir: context.amplify.pathManager.getBackendDirPath(),
-        cloudBackendDir: context.amplify.pathManager.getCurrentCloudBackendDirPath(),
+        backendDir: pathManager.getBackendDirPath(),
+        cloudBackendDir: pathManager.getCurrentCloudBackendDirPath(),
       });
     } catch (err) {
       throw err;
