@@ -34,8 +34,7 @@ import {
 import { print } from 'graphql';
 import { hashDirectory } from './upload-appsync-files';
 import { exitOnNextTick, FeatureFlags } from 'amplify-cli-core';
-import { transformGraphQLSchema as transformGraphQLSchemaV6  } from './graphql-transformer/transform-graphql-schema';
-
+import { transformGraphQLSchema as transformGraphQLSchemaV6 } from './graphql-transformer/transform-graphql-schema';
 
 const apiCategory = 'api';
 const storageCategory = 'storage';
@@ -486,7 +485,7 @@ async function getPreviousDeploymentRootKey(previouslyDeployedBackendDir) {
   // this is the function
   let parameters;
   try {
-    const parametersPath = path.join(previouslyDeployedBackendDir, `build/${parametersFileName}`);
+    const parametersPath = path.join(previouslyDeployedBackendDir, 'build', parametersFileName);
     const parametersExists = fs.existsSync(parametersPath);
     if (parametersExists) {
       const parametersString = await fs.readFile(parametersPath);

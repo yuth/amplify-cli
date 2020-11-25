@@ -133,7 +133,7 @@ interface AmplifyToolkit {
   makeId: () => $TSAny;
   openEditor: () => $TSAny;
   onCategoryOutputsChange: (context: $TSContext, currentAmplifyMeta: $TSMeta | undefined, amplifyMeta?: $TSMeta) => $TSAny;
-  pathManager: () => $TSAny;
+  pathManager: $TSAny;
   pressEnterToContinue: () => $TSAny;
   pushResources: () => $TSAny;
   storeCurrentCloudBackend: () => $TSAny;
@@ -153,7 +153,12 @@ interface AmplifyToolkit {
     optionNameOverrides?: Record<string, string>,
   ) => Promise<ServiceSelection>;
   updateProjectConfig: () => $TSAny;
-  updateamplifyMetaAfterResourceUpdate: () => $TSAny;
+  updateamplifyMetaAfterResourceUpdate: (
+    category: string,
+    resourceName: string,
+    providerMetadataName: string,
+    providerMetadata: $TSObject,
+  ) => $TSAny;
   updateamplifyMetaAfterResourceAdd: (
     category: string,
     resourceName: string,
