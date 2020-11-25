@@ -156,10 +156,8 @@ interface AmplifyToolkit {
   updateamplifyMetaAfterResourceUpdate: (
     category: string,
     resourceName: string,
-    providerMetadataName: string,
-    providerMetadata: $TSObject,
-    metaResourceKey: $TSAny,
-    metaResourceData: $TSAny,
+    metaResourceKey?: $TSAny,
+    metaResourceData?: $TSAny,
   ) => $TSAny;
   updateamplifyMetaAfterResourceAdd: (
     category: string,
