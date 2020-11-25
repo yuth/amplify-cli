@@ -152,7 +152,12 @@ interface AmplifyToolkit {
     customQuestion?: $TSAny,
   ) => Promise<ServiceSelection>;
   updateProjectConfig: () => $TSAny;
-  updateamplifyMetaAfterResourceUpdate: () => $TSAny;
+  updateamplifyMetaAfterResourceUpdate: (
+    category: string,
+    resourceName: string,
+    providerMetadataName: string,
+    providerMetadata: $TSObject,
+  ) => $TSAny;
   updateamplifyMetaAfterResourceAdd: (
     category: string,
     resourceName: string,
