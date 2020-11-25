@@ -10,7 +10,7 @@ import {
   sanityCheckDiffs,
 } from 'graphql-transformer-core';
 import { Template, DynamoDB } from 'cloudform-types';
-import { $TSContext } from 'amplify-cli-core';
+import { $TSContext, JSONUtilities } from 'amplify-cli-core';
 import { CloudFormation } from 'aws-sdk';
 import { getStackParameters, GSIStatus, GSIRecord, TemplateState, getTableARNS } from '../utils/amplify-resource-state-utils';
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
@@ -46,8 +46,8 @@ export class GraphQLResourceManager {
   static categoryName: string = 'api';
   private cfnClient: CloudFormation;
   private resourceMeta: $ResourceMeta;
-  private cloudBackendDir: string;
-  private backendDir: string;
+  private cloudBackendApiProjectRoot: string;
+  private backendApiProjectRoot: string;
   private templateState: TemplateState;
 
   public static createInstance = async (context: $TSContext, gqlResource: any, StackId: string) => {
@@ -74,13 +74,13 @@ export class GraphQLResourceManager {
     }
     this.cfnClient = props.cfnClient;
     this.resourceMeta = props.resourceMeta;
-    this.backendDir = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName);
-    this.cloudBackendDir = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName);
+    this.backendApiProjectRoot = path.join(props.backendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName);
+    this.cloudBackendApiProjectRoot = path.join(props.cloudBackendDir, GraphQLResourceManager.categoryName, this.resourceMeta.resourceName);
     this.templateState = new TemplateState();
   }
 
   run = async (): Promise<DeploymentStep[]> => {
-    const gqlDiff = getGQLDiff(this.backendDir, this.cloudBackendDir);
+    const gqlDiff = getGQLDiff(this.backendApiProjectRoot, this.cloudBackendApiProjectRoot);
 
     try {
       const diffRules = [
@@ -104,32 +104,42 @@ export class GraphQLResourceManager {
 
   // save states to build with a copy of build on every deploy
   getDeploymentSteps = async (): Promise<DeploymentStep[]> => {
-    let count = 0;
+    let count = 1;
     const gqlSteps = new Array<DeploymentStep>();
-    const tempDir = path.join(this.cloudBackendDir, 'build', 'states');
-    const stateFileDir = path.join(this.backendDir, 'build');
+    // const tempDir = path.join(this.cloudBackendApiProjectRoot, 'build', 'states');
+    const cloudBuildDir = path.join(this.cloudBackendApiProjectRoot, 'build');
+    const buildDir = path.join(this.backendApiProjectRoot, 'build');
+    const stateFileDir = path.join(buildDir, 'states');
     const tableArnMap = await getTableARNS(this.cfnClient, this.templateState.getKeys(), this.resourceMeta.stackId);
     const parameters = await getStackParameters(this.cfnClient, this.resourceMeta.stackId);
-    const buildHash = await hashDirectory(this.backendDir);
+    const buildHash = await hashDirectory(this.backendApiProjectRoot);
+    // copy the last deployment state as current state
+    let previousStepPath = cloudBuildDir;
     while (!this.templateState.isEmpty()) {
-      fs.copySync(stateFileDir, path.join(tempDir, `${count}`));
+      const stepNumber = count.toString().padStart(2, '0');
+      const stepPath = path.join(stateFileDir, `${stepNumber}`);
+
+      fs.copySync(previousStepPath, stepPath);
+      previousStepPath = stepPath;
+
       const tables = this.templateState.getKeys();
       const tableArns = [];
       tables.forEach(key => {
         tableArns.push(tableArnMap.get(key));
-        const filepath = path.join(stateFileDir, `${count}`, 'stacks', `${key}.json`);
+        const filepath = path.join(stateFileDir, `${stepNumber}`, 'stacks', `${key}.json`);
         fs.ensureDirSync(path.dirname(filepath));
-        fs.writeFileSync(filepath, JSON.stringify(this.templateState.pop(key), null, 2));
+        JSONUtilities.writeJson(filepath, this.templateState.pop(key));
       });
+
       gqlSteps.push({
         stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
-        parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${count}` },
+        parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
         stackName: this.resourceMeta.stackId,
         tableNames: tableArns,
       });
       count++;
     }
-    fs.moveSync(tempDir, path.join(stateFileDir, 'states'));
+
     return gqlSteps;
   };
 
@@ -252,17 +262,16 @@ export class GraphQLResourceManager {
   };
 
   private addGSI = (gsiRecord: GSIRecord, tableName: string, template: Template): void => {
-    const table = template.Resources[tableName];
+    const table = template.Resources[tableName] as DynamoDB.Table;
     const gsis = (table.Properties.GlobalSecondaryIndexes ?? []) as GlobalSecondaryIndex[];
     gsis.push(gsiRecord.gsi);
     table.Properties.GlobalSecondaryIndexes = gsis;
     const attrDefs = (table.Properties.AttributeDefinitions ?? []) as AttributeDefinition[];
     table.Properties.AttributeDefinitions = _.unionBy(attrDefs, gsiRecord.attributeDefinition, 'AttributeName');
-    table.Properties.GlobalSecondaryIndex = gsis;
   };
 
   private deleteGSI = (indexName: string, tableName: string, template: Template): void => {
-    const table = template.Resources[tableName];
+    const table = template.Resources[tableName] as DynamoDB.Table;
     const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
     const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];
     const removedGSIKS = _.remove(gsis, { IndexName: indexName })[0]?.KeySchema as Array<KeySchema>;

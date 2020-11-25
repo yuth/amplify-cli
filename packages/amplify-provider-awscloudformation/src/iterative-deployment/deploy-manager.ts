@@ -1,5 +1,6 @@
 import * as aws from 'aws-sdk';
 import assert from 'assert';
+import * as path from 'path';
 import throttle from 'lodash.throttle';
 import { createDeploymentMachine, DeploymentStep, StackParameter, StateMachineHelperFunctions } from './state-machine';
 import { interpret } from 'xstate';
@@ -9,6 +10,8 @@ import ora from 'ora';
 import configurationManager from '../configuration-manager';
 import { $TSContext } from 'amplify-cli-core';
 import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
+import * as glob from 'glob';
+import * as fs from 'fs-extra';
 
 interface DeploymentManagerOptions {
   throttleDelay?: number;
@@ -38,6 +41,10 @@ export class DeploymentManager {
   private options: Required<DeploymentManagerOptions>;
   private cfnClient: aws.CloudFormation;
   private s3Client: aws.S3;
+
+  private rollbackStackAssetsFolder: string;
+  private rollbackStackTemplatePath: string;
+  private deploymentStarted: boolean = false;
   private constructor(
     creds: ConfigurationOptions,
     private region: string,
@@ -56,19 +63,6 @@ export class DeploymentManager {
   }
 
   public deploy = async (): Promise<void> => {
-    // try {
-    //   await this.s3Client
-    //     .headObject({
-    //       Bucket: this.deploymentBucket,
-    //       Key: this.deployedTemplatePath,
-    //     })
-    //     .promise();
-    // } catch (e) {
-    //   if (e.code === 404) {
-    //     throw new Error(`The deployed template s3://${this.deploymentBucket}/${this.deployedTemplatePath} does not exist`);
-    //   }
-    // }
-
     // sanity check before deployment
     await Promise.all(this.deployment.map(d => this.ensureTemplateExists(d.stackTemplatePath)));
 
@@ -122,11 +116,28 @@ export class DeploymentManager {
         .start();
       spinner.start();
       service.send({ type: 'DEPLOY' });
+      this.deploymentStarted = true;
     });
   };
 
   public addStep = (deploymentStep: DeploymentStep): void => {
     this.deployment.push(deploymentStep);
+  };
+
+  public addFinalStackToRollbackTo = (rollbackStackAssetDirectory: string, cfnTemplatePath: string): void => {
+    if (this.deploymentStarted) {
+      throw new Error('Deployment has started. Can not add rollback once the deployment has been started');
+    }
+    if (!fs.existsSync(rollbackStackAssetDirectory)) {
+      throw new Error('The asset for rollback stack is does not exists');
+    }
+
+    if (!fs.existsSync(path.join(rollbackStackAssetDirectory, cfnTemplatePath))) {
+      throw new Error('The  rollback stack template is does not exists');
+    }
+
+    this.rollbackStackAssetsFolder = rollbackStackAssetDirectory;
+    this.rollbackStackTemplatePath = cfnTemplatePath;
   };
 
   public setPrinter = (printer: IStackProgressPrinter) => {
@@ -144,17 +155,17 @@ export class DeploymentManager {
 
   /**
    * Checks the file exists in the path
-   * @param path path of the cloudformation file
+   * @param templatePath path of the cloudformation file
    */
-  private ensureTemplateExists = async (path: string): Promise<boolean> => {
-    let key = path;
+  private ensureTemplateExists = async (templatePath: string): Promise<boolean> => {
+    let key = templatePath;
     try {
-      const bucketKey = this.getBucketKey(this.deploymentBucket, path);
+      const bucketKey = this.getBucketKey(this.deploymentBucket, templatePath);
       await this.s3Client.headObject({ Bucket: this.deploymentBucket, Key: bucketKey }).promise();
       return true;
     } catch (e) {
       if (e.ccode === 'NotFound') {
-        throw new Error(`The cloudformation template ${path} was not found in deployment bucket ${this.deploymentBucket}`);
+        throw new Error(`The cloudformation template ${templatePath} was not found in deployment bucket ${this.deploymentBucket}`);
       }
       throw e;
     }
@@ -191,8 +202,8 @@ export class DeploymentManager {
     try {
       await Promise.all(waiters);
       return Promise.resolve();
-    } catch {
-      Promise.reject();
+    } catch (e) {
+      Promise.reject(e);
     }
   };
 
@@ -237,7 +248,7 @@ export class DeploymentManager {
         })
         .promise();
     } catch (e) {
-      return Promise.reject();
+      return Promise.reject(e);
     }
   };
 
@@ -252,7 +263,7 @@ export class DeploymentManager {
         .promise();
       return Promise.resolve();
     } catch (e) {
-      return Promise.reject();
+      return Promise.reject(e);
     }
   };
 
@@ -265,5 +276,25 @@ export class DeploymentManager {
       return bucketPath.substring(bucketPath.indexOf(bucketName) + bucketName.length + 1);
     }
     return bucketPath;
+  };
+
+  private uploadFiles = async (folder: string, prefix: string): Promise<void> => {
+    const keyPrefix = this.getBucketKey(this.deploymentBucket, prefix);
+    const files = glob.sync('**', {
+      absolute: false,
+      cwd: folder,
+    });
+    await Promise.all(
+      files.map(f => {
+        this.s3Client
+          .upload({
+            Bucket: this.deploymentBucket,
+            Key: path.join(keyPrefix, f),
+            Body: fs.createReadStream(path.join(folder, f)),
+          })
+          .promise();
+      }),
+    );
+    return;
   };
 }

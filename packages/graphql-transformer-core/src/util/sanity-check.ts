@@ -43,7 +43,8 @@ export const sanityCheckProject = async (
 
 export const sanityCheckDiffs = (diffs: Diff[], current: DiffableProject, next: DiffableProject, diffRules: DiffRule[]): void => {
   // Project rules run on the full set of diffs, the current build, and the next build.
-  const projectRules: ProjectRule[] = [cantHaveMoreThan500ResourcesRule, cantMutateMultipleGSIAtUpdateTimeRule];
+  // Todo: confirm if , cantMutateMultipleGSIAtUpdateTimeRule is needed as project rule as the diffRule should include it already
+  const projectRules: ProjectRule[] = [cantHaveMoreThan500ResourcesRule];
 
   // Loop through the diffs and call each DiffRule.
   // We loop once so each rule does not need to loop.
@@ -246,7 +247,7 @@ export const cantBatchMutateGSIAtUpdateTimeRule = (diff: Diff, currentBuild: Dif
  * @param currentBuild The last deployed build.
  * @param nextBuild The next build.
  */
-const cantMutateMultipleGSIAtUpdateTimeRule = (diffs: Diff[], currentBuild: DiffableProject, nextBuild: DiffableProject): void => {
+export const cantMutateMultipleGSIAtUpdateTimeRule = (diffs: Diff[], currentBuild: DiffableProject, nextBuild: DiffableProject): void => {
   const throwError = (stackName: string, tableName: string): void => {
     throw new InvalidGSIMigrationError(
       `Attempting to mutate more than 1 global secondary index at the same time on the ${tableName} table in the ${stackName} stack. `,
