@@ -65,14 +65,15 @@ export async function run(context, resourceDefinition) {
 
     // Check if iterative updates are enabled or not and generate the required deployment steps if needed.
     let deploymentSteps: DeploymentStep[] = [];
+    let rollbackStep: DeploymentStep;
 
     if (FeatureFlags.getBoolean('graphQLTransformer.enableIterativeGSIUpdates')) {
       const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
 
       if (gqlResource) {
         const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
-
         deploymentSteps = await gqlManager.run();
+        rollbackStep = await gqlManager.getCurrentlyDeployedStackStep();
       }
     }
 
@@ -92,6 +93,9 @@ export async function run(context, resourceDefinition) {
         const deploymentManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName, spinner);
 
         deploymentSteps.forEach(step => deploymentManager.addStep(step));
+        if (rollbackStep) {
+          deploymentManager.addFinalStackToRollbackTo(rollbackStep);
+        }
 
         // generate nested stack
         const backEndDir = context.amplify.pathManager.getBackendDirPath();

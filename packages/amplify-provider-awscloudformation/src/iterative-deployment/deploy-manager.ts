@@ -43,9 +43,7 @@ export class DeploymentManager {
   private cfnClient: aws.CloudFormation;
   private s3Client: aws.S3;
 
-  private rollbackStackAssetsFolder: string;
-  private rollbackStackTemplatePath: string;
-  private deploymentStarted: boolean = false;
+  private rollbackStep?: DeploymentStep;
   private constructor(
     creds: ConfigurationOptions,
     private region: string,
@@ -78,10 +76,10 @@ export class DeploymentManager {
     };
     const machine = createDeploymentMachine(
       {
-        currentIndex: -1,
+        currentIndex: this.rollbackStep ? 0 : -1,
         deploymentBucket: this.deploymentBucket,
         region: this.region,
-        stacks: this.deployment,
+        stacks: this.rollbackStep ? [this.rollbackStep!, ...this.deployment] : this.deployment,
       },
       fns,
     );
@@ -116,28 +114,20 @@ export class DeploymentManager {
         })
         .start();
       service.send({ type: 'DEPLOY' });
-      this.deploymentStarted = true;
     });
   };
 
   public addStep = (deploymentStep: DeploymentStep): void => {
-    this.deployment.push(deploymentStep);
+    const stackTemplatePath = this.normalizeDeploymentPath(deploymentStep.stackTemplatePath);
+    this.deployment.push({ ...deploymentStep, stackTemplatePath });
   };
 
-  public addFinalStackToRollbackTo = (rollbackStackAssetDirectory: string, cfnTemplatePath: string): void => {
-    if (this.deploymentStarted) {
-      throw new Error('Deployment has started. Can not add rollback once the deployment has been started');
-    }
-    if (!fs.existsSync(rollbackStackAssetDirectory)) {
-      throw new Error('The asset for rollback stack is does not exists');
-    }
-
-    if (!fs.existsSync(path.join(rollbackStackAssetDirectory, cfnTemplatePath))) {
-      throw new Error('The  rollback stack template is does not exists');
-    }
-
-    this.rollbackStackAssetsFolder = rollbackStackAssetDirectory;
-    this.rollbackStackTemplatePath = cfnTemplatePath;
+  public addFinalStackToRollbackTo = (step: DeploymentStep): void => {
+    assert(step.parameters);
+    assert(step.stackName);
+    assert(step.stackTemplatePath);
+    const stackTemplatePath = this.normalizeDeploymentPath(step.stackTemplatePath);
+    this.rollbackStep = { ...step, stackTemplatePath };
   };
 
   public setPrinter = (printer: IStackProgressPrinter) => {
@@ -278,23 +268,7 @@ export class DeploymentManager {
     return bucketPath;
   };
 
-  private uploadFiles = async (folder: string, prefix: string): Promise<void> => {
-    const keyPrefix = this.getBucketKey(this.deploymentBucket, prefix);
-    const files = glob.sync('**', {
-      absolute: false,
-      cwd: folder,
-    });
-    await Promise.all(
-      files.map(f => {
-        this.s3Client
-          .upload({
-            Bucket: this.deploymentBucket,
-            Key: path.join(keyPrefix, f),
-            Body: fs.createReadStream(path.join(folder, f)),
-          })
-          .promise();
-      }),
-    );
-    return;
-  };
+  private normalizeDeploymentPath(deploymentPath: string) {
+    return deploymentPath.startsWith('https://') ? deploymentPath : `https://s3.amazonaws.com/${this.deploymentBucket}/${deploymentPath}`;
+  }
 }

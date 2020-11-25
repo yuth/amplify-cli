@@ -29,8 +29,8 @@ export const getStackParameters = async (cfnClient: CloudFormation, StackId: str
   }, {});
 };
 
-export const getTableARNS = async (cfnClient: CloudFormation, tables: string[], StackId: string): Promise<Map<string, string>> => {
-  const arnMap: Map<string, string> = new Map();
+export const getTableNames = async (cfnClient: CloudFormation, tables: string[], StackId: string): Promise<Map<string, string>> => {
+  const tableNameMap: Map<string, string> = new Map();
   const apiResources = await cfnClient
     .describeStackResources({
       StackName: StackId,
@@ -43,17 +43,18 @@ export const getTableARNS = async (cfnClient: CloudFormation, tables: string[], 
           StackName: resource.PhysicalResourceId,
         })
         .promise();
-      const tableARN = tableStack.Stacks[0].Outputs.reduce((acc, out) => {
+      const tableName = tableStack.Stacks[0].Outputs.reduce((acc, out) => {
         if (out.OutputKey === `GetAtt${resource.LogicalResourceId}TableName`) {
           acc.push(out.OutputValue);
         }
         return acc;
       }, []);
-      arnMap.set(resource.LogicalResourceId, tableARN[0]);
+      tableNameMap.set(resource.LogicalResourceId, tableName[0]);
     }
   }
-  return arnMap;
+  return tableNameMap;
 };
+
 export class TemplateState {
   private changes: { [key: string]: string[] } = {};
 

@@ -132,17 +132,8 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
         },
         rollback: {
           id: 'rollback',
-          // initial: 'uploadRollbackStack',
           initial: 'waitForTablesToBeReady',
           states: {
-            // uploadRollbackStack: {
-            //   invoke: {
-            //     id: 'upload-rollback-stack',
-            //     src: (context: DeployMachineContext) => helperFns.uploadFiles(context.currentCloudFolder),
-            //     onDone: { target: 'wait-for-table-to-be-ready' },
-            //     onError: { target: '#failed' },
-            //   },
-            // },
             triggerRollback: {
               entry: assign((context: DeployMachineContext) => {
                 return {
