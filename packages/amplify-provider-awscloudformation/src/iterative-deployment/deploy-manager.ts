@@ -2,7 +2,7 @@ import * as aws from 'aws-sdk';
 import assert from 'assert';
 import * as path from 'path';
 import throttle from 'lodash.throttle';
-import { createDeploymentMachine, DeploymentStep, StackParameter, StateMachineHelperFunctions } from './state-machine';
+import { createDeploymentMachine, DeploymentMachineOp, DeploymentMachineStep, StateMachineHelperFunctions } from './state-machine';
 import { interpret } from 'xstate';
 import { IStackProgressPrinter, StackEventMonitor } from './stack-event-monitor';
 import { StackProgressPrinter } from './stack-progress-printer';
@@ -10,13 +10,20 @@ import ora from 'ora';
 import configurationManager from '../configuration-manager';
 import { $TSContext } from 'amplify-cli-core';
 import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
-import * as glob from 'glob';
-import * as fs from 'fs-extra';
 
 interface DeploymentManagerOptions {
   throttleDelay?: number;
   eventPollingDelay?: number;
 }
+
+export type DeploymentOp = Omit<DeploymentMachineOp, 'region' | 'stackTemplatePath' | 'stackTemplateUrl'> & {
+  stackTemplatePathOrUrl: string;
+};
+
+export type DeploymentStep = {
+  deployment: DeploymentOp;
+  rollback: DeploymentOp;
+};
 export class DeploymentManager {
   /**
    * Helper method to get an instance of the Deployment manager with the right credentials
@@ -38,12 +45,10 @@ export class DeploymentManager {
     }
   };
 
-  private deployment: DeploymentStep[] = [];
+  private deployment: DeploymentMachineStep[] = [];
   private options: Required<DeploymentManagerOptions>;
   private cfnClient: aws.CloudFormation;
   private s3Client: aws.S3;
-
-  private rollbackStep?: DeploymentStep;
   private constructor(
     creds: ConfigurationOptions,
     private region: string,
@@ -64,7 +69,12 @@ export class DeploymentManager {
 
   public deploy = async (): Promise<void> => {
     // sanity check before deployment
-    await Promise.all(this.deployment.map(d => this.ensureTemplateExists(d.stackTemplatePath)));
+    const deploymentTemplates = this.deployment.reduce<Set<string>>((acc, step) => {
+      acc.add(step.deployment.stackTemplatePath);
+      acc.add(step.rollback.stackTemplatePath);
+      return acc;
+    }, new Set());
+    await Promise.all(Array.from(deploymentTemplates.values()).map(path => this.ensureTemplateExists(path)));
 
     const fns: StateMachineHelperFunctions = {
       deployFn: this.doDeploy,
@@ -76,10 +86,10 @@ export class DeploymentManager {
     };
     const machine = createDeploymentMachine(
       {
-        currentIndex: this.rollbackStep ? 0 : -1,
+        currentIndex: -1,
         deploymentBucket: this.deploymentBucket,
         region: this.region,
-        stacks: this.rollbackStep ? [this.rollbackStep!, ...this.deployment] : this.deployment,
+        stacks: this.deployment,
       },
       fns,
     );
@@ -118,16 +128,26 @@ export class DeploymentManager {
   };
 
   public addStep = (deploymentStep: DeploymentStep): void => {
-    const stackTemplatePath = this.normalizeDeploymentPath(deploymentStep.stackTemplatePath);
-    this.deployment.push({ ...deploymentStep, stackTemplatePath });
-  };
+    const deploymentStackTemplateUrl = this.getHttpUrl(deploymentStep.deployment.stackTemplatePathOrUrl);
+    const deploymentStackTemplatePath = this.getBucketKey(this.deploymentBucket, deploymentStep.deployment.stackTemplatePathOrUrl);
 
-  public addFinalStackToRollbackTo = (step: DeploymentStep): void => {
-    assert(step.parameters);
-    assert(step.stackName);
-    assert(step.stackTemplatePath);
-    const stackTemplatePath = this.normalizeDeploymentPath(step.stackTemplatePath);
-    this.rollbackStep = { ...step, stackTemplatePath };
+    const rollbackStackTemplateUrl = this.getHttpUrl(deploymentStep.rollback.stackTemplatePathOrUrl);
+    const rollbackStackTemplatePath = this.getBucketKey(this.deploymentBucket, deploymentStep.rollback.stackTemplatePathOrUrl);
+
+    this.deployment.push({
+      deployment: {
+        ...deploymentStep.deployment,
+        stackTemplatePath: deploymentStackTemplatePath,
+        stackTemplateUrl: deploymentStackTemplateUrl,
+        region: this.region,
+      },
+      rollback: {
+        ...deploymentStep.rollback,
+        stackTemplatePath: rollbackStackTemplatePath,
+        stackTemplateUrl: rollbackStackTemplateUrl,
+        region: this.region,
+      },
+    });
   };
 
   public setPrinter = (printer: IStackProgressPrinter) => {
@@ -173,7 +193,7 @@ export class DeploymentManager {
     }
   };
 
-  private waitForIndices = async (stackParams: StackParameter) => {
+  private waitForIndices = async (stackParams: DeploymentMachineOp) => {
     if (stackParams.tableNames.length) console.log('\nWaiting for DynamoDB table indices to be ready');
     const throttledGetTableStatus = throttle(this.getTableStatus, this.options.throttleDelay);
 
@@ -197,7 +217,7 @@ export class DeploymentManager {
     }
   };
 
-  private stackPollFn = (deploymentStep: DeploymentStep): (() => void) => {
+  private stackPollFn = (deploymentStep: DeploymentMachineOp): (() => void) => {
     let monitor: StackEventMonitor;
     assert(deploymentStep.stackName, 'stack name should be passed to stackPollFn');
     if (this.printer) {
@@ -242,7 +262,7 @@ export class DeploymentManager {
     }
   };
 
-  private waitForDeployment = async (stackParams: StackParameter): Promise<void> => {
+  private waitForDeployment = async (stackParams: DeploymentMachineOp): Promise<void> => {
     const cfnClient = this.cfnClient;
     assert(stackParams.stackName, 'stackName should be passed to waitForDeployment');
     try {
@@ -257,18 +277,18 @@ export class DeploymentManager {
     }
   };
 
-  private rollBackStack = async (currentStack: Readonly<StackParameter>): Promise<void> => {
+  private rollBackStack = async (currentStack: Readonly<DeploymentMachineOp>): Promise<void> => {
     await this.doDeploy(currentStack);
   };
 
-  private getBucketKey = (bucketName: string, bucketPath: string): string => {
-    if (bucketPath.startsWith('https://') && bucketPath.includes(bucketName)) {
-      return bucketPath.substring(bucketPath.indexOf(bucketName) + bucketName.length + 1);
+  private getBucketKey = (bucketName: string, keyOrUrl: string): string => {
+    if (keyOrUrl.startsWith('https://') && keyOrUrl.includes(bucketName)) {
+      return keyOrUrl.substring(keyOrUrl.indexOf(bucketName) + bucketName.length + 1);
     }
-    return bucketPath;
+    return keyOrUrl;
   };
 
-  private normalizeDeploymentPath(deploymentPath: string) {
-    return deploymentPath.startsWith('https://') ? deploymentPath : `https://s3.amazonaws.com/${this.deploymentBucket}/${deploymentPath}`;
+  private getHttpUrl(keyOrUrl: string) {
+    return keyOrUrl.startsWith('https://') ? keyOrUrl : `https://s3.amazonaws.com/${this.deploymentBucket}/${keyOrUrl}`;
   }
 }

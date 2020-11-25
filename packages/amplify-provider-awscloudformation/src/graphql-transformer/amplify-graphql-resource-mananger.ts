@@ -14,9 +14,9 @@ import { $TSContext, JSONUtilities } from 'amplify-cli-core';
 import { CloudFormation } from 'aws-sdk';
 import { getStackParameters, GSIStatus, GSIRecord, TemplateState, getTableNames } from '../utils/amplify-resource-state-utils';
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
-import { DeploymentStep } from '../iterative-deployment/state-machine';
 import { hashDirectory, ROOT_APPSYNC_S3_KEY } from '../upload-appsync-files';
 import { DiffChanges, getGQLDiff, DiffableProject } from './utils';
+import { DeploymentStep, DeploymentOp } from '../iterative-deployment/deploy-manager';
 
 export type GQLResourceManagerProps = {
   cfnClient: CloudFormation;
@@ -108,17 +108,18 @@ export class GraphQLResourceManager {
     const gqlSteps = new Array<DeploymentStep>();
 
     const cloudBuildDir = path.join(this.cloudBackendApiProjectRoot, 'build');
-    const buildDir = path.join(this.backendApiProjectRoot, 'build');
 
-    const stateFileDir = path.join(buildDir, 'states');
+    const stateFileDir = this.getStateFilesDirectory();
 
     const tableNameMap = await getTableNames(this.cfnClient, this.templateState.getKeys(), this.resourceMeta.stackId);
 
     const parameters = await getStackParameters(this.cfnClient, this.resourceMeta.stackId);
 
     const buildHash = await hashDirectory(this.backendApiProjectRoot);
+
     // copy the last deployment state as current state
     let previousStepPath = cloudBuildDir;
+    let rollbackStep: DeploymentOp = await this.getCurrentlyDeployedStackStep();
 
     while (!this.templateState.isEmpty()) {
       const stepNumber = count.toString().padStart(2, '0');
@@ -136,23 +137,26 @@ export class GraphQLResourceManager {
         JSONUtilities.writeJson(filepath, this.templateState.pop(tableName));
       });
 
-      gqlSteps.push({
-        stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
+      const deploymentStep: DeploymentOp = {
+        stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
         parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
         stackName: this.resourceMeta.stackId,
         tableNames: tableArns,
+      };
+      gqlSteps.push({
+        deployment: deploymentStep,
+        rollback: rollbackStep,
       });
+      rollbackStep = deploymentStep;
       count++;
     }
 
     return gqlSteps;
   };
 
-  public getCurrentlyDeployedStackStep = async (): Promise<DeploymentStep> => {
+  public getCurrentlyDeployedStackStep = async (): Promise<DeploymentOp> => {
     const cloudBuildDir = path.join(this.cloudBackendApiProjectRoot, 'build');
-    const buildDir = path.join(this.backendApiProjectRoot, 'build');
-
-    const stateFileDir = path.join(buildDir, 'states');
+    const stateFileDir = this.getStateFilesDirectory();
 
     const parameters = await getStackParameters(this.cfnClient, this.resourceMeta.stackId);
     const buildHash = await hashDirectory(this.backendApiProjectRoot);
@@ -163,13 +167,17 @@ export class GraphQLResourceManager {
     fs.copySync(cloudBuildDir, stepPath);
 
     return {
-      stackTemplatePath: this.resourceMeta.providerMetadata.s3TemplateURL,
+      stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
       parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
       stackName: this.resourceMeta.stackId,
       tableNames: [],
     };
   };
 
+  public getStateFilesDirectory = (): string => {
+    const buildDir = path.join(this.backendApiProjectRoot, 'build');
+    return path.join(buildDir, 'states');
+  };
   private gsiManagement = (diffs: DiffChanges<DiffableProject>, currentState: DiffableProject, nextState: DiffableProject) => {
     const gsiChanges = _.filter(diffs, diff => {
       return _.includes(diff.path, 'GlobalSecondaryIndexes');

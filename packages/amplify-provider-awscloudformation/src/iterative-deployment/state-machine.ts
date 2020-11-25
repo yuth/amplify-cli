@@ -2,23 +2,25 @@ import { Machine, assign, EventObject } from 'xstate';
 import { send } from 'xstate/lib/actions';
 import { extractStackInfoFromContext, hasMoreDeployment, hasMoreRollback, stackPollerActivity } from './helpers';
 
-export type DeploymentStep = {
+export type DeploymentMachineOp = {
   stackTemplatePath: string;
   parameters: Record<string, string>;
   tableNames: string[];
   stackName: string;
   capabilities?: string[];
-};
-
-export type StackParameter = DeploymentStep & {
   stackTemplateUrl: string;
   region: string;
 };
+export type DeploymentMachineStep = {
+  deployment: DeploymentMachineOp;
+  rollback: DeploymentMachineOp;
+};
+
 export type DeployMachineContext = {
   // currentCloudFolder: string;
   deploymentBucket: string;
   region: string;
-  stacks: DeploymentStep[];
+  stacks: DeploymentMachineStep[];
   currentIndex: number;
 };
 
@@ -55,13 +57,12 @@ interface DeployMachineEvent extends EventObject {
 }
 
 export type StateMachineHelperFunctions = {
-  deploymentWaitFn: (stack: Readonly<StackParameter>) => Promise<void>;
-  deployFn: (stack: Readonly<StackParameter>) => Promise<void>;
-  rollbackFn: (stack: Readonly<StackParameter>) => Promise<void>;
-  rollbackWaitFn: (stack: Readonly<StackParameter>) => Promise<void>;
-  tableReadyWaitFn: (stack: Readonly<StackParameter>) => Promise<void>;
-  stackEventPollFn: (stack: Readonly<StackParameter>) => () => void;
-  // uploadFiles: (currentCloudPath: string) => Promise<void>;
+  deploymentWaitFn: (stack: Readonly<DeploymentMachineOp>) => Promise<void>;
+  deployFn: (stack: Readonly<DeploymentMachineOp>) => Promise<void>;
+  rollbackFn: (stack: Readonly<DeploymentMachineOp>) => Promise<void>;
+  rollbackWaitFn: (stack: Readonly<DeploymentMachineOp>) => Promise<void>;
+  tableReadyWaitFn: (stack: Readonly<DeploymentMachineOp>) => Promise<void>;
+  stackEventPollFn: (stack: Readonly<DeploymentMachineOp>) => () => void;
 };
 export function createDeploymentMachine(initialContext: DeployMachineContext, helperFns: StateMachineHelperFunctions) {
   const machine = Machine<DeployMachineContext, DeployMachineSchema, DeployMachineEvent>(
@@ -96,7 +97,7 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
             deploying: {
               invoke: {
                 id: 'deploy-stack',
-                src: extractStackInfoFromContext(helperFns.deployFn),
+                src: extractStackInfoFromContext(helperFns.deployFn, 'deploying'),
                 onDone: {
                   target: 'waitingForDeployment',
                 },
@@ -108,7 +109,7 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
             waitingForDeployment: {
               invoke: {
                 id: 'wait-for-deploy-stack',
-                src: extractStackInfoFromContext(helperFns.deploymentWaitFn),
+                src: extractStackInfoFromContext(helperFns.deploymentWaitFn, 'deploying'),
                 onDone: {
                   target: 'waitForTablesToBeReady',
                 },
@@ -116,12 +117,12 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
                   target: '#rollback',
                 },
               },
-              activities: ['poll'],
+              activities: ['deployPoll'],
             },
             waitForTablesToBeReady: {
               invoke: {
                 id: 'wait-for-table-to-be-ready',
-                src: extractStackInfoFromContext(helperFns.tableReadyWaitFn),
+                src: extractStackInfoFromContext(helperFns.tableReadyWaitFn, 'deploying'),
                 onDone: {
                   target: 'triggerDeploy',
                   actions: send('NEXT'),
@@ -148,7 +149,7 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
             rollingBack: {
               invoke: {
                 id: 'rollback-stack',
-                src: extractStackInfoFromContext(helperFns.rollbackFn),
+                src: extractStackInfoFromContext(helperFns.rollbackFn, 'rollingback'),
                 onDone: {
                   target: 'waitingForRollback',
                 },
@@ -160,7 +161,7 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
             waitingForRollback: {
               invoke: {
                 id: 'wait-for-deployment',
-                src: extractStackInfoFromContext(helperFns.rollbackWaitFn),
+                src: extractStackInfoFromContext(helperFns.rollbackWaitFn, 'rollingback'),
                 onDone: {
                   target: 'waitForTablesToBeReady',
                 },
@@ -168,12 +169,12 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
                   target: '#failed',
                 },
               },
-              activities: ['poll'],
+              activities: ['rollbackPoll'],
             },
             waitForTablesToBeReady: {
               invoke: {
                 id: 'wait-for-table-to-be-ready',
-                src: extractStackInfoFromContext(helperFns.tableReadyWaitFn),
+                src: extractStackInfoFromContext(helperFns.tableReadyWaitFn, 'rollingback'),
                 onDone: {
                   target: 'triggerRollback',
                   actions: send('NEXT'),
@@ -201,7 +202,8 @@ export function createDeploymentMachine(initialContext: DeployMachineContext, he
         hasMoreRollback,
       },
       activities: {
-        poll: stackPollerActivity(helperFns.stackEventPollFn),
+        deployPoll: stackPollerActivity(helperFns.stackEventPollFn, 'deploying'),
+        rollbackPoll: stackPollerActivity(helperFns.stackEventPollFn, 'rollingback'),
       },
     },
   );

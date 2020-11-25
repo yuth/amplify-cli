@@ -24,7 +24,7 @@ import { stateManager } from 'amplify-cli-core';
 import { DeploymentManager } from './iterative-deployment';
 import { Template } from 'cloudform-types';
 import { getGqlUpdatedResource } from './graphql-transformer/utils';
-import { DeploymentStep } from './iterative-deployment/state-machine';
+import { DeploymentStep, DeploymentOp } from './iterative-deployment/deploy-manager';
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -65,15 +65,12 @@ export async function run(context, resourceDefinition) {
 
     // Check if iterative updates are enabled or not and generate the required deployment steps if needed.
     let deploymentSteps: DeploymentStep[] = [];
-    let rollbackStep: DeploymentStep;
 
     if (FeatureFlags.getBoolean('graphQLTransformer.enableIterativeGSIUpdates')) {
       const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
-
       if (gqlResource) {
         const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
         deploymentSteps = await gqlManager.run();
-        rollbackStep = await gqlManager.getCurrentlyDeployedStackStep();
       }
     }
 
@@ -93,10 +90,6 @@ export async function run(context, resourceDefinition) {
         const deploymentManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName, spinner);
 
         deploymentSteps.forEach(step => deploymentManager.addStep(step));
-        if (rollbackStep) {
-          deploymentManager.addFinalStackToRollbackTo(rollbackStep);
-        }
-
         // generate nested stack
         const backEndDir = context.amplify.pathManager.getBackendDirPath();
         const nestedStackFilepath = path.normalize(path.join(backEndDir, providerName, nestedStackFileName));
@@ -113,8 +106,8 @@ export async function run(context, resourceDefinition) {
 
         await s3Client.uploadFile(s3Params, false);
 
-        const finalStep = {
-          stackTemplatePath: nestedStackFileName,
+        const finalStep: DeploymentOp = {
+          stackTemplatePathOrUrl: nestedStackFileName,
           tableNames: [],
           stackName: meta.StackName,
           parameters: {
@@ -125,7 +118,10 @@ export async function run(context, resourceDefinition) {
           capabilities: ['CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
         };
 
-        deploymentManager.addStep(finalStep);
+        deploymentManager.addStep({
+          deployment: finalStep,
+          rollback: deploymentSteps[deploymentSteps.length - 1].deployment,
+        });
 
         await deploymentManager.deploy();
       } else {
