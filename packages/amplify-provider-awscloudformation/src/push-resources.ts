@@ -3,7 +3,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { validateFile } from 'cfn-lint';
 import glob from 'glob';
-import { pathManager, PathConstants, FeatureFlags, JSONUtilities, $TSContext, $TSObject, $TSMeta } from 'amplify-cli-core';
+import { pathManager, PathConstants, stateManager, FeatureFlags, JSONUtilities, $TSContext, $TSObject, $TSMeta } from 'amplify-cli-core';
 import ora from 'ora';
 import { S3 } from './aws-utils/aws-s3';
 import Cloudformation from './aws-utils/aws-cfn';
@@ -20,7 +20,6 @@ import { loadResourceParameters } from './resourceParams';
 import { uploadAuthTriggerFiles } from './upload-auth-trigger-files';
 import archiver from './utils/archiver';
 import amplifyServiceManager from './amplify-service-manager';
-import { stateManager } from 'amplify-cli-core';
 import { DeploymentManager } from './iterative-deployment';
 import { Template } from 'cloudform-types';
 import { getGqlUpdatedResource } from './graphql-transformer/utils';
@@ -125,12 +124,9 @@ export async function run(context, resourceDefinition) {
 
         await deploymentManager.deploy();
       } else {
-        await updateCloudFormationNestedStack(
-          context,
-          formNestedStack(context, projectDetails),
-          resourcesToBeCreated,
-          resourcesToBeUpdated,
-        );
+        const nestedStack = formNestedStack(context, projectDetails);
+
+        await updateCloudFormationNestedStack(context, nestedStack, resourcesToBeCreated, resourcesToBeUpdated);
       }
     }
 
@@ -621,6 +617,12 @@ function formNestedStack(
 ) {
   const initTemplateFilePath = path.join(__dirname, '..', 'resources', rootStackFileName);
   const nestedStack = JSONUtilities.readJson<Template>(initTemplateFilePath);
+
+  // Track Amplify Console generated stacks
+  if (!!process.env.CLI_DEV_INTERNAL_DISABLE_AMPLIFY_APP_DELETION) {
+    nestedStack.Description = 'Root Stack for AWS Amplify Console';
+  }
+
   const { amplifyMeta } = projectDetails;
 
   let authResourceName: string;
