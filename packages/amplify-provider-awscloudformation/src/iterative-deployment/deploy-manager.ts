@@ -22,13 +22,14 @@ export class DeploymentManager {
   public static createInstance = async (
     context: $TSContext,
     deploymentBucket: string,
+    spinner: ora.Ora,
     printer?: IStackProgressPrinter,
     options?: DeploymentManagerOptions,
   ) => {
     try {
       const cred = await configurationManager.loadConfiguration(context);
       assert(cred.region);
-      return new DeploymentManager(cred, cred.region, deploymentBucket, printer, options);
+      return new DeploymentManager(cred, cred.region, deploymentBucket, spinner, printer, options);
     } catch (e) {
       throw new Error('Could not load the credentials');
     }
@@ -42,6 +43,7 @@ export class DeploymentManager {
     creds: ConfigurationOptions,
     private region: string,
     private deploymentBucket: string,
+    private spinner: ora.Ora,
     // private deployedTemplatePath: string,
     private printer: IStackProgressPrinter = new StackProgressPrinter(),
     options: DeploymentManagerOptions = {},
@@ -92,19 +94,18 @@ export class DeploymentManager {
 
     let maxDeployed = 0;
     return new Promise((resolve, reject) => {
-      const spinner = ora('Deploying');
       const service = interpret(machine)
         .onTransition(state => {
           if (state.changed) {
             maxDeployed = Math.max(maxDeployed, state.context.currentIndex + 1);
             if (state.matches('idle')) {
-              spinner.text = `Starting deployment`;
+              this.spinner.text = `Starting deployment`;
             } else if (state.matches('deploy')) {
-              spinner.text = `Deploying stack (${maxDeployed} of ${state.context.stacks.length})`;
+              this.spinner.text = `Deploying stack (${maxDeployed} of ${state.context.stacks.length})`;
             } else if (state.matches('rollback')) {
-              spinner.text = `Rolling back (${maxDeployed - state.context.currentIndex} of ${maxDeployed})`;
+              this.spinner.text = `Rolling back (${maxDeployed - state.context.currentIndex} of ${maxDeployed})`;
             } else if (state.matches('deployed')) {
-              spinner.succeed(`Deployed`);
+              this.spinner.succeed(`Deployed`);
             }
           }
 
@@ -113,14 +114,13 @@ export class DeploymentManager {
               return resolve();
             case 'rolledBack':
             case 'failed':
-              spinner.fail(`Failed to deploy`);
               return reject(new Error('Deployment failed'));
+              this.spinner.fail(`Failed to deploy`);
             default:
             // intentionally left blank as we don't care about intermediate states
           }
         })
         .start();
-      spinner.start();
       service.send({ type: 'DEPLOY' });
     });
   };

@@ -246,7 +246,7 @@ export const cantBatchMutateGSIAtUpdateTimeRule = (diff: Diff, currentBuild: Dif
  * @param currentBuild The last deployed build.
  * @param nextBuild The next build.
  */
-const cantMutateMultipleGSIAtUpdateTimeRule = (diffs: Diff[], currentBuild: DiffableProject, nextBuild: DiffableProject): void => {
+export const cantMutateMultipleGSIAtUpdateTimeRule = (diffs: Diff[], currentBuild: DiffableProject, nextBuild: DiffableProject): void => {
   const throwError = (stackName: string, tableName: string): void => {
     throw new InvalidGSIMigrationError(
       `Attempting to mutate more than 1 global secondary index at the same time on the ${tableName} table in the ${stackName} stack. `,
