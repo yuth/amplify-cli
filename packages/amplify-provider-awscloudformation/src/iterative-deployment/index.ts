@@ -1,1 +1,1 @@
-export { DeploymentManager } from './deploy-manager';
+export { DeploymentManager } from './deployment-manager';

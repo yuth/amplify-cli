@@ -1,7 +1,7 @@
 import { CloudFormation } from 'aws-sdk';
 import { mocked } from 'ts-jest/utils';
 import { GraphQLResourceManager } from '../../graphql-transformer/';
-import { $ResourceMeta } from '../../graphql-transformer/amplify-graphql-resource-mananger';
+import { $ResourceMeta } from '../../graphql-transformer/amplify-graphql-resource-manager';
 import { DiffableProject, getGQLDiff } from '../../graphql-transformer/utils';
 import { diff as getDiffs } from 'deep-diff';
 

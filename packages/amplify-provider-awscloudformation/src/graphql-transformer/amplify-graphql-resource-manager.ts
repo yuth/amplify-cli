@@ -16,7 +16,7 @@ import { getStackParameters, GSIStatus, GSIRecord, TemplateState, getTableNames 
 import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
 import { hashDirectory, ROOT_APPSYNC_S3_KEY } from '../upload-appsync-files';
 import { DiffChanges, getGQLDiff, DiffableProject } from './utils';
-import { DeploymentStep, DeploymentOp } from '../iterative-deployment/deploy-manager';
+import { DeploymentStep, DeploymentOp } from '../iterative-deployment/deployment-manager';
 
 export type GQLResourceManagerProps = {
   cfnClient: CloudFormation;
@@ -180,8 +180,12 @@ export class GraphQLResourceManager {
   };
   private gsiManagement = (diffs: DiffChanges<DiffableProject>, currentState: DiffableProject, nextState: DiffableProject) => {
     const gsiChanges = _.filter(diffs, diff => {
-      return _.includes(diff.path, 'GlobalSecondaryIndexes');
+      const leafPath = diff.path && diff.path.length && diff.path[diff.path.length - 1];
+      return (
+        leafPath && (leafPath === 'GlobalSecondaryIndexes' || (diff.path.includes('GlobalSecondaryIndexes') && leafPath === 'IndexName'))
+      );
     });
+
     for (const gsiChange of gsiChanges) {
       const tableName = gsiChange.path[3];
       const stackName = gsiChange.path[1].split('.')[0];
@@ -286,7 +290,7 @@ export class GraphQLResourceManager {
     const addedGSI = (_.filter(gsis, {
       IndexName: indexName,
     }) as GlobalSecondaryIndex[])[0];
-    const attrDefs = ((addedGSI.KeySchema as any) as AttributeDefinition[]).reduce((acc, attr) => {
+    const attrDefs = ((addedGSI?.KeySchema ?? ([] as any)) as AttributeDefinition[]).reduce((acc, attr) => {
       acc.push(attr.AttributeName);
       return acc;
     }, []);

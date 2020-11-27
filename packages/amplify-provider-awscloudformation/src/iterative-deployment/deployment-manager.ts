@@ -10,6 +10,7 @@ import ora from 'ora';
 import configurationManager from '../configuration-manager';
 import { $TSContext } from 'amplify-cli-core';
 import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
+import { getBucketKey, getHttpUrl } from './helpers';
 
 interface DeploymentManagerOptions {
   throttleDelay?: number;
@@ -128,11 +129,11 @@ export class DeploymentManager {
   };
 
   public addStep = (deploymentStep: DeploymentStep): void => {
-    const deploymentStackTemplateUrl = this.getHttpUrl(deploymentStep.deployment.stackTemplatePathOrUrl);
-    const deploymentStackTemplatePath = this.getBucketKey(this.deploymentBucket, deploymentStep.deployment.stackTemplatePathOrUrl);
+    const deploymentStackTemplateUrl = getHttpUrl(deploymentStep.deployment.stackTemplatePathOrUrl, this.deploymentBucket);
+    const deploymentStackTemplatePath = getBucketKey(deploymentStep.deployment.stackTemplatePathOrUrl, this.deploymentBucket);
 
-    const rollbackStackTemplateUrl = this.getHttpUrl(deploymentStep.rollback.stackTemplatePathOrUrl);
-    const rollbackStackTemplatePath = this.getBucketKey(this.deploymentBucket, deploymentStep.rollback.stackTemplatePathOrUrl);
+    const rollbackStackTemplateUrl = getHttpUrl(deploymentStep.rollback.stackTemplatePathOrUrl, this.deploymentBucket);
+    const rollbackStackTemplatePath = getBucketKey(deploymentStep.rollback.stackTemplatePathOrUrl, this.deploymentBucket);
 
     this.deployment.push({
       deployment: {
@@ -170,7 +171,7 @@ export class DeploymentManager {
   private ensureTemplateExists = async (templatePath: string): Promise<boolean> => {
     let key = templatePath;
     try {
-      const bucketKey = this.getBucketKey(this.deploymentBucket, templatePath);
+      const bucketKey = getBucketKey(templatePath, this.deploymentBucket);
       await this.s3Client.headObject({ Bucket: this.deploymentBucket, Key: bucketKey }).promise();
       return true;
     } catch (e) {
@@ -280,15 +281,4 @@ export class DeploymentManager {
   private rollBackStack = async (currentStack: Readonly<DeploymentMachineOp>): Promise<void> => {
     await this.doDeploy(currentStack);
   };
-
-  private getBucketKey = (bucketName: string, keyOrUrl: string): string => {
-    if (keyOrUrl.startsWith('https://') && keyOrUrl.includes(bucketName)) {
-      return keyOrUrl.substring(keyOrUrl.indexOf(bucketName) + bucketName.length + 1);
-    }
-    return keyOrUrl;
-  };
-
-  private getHttpUrl(keyOrUrl: string) {
-    return keyOrUrl.startsWith('https://') ? keyOrUrl : `https://s3.amazonaws.com/${this.deploymentBucket}/${keyOrUrl}`;
-  }
 }
