@@ -10,6 +10,7 @@ export type DeploymentMachineOp = {
   capabilities?: string[];
   stackTemplateUrl: string;
   region: string;
+  clientRequestToken?: string;
 };
 export type DeploymentMachineStep = {
   deployment: DeploymentMachineOp;

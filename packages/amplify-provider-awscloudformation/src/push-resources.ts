@@ -23,7 +23,7 @@ import amplifyServiceManager from './amplify-service-manager';
 import { DeploymentManager } from './iterative-deployment';
 import { Template } from 'cloudform-types';
 import { getGqlUpdatedResource } from './graphql-transformer/utils';
-import { DeploymentStep, DeploymentOp } from './iterative-deployment/deploy-manager';
+import { DeploymentStep, DeploymentOp } from './iterative-deployment/deployment-manager';
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -65,11 +65,14 @@ export async function run(context, resourceDefinition) {
     // Check if iterative updates are enabled or not and generate the required deployment steps if needed.
     let deploymentSteps: DeploymentStep[] = [];
 
+    // location where the intermidiate deployment steps are stored
+    let stateFolder: string;
     if (FeatureFlags.getBoolean('graphQLTransformer.enableIterativeGSIUpdates')) {
       const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
       if (gqlResource) {
         const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
         deploymentSteps = await gqlManager.run();
+        stateFolder = gqlManager.getStateFilesDirectory();
       }
     }
 
@@ -77,10 +80,6 @@ export async function run(context, resourceDefinition) {
     await prePushAuthTransform(context, resources);
     await prePushGraphQLCodegen(context, resourcesToBeCreated, resourcesToBeUpdated);
     await updateS3Templates(context, resources, projectDetails.amplifyMeta);
-
-    spinner.start();
-
-    projectDetails = context.amplify.getProjectDetails();
 
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
@@ -90,21 +89,11 @@ export async function run(context, resourceDefinition) {
 
         deploymentSteps.forEach(step => deploymentManager.addStep(step));
         // generate nested stack
-        const backEndDir = context.amplify.pathManager.getBackendDirPath();
+        const backEndDir = pathManager.getBackendDirPath();
         const nestedStackFilepath = path.normalize(path.join(backEndDir, providerName, nestedStackFileName));
-        const nestedStack = formNestedStack(context, projectDetails);
+        await generateAndUploadRootStack(context, nestedStackFilepath, nestedStackFileName);
 
-        JSONUtilities.writeJson(nestedStackFilepath, nestedStack);
-
-        // upload the nested stack
-        const s3Client = await S3.getInstance(context);
-        const s3Params = {
-          Body: fs.createReadStream(nestedStackFilepath),
-          Key: nestedStackFileName,
-        };
-
-        await s3Client.uploadFile(s3Params, false);
-
+        // Use state manager to do the final deployment
         const finalStep: DeploymentOp = {
           stackTemplatePathOrUrl: nestedStackFileName,
           tableNames: [],
@@ -121,9 +110,15 @@ export async function run(context, resourceDefinition) {
           deployment: finalStep,
           rollback: deploymentSteps[deploymentSteps.length - 1].deployment,
         });
-
+        spinner.start();
         await deploymentManager.deploy();
+        // delete the intermidiate states
+        if (stateFolder && fs.existsSync(stateFolder)) {
+          fs.removeSync(stateFolder);
+        }
       } else {
+        spinner.start();
+
         const nestedStack = formNestedStack(context, projectDetails);
 
         await updateCloudFormationNestedStack(context, nestedStack, resourcesToBeCreated, resourcesToBeUpdated);
@@ -788,4 +783,20 @@ function updateIdPRolesInNestedStack(context, nestedStack, authResourceName) {
   idpUpdateRoleCfn.UpdateRolesWithIDPFunctionOutputs.Properties.idpId['Fn::GetAtt'].unshift(authLogicalResourceName);
 
   Object.assign(nestedStack.Resources, idpUpdateRoleCfn);
+}
+
+export async function generateAndUploadRootStack(context: $TSContext, destinationPath: string, destinationS3Key: string) {
+  const projectDetails = context.amplify.getProjectDetails();
+  const nestedStack = formNestedStack(context, projectDetails);
+
+  JSONUtilities.writeJson(destinationPath, nestedStack);
+
+  // upload the nested stack
+  const s3Client = await S3.getInstance(context);
+  const s3Params = {
+    Body: Buffer.from(JSONUtilities.stringify(nestedStack)),
+    Key: destinationS3Key,
+  };
+
+  await s3Client.uploadFile(s3Params, false);
 }

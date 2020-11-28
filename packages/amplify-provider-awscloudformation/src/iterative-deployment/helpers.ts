@@ -36,3 +36,14 @@ export const extractStackInfoFromContext = (
     return Promise.resolve();
   };
 };
+
+export const getBucketKey = (keyOrUrl: string, bucketName: string): string => {
+  if (keyOrUrl.startsWith('https://') && keyOrUrl.includes(bucketName)) {
+    return keyOrUrl.substring(keyOrUrl.indexOf(bucketName) + bucketName.length + 1);
+  }
+  return keyOrUrl;
+};
+
+export const getHttpUrl = (keyOrUrl: string, bucketName: string): string => {
+  return keyOrUrl.startsWith('https://') ? keyOrUrl : `https://s3.amazonaws.com/${bucketName}/${keyOrUrl}`;
+};
