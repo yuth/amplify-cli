@@ -8,15 +8,6 @@ export interface GSIRecord {
   gsi: GlobalSecondaryIndex;
 }
 
-export enum GSIStatus {
-  add = 'add',
-  edit = 'edit',
-  delete = 'delete',
-  batchAdd = 'batchAdd',
-  batchDelete = 'batchDelete',
-  none = 'none',
-}
-
 export const getStackParameters = async (cfnClient: CloudFormation, StackId: string): Promise<any> => {
   const apiStackInfo = await cfnClient
     .describeStacks({
