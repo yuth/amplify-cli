@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.24.4](https://github.com/aws-amplify/amplify-cli/compare/amplify-category-auth@2.24.3...amplify-category-auth@2.24.4) (2020-11-28)
+
+
+### Reverts
+
+* "fix: remove app client secret as best practice" ([#5992](https://github.com/aws-amplify/amplify-cli/issues/5992)) ([d7d7fcf](https://github.com/aws-amplify/amplify-cli/commit/d7d7fcf65fb2928f5d97c2ada9fac8ebf3522ee0)), closes [#5731](https://github.com/aws-amplify/amplify-cli/issues/5731) [#5829](https://github.com/aws-amplify/amplify-cli/issues/5829)
+
+
+
+
+
+## [2.24.3](https://github.com/aws-amplify/amplify-cli/compare/amplify-category-auth@2.24.2...amplify-category-auth@2.24.3) (2020-11-27)
+
+**Note:** Version bump only for package amplify-category-auth
+
+
+
+
+
+## [2.24.2](https://github.com/aws-amplify/amplify-cli/compare/amplify-category-auth@2.24.1...amplify-category-auth@2.24.2) (2020-11-26)
+
+
+### Bug Fixes
+
+* check hostedUI flag ([#5958](https://github.com/aws-amplify/amplify-cli/issues/5958)) ([ed310da](https://github.com/aws-amplify/amplify-cli/commit/ed310da1923b62242bf019f840deaa620aed32d1))
+
+
+
+
+
 ## [2.24.1](https://github.com/aws-amplify/amplify-cli/compare/amplify-category-auth@2.24.0...amplify-category-auth@2.24.1) (2020-11-24)
 
 
