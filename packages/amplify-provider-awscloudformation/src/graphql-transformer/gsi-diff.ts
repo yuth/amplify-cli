@@ -14,7 +14,13 @@ export type IndexChange = {
   indexName: string;
 };
 
-export const getGSIDiffs = (current: DynamoDB.Table, next: DynamoDB.Table) => {
+/**
+ * Generate a list of GSI changes that needs to be pushed to update the
+ * GSIs
+ * @param current DynamoDB table represnting currently deployed
+ * @param next DynamoDB table configuration that needs to be deployed
+ */
+export const getGSIDiffs = (current: DynamoDB.Table, next: DynamoDB.Table): IndexChange[] => {
   if (
     current.Properties.GlobalSecondaryIndexes instanceof IntrinsicFunction ||
     next.Properties.GlobalSecondaryIndexes instanceof IntrinsicFunction
@@ -23,10 +29,16 @@ export const getGSIDiffs = (current: DynamoDB.Table, next: DynamoDB.Table) => {
   }
   const currentIndexes = current.Properties.GlobalSecondaryIndexes ?? [];
   const nextIndexes = next.Properties.GlobalSecondaryIndexes;
-  return handleIndividualDiff(currentIndexes, nextIndexes);
+  return generateGSIChangeList(currentIndexes, nextIndexes);
 };
 
-export const handleIndividualDiff = (currentIndexes: GlobalSecondaryIndex[], nextIndexes: GlobalSecondaryIndex[]): IndexChange[] => {
+/**
+ * Generates a list of operation that needs to be performed in iterative push to update
+ * the DynamoDB tables GSIs
+ * @param currentIndexes DynamoDB GlobalSecondaryIndexes represnting currently deployed table
+ * @param nextIndexes DynamoDB GlobalSecondaryIndexes that needs to be deployed in next push
+ */
+export const generateGSIChangeList = (currentIndexes: GlobalSecondaryIndex[], nextIndexes: GlobalSecondaryIndex[]): IndexChange[] => {
   // Create  Record<IndexName, Index>
   const currentIndexByIndexName = _.keyBy(currentIndexes, 'IndexName');
   // create an array of indexes
@@ -48,7 +60,7 @@ export const handleIndividualDiff = (currentIndexes: GlobalSecondaryIndex[], nex
 
   const modifiedIndexes = possiblyModifiedIndexNames
     .map(indexName => {
-      return handlerGSIUpdate(currentIndexByIndexName[indexName], nextIndexByIndexName[indexName]);
+      return getUpdatedIndexDiff(currentIndexByIndexName[indexName], nextIndexByIndexName[indexName]);
     })
     .filter(change => Boolean(change));
 
@@ -65,7 +77,12 @@ export const handleIndividualDiff = (currentIndexes: GlobalSecondaryIndex[], nex
   ];
 };
 
-export const handlerGSIUpdate = (currentIndex: GlobalSecondaryIndex, nextIndex: GlobalSecondaryIndex): IndexChange | undefined => {
+/**
+ * Returns the type of iterative change needed to the index to support index updating
+ * @param currentIndex DynamoDB GlobalSecondaryIndex in currently deployed table
+ * @param nextIndex updated DynamoDB GlobalSecondaryIndex to be deployed in the next push
+ */
+export const getUpdatedIndexDiff = (currentIndex: GlobalSecondaryIndex, nextIndex: GlobalSecondaryIndex): IndexChange | undefined => {
   const diffs = getDiffs(currentIndex, nextIndex);
   if (currentIndex.IndexName instanceof IntrinsicFunction) {
     return;

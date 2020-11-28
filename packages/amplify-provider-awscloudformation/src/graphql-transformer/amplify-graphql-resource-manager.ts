@@ -17,6 +17,8 @@ import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-
 import { hashDirectory, ROOT_APPSYNC_S3_KEY } from '../upload-appsync-files';
 import { DiffChanges, getGQLDiff, DiffableProject } from './utils';
 import { DeploymentStep, DeploymentOp } from '../iterative-deployment/deployment-manager';
+import { addGsi, removeGsi, getExistingIndexNames, getGSIDetails } from './dynamodb-gsi-utils';
+import { GSIChange, IndexChange, getGSIDiffs } from './gsi-diff';
 
 export type GQLResourceManagerProps = {
   cfnClient: CloudFormation;
@@ -178,12 +180,23 @@ export class GraphQLResourceManager {
     const buildDir = path.join(this.backendApiProjectRoot, 'build');
     return path.join(buildDir, 'states');
   };
+
   private gsiManagement = (diffs: DiffChanges<DiffableProject>, currentState: DiffableProject, nextState: DiffableProject) => {
     const gsiChanges = _.filter(diffs, diff => {
-      const leafPath = diff.path && diff.path.length && diff.path[diff.path.length - 1];
-      return (
-        leafPath && (leafPath === 'GlobalSecondaryIndexes' || (diff.path.includes('GlobalSecondaryIndexes') && leafPath === 'IndexName'))
-      );
+      return diff.path.includes('GlobalSecondaryIndexes');
+    });
+
+    const tableWithGSIChanges = _.uniqBy(gsiChanges, diff => diff.path?.slice(0, 3).join('/')).map(gsiChange => {
+      const tableName = gsiChange.path[3];
+      const stackName = gsiChange.path[1].split('.')[0];
+      const currentTable = _.get(currentState, gsiChange.path.slice(0, 3));
+      const nextTable = _.get(nextState, gsiChange.path.slice(0, 3));
+      return {
+        tableName,
+        stackName,
+        currentTable,
+        nextTable,
+      };
     });
 
     for (const gsiChange of gsiChanges) {
