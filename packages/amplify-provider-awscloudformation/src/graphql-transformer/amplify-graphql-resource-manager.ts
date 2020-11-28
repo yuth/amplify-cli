@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import configurationManager from '../configuration-manager';
-import { diff as getDiffs, Diff } from 'deep-diff';
+import { Diff } from 'deep-diff';
 import {
   cantAddAndRemoveGSIAtSameTimeRule,
   cantBatchMutateGSIAtUpdateTimeRule,
@@ -12,13 +12,12 @@ import {
 import { Template, DynamoDB } from 'cloudform-types';
 import { $TSContext, JSONUtilities, pathManager } from 'amplify-cli-core';
 import { CloudFormation } from 'aws-sdk';
-import { getStackParameters, GSIStatus, GSIRecord, TemplateState, getTableNames } from '../utils/amplify-resource-state-utils';
-import { GlobalSecondaryIndex, KeySchema, AttributeDefinition } from 'cloudform-types/types/dynamoDb/table';
+import { getStackParameters, GSIRecord, TemplateState, getTableNames } from '../utils/amplify-resource-state-utils';
 import { hashDirectory, ROOT_APPSYNC_S3_KEY } from '../upload-appsync-files';
 import { DiffChanges, getGQLDiff, DiffableProject } from './utils';
 import { DeploymentStep, DeploymentOp } from '../iterative-deployment/deployment-manager';
-import { addGsi, removeGsi, getExistingIndexNames, getGSIDetails } from './dynamodb-gsi-utils';
-import { GSIChange, IndexChange, getGSIDiffs } from './gsi-diff';
+import { addGsi, removeGsi, getGSIDetails } from './dynamodb-gsi-helpers';
+import { GSIChange, getGSIDiffs } from './gsi-diff-helpers';
 
 export type GQLResourceManagerProps = {
   cfnClient: CloudFormation;
@@ -131,9 +130,9 @@ export class GraphQLResourceManager {
       previousStepPath = stepPath;
 
       const tables = this.templateState.getKeys();
-      const tableArns = [];
+      const tableNames = [];
       tables.forEach(tableName => {
-        tableArns.push(tableNameMap.get(tableName));
+        tableNames.push(tableNameMap.get(tableName));
         const filepath = path.join(stateFileDir, `${stepNumber}`, 'stacks', `${tableName}.json`);
         fs.ensureDirSync(path.dirname(filepath));
         JSONUtilities.writeJson(filepath, this.templateState.pop(tableName));
@@ -143,7 +142,8 @@ export class GraphQLResourceManager {
         stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
         parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
         stackName: this.resourceMeta.stackId,
-        tableNames: tableArns,
+        tableNames: tableNames,
+        clientRequestToken: `${buildHash}-step-${stepNumber}`,
       };
       gqlSteps.push({
         deployment: deploymentStep,
@@ -173,6 +173,7 @@ export class GraphQLResourceManager {
       parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
       stackName: this.resourceMeta.stackId,
       tableNames: [],
+      clientRequestToken: `${buildHash}-inital-stack`,
     };
   };
 
@@ -189,8 +190,8 @@ export class GraphQLResourceManager {
     const tableWithGSIChanges = _.uniqBy(gsiChanges, diff => diff.path?.slice(0, 3).join('/')).map(gsiChange => {
       const tableName = gsiChange.path[3];
       const stackName = gsiChange.path[1].split('.')[0];
-      const currentTable = _.get(currentState, gsiChange.path.slice(0, 3));
-      const nextTable = _.get(nextState, gsiChange.path.slice(0, 3));
+      const currentTable = this.getTable(gsiChange, currentState);
+      const nextTable = this.getTable(gsiChange, nextState);
       return {
         tableName,
         stackName,
@@ -198,85 +199,35 @@ export class GraphQLResourceManager {
         nextTable,
       };
     });
-
-    for (const gsiChange of gsiChanges) {
-      const tableName = gsiChange.path[3];
-      const stackName = gsiChange.path[1].split('.')[0];
-      const gsiStatus = this.gsiChangeStatus(gsiChange, currentState, nextState);
-      const ddbResource = this.templateState.getLatest(stackName) || this.getStack(stackName, currentState);
-
-      if (gsiStatus === GSIStatus.add) {
-        const indexName = (gsiChange as any).item.rhs.IndexName;
-        let gsiRecord = this.getGSIRecord(indexName, this.getTable(gsiChange, nextState));
-        this.addGSI(gsiRecord, tableName, ddbResource);
-        this.templateState.add(stackName, JSON.stringify(ddbResource));
-      }
-      // if its an edit most likely one gsi is removed and another was added
-      // by using the index name we can check which values to remove
-      else if (gsiStatus === GSIStatus.edit) {
-        const gsiPath = gsiChange.path.slice(0, 7);
-        const rhsGSIName = _.get(nextState, gsiPath).IndexName;
-        const lhsGSIName = _.get(currentState, gsiPath).IndexName;
-        // remove the gsi
-        this.deleteGSI(lhsGSIName, tableName, ddbResource);
-        this.templateState.add(stackName, JSON.stringify(ddbResource));
-        // add the gsi
-        const gsiRecord = this.getGSIRecord(rhsGSIName, this.getTable(gsiChange, nextState));
-        this.addGSI(gsiRecord, tableName, ddbResource);
-        this.templateState.add(stackName, JSON.stringify(ddbResource));
-      } else if (gsiStatus === GSIStatus.delete) {
-        const removedGSI = (gsiChange as any).item.lhs as GlobalSecondaryIndex;
-        this.deleteGSI(removedGSI.IndexName as string, tableName, ddbResource);
-        this.templateState.add(stackName, JSON.stringify(ddbResource));
-      } else if (gsiStatus === GSIStatus.batchAdd) {
-        const addedGSIs = (gsiChange as any).rhs as GlobalSecondaryIndex[];
-        for (const gsi of addedGSIs) {
-          // grab added gsi resources
-          let gsiRecord = this.getGSIRecord(gsi.IndexName as string, this.getTable(gsiChange, nextState));
-          this.addGSI(gsiRecord, tableName, ddbResource);
-          this.templateState.add(stackName, JSON.stringify(ddbResource));
-        }
-      } else if (gsiStatus === GSIStatus.batchDelete) {
-        const removedGSIs = (gsiChange as any).lhs as GlobalSecondaryIndex[];
-        for (let gsi of removedGSIs) {
-          // grab deleted gsi resource
-          this.deleteGSI(gsi.IndexName as string, tableName, ddbResource);
-          this.templateState.add(stackName, JSON.stringify(ddbResource));
+    for (const gsiChange of tableWithGSIChanges) {
+      const changeSteps = getGSIDiffs(gsiChange.currentTable, gsiChange.nextTable);
+      const stackName = gsiChange.stackName;
+      const tableName = gsiChange.tableName;
+      for (const changeStep of changeSteps) {
+        const ddbResource = this.templateState.getLatest(stackName) || this.getStack(stackName, currentState);
+        let gsiRecord;
+        switch (changeStep.type) {
+          case GSIChange.Add:
+            gsiRecord = getGSIDetails(changeStep.indexName, gsiChange.nextTable);
+            this.addGSI(gsiRecord, tableName, ddbResource);
+            this.templateState.add(stackName, JSONUtilities.stringify(ddbResource));
+            break;
+          case GSIChange.Delete:
+            this.deleteGSI(changeStep.indexName, tableName, ddbResource);
+            this.templateState.add(stackName, JSONUtilities.stringify(ddbResource));
+            break;
+          case GSIChange.Update:
+            this.deleteGSI(changeStep.indexName, tableName, ddbResource);
+            this.templateState.add(stackName, JSONUtilities.stringify(ddbResource));
+            gsiRecord = getGSIDetails(changeStep.indexName, gsiChange.nextTable);
+            this.addGSI(gsiRecord, tableName, ddbResource);
+            this.templateState.add(stackName, JSONUtilities.stringify(ddbResource));
+            break;
+          default:
+            assertUnreachable(changeStep.type);
         }
       }
     }
-  };
-
-  private gsiChangeStatus = (gsiChange: Diff<any, any>, current: DiffableProject, next: DiffableProject): GSIStatus => {
-    if (gsiChange.kind === 'A') {
-      if (gsiChange.item.kind === 'D' && gsiChange.item.lhs) {
-        return GSIStatus.delete;
-      }
-      if (gsiChange.item.kind === 'N' && gsiChange.item.rhs) {
-        return GSIStatus.add;
-      }
-    }
-    if (gsiChange.kind === 'E' && gsiChange.lhs) {
-      if (gsiChange.path.slice(-1)[0] === 'IndexName') return GSIStatus.edit;
-      if (gsiChange.path.slice(-1)[0] === 'AttributeName') {
-        // need to run a check to ensure this ks change is actually happening and not because the order changed.
-        const innerDiffs = this.getInnerDiffs(gsiChange, current, next);
-        const pathToGSI = gsiChange.path.slice(0, 7);
-        const gsiIndexName = _.get(current, pathToGSI).IndexName;
-        for (const innerDiff of innerDiffs) {
-          if (innerDiff.kind === 'E' && innerDiff.path.slice(-1)[0] === 'AttributeName' && innerDiff.path[0] === gsiIndexName) {
-            return GSIStatus.edit;
-          }
-        }
-      }
-    }
-    if (gsiChange.kind === 'N' && gsiChange.rhs.length > 1) {
-      return GSIStatus.batchAdd;
-    }
-    if (gsiChange.kind === 'D' && gsiChange.lhs.length > 1) {
-      return GSIStatus.batchDelete;
-    }
-    return GSIStatus.none;
   };
 
   private getTable = (gsiChange: Diff<any, any>, proj: DiffableProject): DynamoDB.Table => {
@@ -287,54 +238,18 @@ export class GraphQLResourceManager {
     return proj.stacks[`${stackName}.json`];
   }
 
-  private getInnerDiffs = (gsiChange: Diff<any, any>, current: DiffableProject, next: DiffableProject) => {
-    const pathToGSIs = gsiChange.path.slice(0, 6);
-    const oldIndexes = _.get(current, pathToGSIs);
-    const newIndexes = _.get(next, pathToGSIs);
-    const oldIndexesDiffable = _.keyBy(oldIndexes, 'IndexName');
-    const newIndexesDiffable = _.keyBy(newIndexes, 'IndexName');
-    return getDiffs(oldIndexesDiffable, newIndexesDiffable) || [];
-  };
-  /**
-   * GSI Operations
-   */
-  private getGSIRecord = (indexName: string, table: DynamoDB.Table): GSIRecord => {
-    const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
-    const addedGSI = (_.filter(gsis, {
-      IndexName: indexName,
-    }) as GlobalSecondaryIndex[])[0];
-    const attrDefs = ((addedGSI?.KeySchema ?? ([] as any)) as AttributeDefinition[]).reduce((acc, attr) => {
-      acc.push(attr.AttributeName);
-      return acc;
-    }, []);
-    const attrDef = _.filter(table.Properties.AttributeDefinitions as AttributeDefinition[], defs => {
-      return attrDefs.includes(defs.AttributeName);
-    });
-    return { gsi: addedGSI, attributeDefinition: attrDef };
-  };
-
   private addGSI = (gsiRecord: GSIRecord, tableName: string, template: Template): void => {
     const table = template.Resources[tableName] as DynamoDB.Table;
-    const gsis = (table.Properties.GlobalSecondaryIndexes ?? []) as GlobalSecondaryIndex[];
-    gsis.push(gsiRecord.gsi);
-    table.Properties.GlobalSecondaryIndexes = gsis;
-    const attrDefs = (table.Properties.AttributeDefinitions ?? []) as AttributeDefinition[];
-    table.Properties.AttributeDefinitions = _.unionBy(attrDefs, gsiRecord.attributeDefinition, 'AttributeName');
+    template.Resources[tableName] = addGsi(gsiRecord, table);
   };
 
   private deleteGSI = (indexName: string, tableName: string, template: Template): void => {
     const table = template.Resources[tableName] as DynamoDB.Table;
-    const gsis = table.Properties.GlobalSecondaryIndexes as GlobalSecondaryIndex[];
-    const attrDefs = table.Properties.AttributeDefinitions as AttributeDefinition[];
-    const removedGSIKS = _.remove(gsis, { IndexName: indexName })[0]?.KeySchema as Array<KeySchema>;
-    const currentKS = gsis.reduce((acc, gsi) => {
-      acc.push(...(gsi.KeySchema as Array<KeySchema>));
-      return acc;
-    }, []);
-    // values in removedGSIKS that is not existent in currentKS will be removed
-    if (removedGSIKS) {
-      const attrToRemove = _.differenceBy(removedGSIKS, currentKS, 'AttributeName');
-      _.pullAllBy(attrDefs, attrToRemove, 'AttributeName');
-    }
+    template.Resources[tableName] = removeGsi(indexName, table);
   };
 }
+
+// https://stackoverflow.com/questions/39419170/how-do-i-check-that-a-switch-block-is-exhaustive-in-typescript
+export const assertUnreachable = (_: never): never => {
+  throw new Error('Default case should never reach');
+};

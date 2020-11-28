@@ -1,4 +1,4 @@
-import { GSIChange, IndexChange, getIndexChanges, getGSIDiffs } from '../../graphql-transformer/gsi-diff';
+import { GSIChange, getGSIDiffs } from '../../graphql-transformer/gsi-diff-helpers';
 import * as diffTestHelpers from './gsi-test-helpers';
 
 describe('gsi diff utils', () => {

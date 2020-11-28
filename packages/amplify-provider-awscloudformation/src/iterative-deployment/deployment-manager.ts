@@ -141,12 +141,18 @@ export class DeploymentManager {
         stackTemplatePath: deploymentStackTemplatePath,
         stackTemplateUrl: deploymentStackTemplateUrl,
         region: this.region,
+        clientRequestToken: deploymentStep.deployment.clientRequestToken
+          ? `deploy-${deploymentStep.deployment.clientRequestToken}`
+          : undefined,
       },
       rollback: {
         ...deploymentStep.rollback,
         stackTemplatePath: rollbackStackTemplatePath,
         stackTemplateUrl: rollbackStackTemplateUrl,
         region: this.region,
+        clientRequestToken: deploymentStep.rollback.clientRequestToken
+          ? `rollback-${deploymentStep.rollback.clientRequestToken}`
+          : undefined,
       },
     });
   };
@@ -232,13 +238,7 @@ export class DeploymentManager {
     };
   };
 
-  private doDeploy = async (currentStack: {
-    stackName: string;
-    parameters: Record<string, string>;
-    stackTemplateUrl: string;
-    region: string;
-    capabilities?: string[];
-  }): Promise<void> => {
+  private doDeploy = async (currentStack: DeploymentMachineOp): Promise<void> => {
     const cfn = this.cfnClient;
     assert(currentStack.stackName, 'stack name should be passed to doDeploy');
     assert(currentStack.stackTemplateUrl, 'stackTemplateUrl must be passed to doDeploy');
@@ -256,6 +256,7 @@ export class DeploymentManager {
           Parameters: parameters,
           TemplateURL: currentStack.stackTemplateUrl,
           Capabilities: currentStack.capabilities,
+          ClientRequestToken: currentStack.clientRequestToken,
         })
         .promise();
     } catch (e) {
