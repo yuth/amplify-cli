@@ -78,3 +78,10 @@ export const makeTableWithGSI = (props: { gsis?: GSIDefinition[] }): DynamoDB.Ta
   });
   return table;
 };
+
+export const makeTablePairsWithGSI = (
+  gis1: GSIDefinition[] | undefined,
+  gis2: GSIDefinition[] | undefined,
+): [DynamoDB.Table, DynamoDB.Table] => {
+  return [makeTableWithGSI({ gsis: gis1 }), makeTableWithGSI({ gsis: gis2 })];
+};

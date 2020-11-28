@@ -33,5 +33,20 @@ export const makeProj = (stackName: string, table: DynamoDB.Table): DiffableProj
 };
 
 export const filterNonGSIChanges = (diffs: Array<Diff<any, any>>) => {
-  return diffs.filter(diff => diff.path?.includes('GlobalSecondaryIndexes'));
+  const seenPaths = new Set();
+  return diffs
+    .filter(diff => diff.path?.includes('GlobalSecondaryIndexes'))
+    .filter(diff => {
+      const leafPath = diff.path?.slice(-1)[0];
+      if (leafPath !== 'GlobalSecondaryIndexes') {
+        const gsiPathIndex = diff.path!.indexOf('GlobalSecondaryIndexes') + 1;
+        const gsiPath = diff.path?.slice(0, gsiPathIndex).join('/');
+        if (seenPaths.has(gsiPath)) return;
+      }
+      const pathJoined = `${diff.path?.join('/')}`;
+      if (!seenPaths.has(pathJoined)) {
+        seenPaths.add(pathJoined);
+        return true;
+      }
+    });
 };

@@ -13,6 +13,14 @@ export const getIndexChanges = (gsiChange: Diff<any, any>, current: DiffableProj
   const leafPath = gsiChange.path.slice(-1)[0];
   if (gsiChange.kind === 'A') {
     if (gsiChange.item.kind === 'D' && gsiChange.item.lhs) {
+      if (['GlobalSecondaryIndexes'].includes(leafPath)) {
+        const innerDiffs = getInnerDiffs(gsiChange, current, next);
+        return innerDiffs.map(innerDiff => {
+          if (innerDiff.kind === 'D' && innerDiff.lhs) {
+            return { type: GSIStatus.delete, indexName: innerDiff.lhs.IndexName };
+          }
+        });
+      }
       return [
         {
           type: GSIStatus.delete,
@@ -21,22 +29,17 @@ export const getIndexChanges = (gsiChange: Diff<any, any>, current: DiffableProj
       ];
     }
     if (gsiChange.item.kind === 'N' && gsiChange.item.rhs) {
-      if (['IndexName', 'GlobalSecondaryIndexes'].includes(leafPath)) {
+      if (['GlobalSecondaryIndexes'].includes(leafPath)) {
         const innerDiffs = getInnerDiffs(gsiChange, current, next);
-        const pathToGSI = gsiChange.path.slice(0, 7);
-        const gsiIndexName = _.get(current, pathToGSI).IndexName;
-        for (const innerDiff of innerDiffs) {
-          if (innerDiff.kind === 'A' && innerDiff.path.slice(-1)[0] === 'KeySchema' && innerDiff.path[0] === gsiIndexName) {
-            return [{ type: GSIStatus.edit, indexName: gsiIndexName }];
+        return innerDiffs.map(innerDiff => {
+          if (innerDiff.kind === 'N' && innerDiff.rhs) {
+            return { type: GSIStatus.add, indexName: innerDiff.rhs.IndexName };
           }
-        }
-        return [
-          {
-            type: GSIStatus.add,
-            indexName: gsiChange.item.rhs.IndexName,
-          },
-        ];
-      } else if (['KeySchema'].includes(leafPath)) {
+        });
+      } else if (['IndexName'].includes(leafPath)) {
+        // todo add test case
+        return [];
+      } else if (['KeySchema', 'Projection'].includes(leafPath)) {
         // ensure the diff is not because the key schema is moved
         const innerDiffs = getInnerDiffs(gsiChange, current, next);
         const pathToGSI = gsiChange.path.slice(0, 7);
@@ -66,13 +69,21 @@ export const getIndexChanges = (gsiChange: Diff<any, any>, current: DiffableProj
     if (leafPath === 'IndexName') {
       const innerDiff = getInnerDiffs(gsiChange, current, next);
       // Index is moved around no real change
-      if (innerDiff.length == 0) {
-        return [];
-      }
-      return [
-        { type: GSIStatus.delete, indexName: gsiChange.lhs },
-        { type: GSIStatus.add, indexName: gsiChange.rhs },
-      ];
+      const result = innerDiff.reduce((acc, diff) => {
+        if (diff.kind === 'E') {
+          return [
+            ...acc,
+            { type: GSIStatus.delete, indexName: diff.lhs.indexName },
+            { type: GSIStatus.add, IndexName: diff.rhs.IndexName },
+          ];
+        } else if (diff.kind === 'N') {
+          return [...acc, { type: GSIStatus.add, indexName: diff.rhs.IndexName }];
+        } else if (diff.kind === 'D') {
+          return [...acc, { type: GSIStatus.delete, indexName: diff.lhs.IndexName }];
+        }
+        return acc;
+      }, []);
+      return result;
     }
 
     if (leafPath === 'AttributeName') {
