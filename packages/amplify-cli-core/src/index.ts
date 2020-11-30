@@ -14,6 +14,7 @@ export * from './exitOnNextTick';
 export * from './isPackaged';
 export * from './cliConstants';
 export * from './deploymentSecretsHelper';
+export * from './deploymentState';
 
 // Temporary types until we can finish full type definition across the whole CLI
 

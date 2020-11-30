@@ -3,7 +3,18 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { validateFile } from 'cfn-lint';
 import glob from 'glob';
-import { pathManager, PathConstants, stateManager, FeatureFlags, JSONUtilities, $TSContext, $TSObject, $TSMeta } from 'amplify-cli-core';
+import {
+  pathManager,
+  PathConstants,
+  stateManager,
+  FeatureFlags,
+  JSONUtilities,
+  $TSContext,
+  $TSObject,
+  $TSMeta,
+  DeploymentStatus,
+  DeploymentStepState,
+} from 'amplify-cli-core';
 import ora from 'ora';
 import { S3 } from './aws-utils/aws-s3';
 import Cloudformation from './aws-utils/aws-cfn';
@@ -24,6 +35,7 @@ import { DeploymentManager } from './iterative-deployment';
 import { Template } from 'cloudform-types';
 import { getGqlUpdatedResource } from './graphql-transformer/utils';
 import { DeploymentStep, DeploymentOp } from './iterative-deployment/deploy-manager';
+import { DeploymentStateManager } from './iterative-deployment/deploymentStateManager';
 
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
@@ -36,6 +48,9 @@ const cfnTemplateGlobPattern = '*template*.+(yaml|yml|json)';
 const parametersJson = 'parameters.json';
 
 export async function run(context, resourceDefinition) {
+  const deploymentStateManager = await DeploymentStateManager.createDeploymentStateManager(context);
+  let iterativeDeploymentWasInvoked = false;
+
   try {
     const { resourcesToBeCreated, resourcesToBeUpdated, resourcesToBeSynced, resourcesToBeDeleted, allResources } = resourceDefinition;
     const meta = context.amplify.getProjectMeta().providers.awscloudformation;
@@ -62,14 +77,38 @@ export async function run(context, resourceDefinition) {
       minify: options['minify'],
     });
 
+    // If there is a deployment already in progress we have to fail the push operation as another
+    // push in between could lead non-recoverable stacks and files.
+    if (await deploymentStateManager.isDeploymentInProgress()) {
+      context.print.error('A deployment is already in progress for the project, cannot push resources until it finishes.');
+
+      return;
+    }
+
     // Check if iterative updates are enabled or not and generate the required deployment steps if needed.
     let deploymentSteps: DeploymentStep[] = [];
 
     if (FeatureFlags.getBoolean('graphQLTransformer.enableIterativeGSIUpdates')) {
       const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
+
       if (gqlResource) {
         const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
         deploymentSteps = await gqlManager.run();
+
+        if (deploymentSteps.length > 0) {
+          iterativeDeploymentWasInvoked = true;
+
+          // Initialize deployment state to signal a new iterative deployment
+          const deploymentStepStates: DeploymentStepState[] = new Array<DeploymentStepState>(deploymentSteps.length);
+
+          // If start cannot update because a deployment has started between the start of this method and this point
+          // we have to return before uploading any artifacts that could fail the other deployment.
+          if (!(await deploymentStateManager.startDeployment(deploymentStepStates))) {
+            context.print.error('A deployment is already in progress for the project, cannot push resources until it finishes.');
+
+            return;
+          }
+        }
       }
     }
 
@@ -242,6 +281,10 @@ export async function run(context, resourceDefinition) {
     await displayHelpfulURLs(context, resources);
   } catch (error) {
     spinner.fail('An error occurred when pushing the resources to the cloud');
+
+    if (iterativeDeploymentWasInvoked) {
+      deploymentStateManager.finishDeployment(DeploymentStatus.FAILED);
+    }
 
     throw error;
   }
