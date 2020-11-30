@@ -12,27 +12,27 @@ export type DeploymentStepState = {
 };
 
 export enum DeploymentStatus {
-  'IDLE',
-  'DEPLOYING',
-  'DEPLOYED',
-  'ROLLING_BACK',
-  'ROLLED_BACK',
-  'FAILED',
+  'IDLE' = 'IDLE',
+  'DEPLOYING' = 'DEPLOYING',
+  'DEPLOYED' = 'DEPLOYED',
+  'ROLLING_BACK' = 'ROLLING_BACK',
+  'ROLLED_BACK' = 'ROLLED_BACK',
+  'FAILED' = 'FAILED',
 }
 
 export enum DeploymentStepStatus {
-  'WAITING_FOR_DEPLOYMENT',
-  'DEPLOYING',
-  'DEPLOYED',
-  'WAITING_FOR_TABLE_TO_BE_READY',
-  'WAITING_FOR_ROLLBACK',
-  'ROLLING_BACK',
-  'ROLLED_BACK',
+  'WAITING_FOR_DEPLOYMENT' = 'WAITING_FOR_DEPLOYMENT',
+  'DEPLOYING' = 'DEPLOYING',
+  'DEPLOYED' = 'DEPLOYED',
+  'WAITING_FOR_TABLE_TO_BE_READY' = 'WAITING_FOR_TABLE_TO_BE_READY',
+  'WAITING_FOR_ROLLBACK' = 'WAITING_FOR_ROLLBACK',
+  'ROLLING_BACK' = 'ROLLING_BACK',
+  'ROLLED_BACK' = 'ROLLED_BACK',
 }
 
 export interface IDeploymentStateManager {
   startDeployment(steps: DeploymentStepState[]): Promise<boolean>;
-  finishDeployment(status: DeploymentStatus): Promise<void>;
+  finishDeployment(status: DeploymentStatus): Promise<boolean>;
   updateCurrentStepStatus(status: DeploymentStepStatus): Promise<void>;
   advanceStep(): Promise<void>;
   startRollback(): Promise<void>;

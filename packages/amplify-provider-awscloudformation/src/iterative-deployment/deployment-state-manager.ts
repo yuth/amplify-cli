@@ -45,14 +45,14 @@ export class DeploymentStateManager implements IDeploymentStateManager {
     // of concurrently starting a deployment.
     const persistedState = await this.loadState();
 
-    if (
-      persistedState &&
-      (persistedState.status === DeploymentStatus.DEPLOYING || persistedState.status === DeploymentStatus.ROLLING_BACK)
-    ) {
-      return false;
-    }
+    if (persistedState) {
+      if (persistedState.status === DeploymentStatus.DEPLOYING || persistedState.status === DeploymentStatus.ROLLING_BACK) {
+        return false;
+      }
 
-    this.currentState = persistedState;
+      // Use the freshly loaded state as current state
+      this.currentState = persistedState;
+    }
 
     this.currentState.startedAt = new Date().toISOString();
     this.currentState.finishedAt = undefined;
@@ -69,11 +69,19 @@ export class DeploymentStateManager implements IDeploymentStateManager {
     return true;
   };
 
-  public finishDeployment = async (status: DeploymentStatus): Promise<void> => {
-    // Only persist failed status if the deployment was not finished by the statemachine in a clean way
+  public finishDeployment = async (status: DeploymentStatus): Promise<boolean> => {
+    if (status !== DeploymentStatus.FAILED && status !== DeploymentStatus.DEPLOYED && status !== DeploymentStatus.ROLLED_BACK) {
+      throw new Error(`Invalid status ${status} for finishDeployment.`);
+    }
+
+    if (!(await this.isDeploymentInProgress())) {
+      throw new Error(`Cannot finish a deployment when it was not started.`);
+    }
+
+    // Only persist status if the deployment was not finished by the statemachine in a clean way
     // either with deployed or rolled back.
     if (
-      status === DeploymentStatus.FAILED &&
+      (status === DeploymentStatus.FAILED || status === DeploymentStatus.DEPLOYED || status === DeploymentStatus.ROLLED_BACK) &&
       this.currentState.status !== DeploymentStatus.ROLLED_BACK &&
       this.currentState.status !== DeploymentStatus.DEPLOYED
     ) {
@@ -81,6 +89,8 @@ export class DeploymentStateManager implements IDeploymentStateManager {
       this.currentState.status = status;
 
       await this.saveState();
+
+      return true;
     }
   };
 
@@ -105,7 +115,15 @@ export class DeploymentStateManager implements IDeploymentStateManager {
   };
 
   public startRollback = async (): Promise<void> => {
+    if (!(await this.isDeploymentInProgress()) || this.direction !== 1) {
+      throw new Error('Cannot rollback a non-deploying deployment');
+    }
+
     this.direction = -1;
+
+    this.currentState.status = DeploymentStatus.ROLLING_BACK;
+
+    await this.saveState();
   };
 
   public isDeploymentInProgress = async (): Promise<boolean> =>

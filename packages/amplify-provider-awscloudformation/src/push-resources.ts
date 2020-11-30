@@ -35,7 +35,7 @@ import { DeploymentManager } from './iterative-deployment';
 import { Template } from 'cloudform-types';
 import { getGqlUpdatedResource } from './graphql-transformer/utils';
 import { DeploymentStep, DeploymentOp } from './iterative-deployment/deployment-manager';
-import { DeploymentStateManager } from './iterative-deployment/deploymentStateManager';
+import { DeploymentStateManager } from './iterative-deployment/deployment-state-manager';
 // keep in sync with ServiceName in amplify-category-function, but probably it will not change
 const FunctionServiceNameLambdaLayer = 'LambdaLayer';
 
