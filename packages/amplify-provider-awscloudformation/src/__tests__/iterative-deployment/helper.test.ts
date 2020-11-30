@@ -188,4 +188,26 @@ describe('deployment helpers', () => {
       });
     });
   });
+
+  describe('getBucketKey', () => {
+    const bucketName = 'my-bucket';
+    it('should return bucket key from url', () => {
+      expect(helper.getBucketKey(`https://s3.amazon.com/${bucketName}/my-key`, bucketName)).toEqual('my-key');
+    });
+    it('should return bucket key key', () => {
+      expect(helper.getBucketKey(`my-key`, bucketName)).toEqual('my-key');
+    });
+  });
+
+  describe('getHttpUrl', () => {
+    const bucketName = 'my-bucket';
+    it('should return bucket key from url', () => {
+      expect(helper.getHttpUrl(`https://s3.amazonaws.com/${bucketName}/my-key`, bucketName)).toEqual(
+        `https://s3.amazonaws.com/${bucketName}/my-key`,
+      );
+    });
+    it('should return bucket key key', () => {
+      expect(helper.getHttpUrl(`my-key`, bucketName)).toEqual(`https://s3.amazonaws.com/${bucketName}/my-key`);
+    });
+  });
 });
