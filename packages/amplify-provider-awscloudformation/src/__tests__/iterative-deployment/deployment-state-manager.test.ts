@@ -1,4 +1,4 @@
-import { $TSContext, DeploymentStatus, DeploymentStepStatus, IDeploymentStateManager } from 'amplify-cli-core';
+import { DeploymentStatus, DeploymentStepStatus, IDeploymentStateManager } from 'amplify-cli-core';
 import { DeploymentStateManager } from '../../iterative-deployment/deployment-state-manager';
 import { S3 } from '../../aws-utils/aws-s3';
 
