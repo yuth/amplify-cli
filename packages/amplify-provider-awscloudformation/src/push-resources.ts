@@ -14,6 +14,7 @@ import {
   $TSMeta,
   DeploymentStatus,
   DeploymentStepState,
+  DeploymentStepStatus,
 } from 'amplify-cli-core';
 import ora from 'ora';
 import { S3 } from './aws-utils/aws-s3';
@@ -99,7 +100,11 @@ export async function run(context, resourceDefinition) {
           iterativeDeploymentWasInvoked = true;
 
           // Initialize deployment state to signal a new iterative deployment
-          const deploymentStepStates: DeploymentStepState[] = new Array<DeploymentStepState>(deploymentSteps.length);
+          // When using iterative push, the deployment steps provided by GraphQLResourceManager does not include the last step
+          // where the root stack is pushed
+          const deploymentStepStates: DeploymentStepState[] = new Array(deploymentSteps.length + 1).fill(true).map(() => ({
+            status: DeploymentStepStatus.WAITING_FOR_DEPLOYMENT,
+          }));
 
           // If start cannot update because a deployment has started between the start of this method and this point
           // we have to return before uploading any artifacts that could fail the other deployment.
@@ -151,7 +156,7 @@ export async function run(context, resourceDefinition) {
           rollback: deploymentSteps[deploymentSteps.length - 1].deployment,
         });
         spinner.start();
-        await deploymentManager.deploy();
+        await deploymentManager.deploy(deploymentStateManager);
         // delete the intermidiate states
         if (stateFolder && fs.existsSync(stateFolder)) {
           fs.removeSync(stateFolder);

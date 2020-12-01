@@ -34,7 +34,7 @@ export interface IDeploymentStateManager {
   startDeployment(steps: DeploymentStepState[]): Promise<boolean>;
   finishDeployment(status: DeploymentStatus): Promise<boolean>;
   updateCurrentStepStatus(status: DeploymentStepStatus): Promise<void>;
-  advanceStep(): Promise<void>;
+  advanceStep(lasStepStatus: DeploymentStepStatus): Promise<void>;
   startRollback(): Promise<void>;
 
   isDeploymentInProgress(): Promise<boolean>;

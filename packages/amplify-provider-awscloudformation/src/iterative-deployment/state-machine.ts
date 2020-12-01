@@ -1,4 +1,4 @@
-import { Machine, assign, EventObject } from 'xstate';
+import { Machine, assign, EventObject, State } from 'xstate';
 import { send } from 'xstate/lib/actions';
 import { extractStackInfoFromContext, hasMoreDeployment, hasMoreRollback, stackPollerActivity } from './helpers';
 
@@ -25,9 +25,17 @@ export type DeployMachineContext = {
   currentIndex: number;
 };
 
-type DeploymentMachineEvents = 'IDLE' | 'DEPLOY' | 'ROLLBACK' | 'INDEX' | 'DONE' | 'NEXT';
-
-interface DeployMachineSchema {
+export type DeploymentMachineEvents = 'IDLE' | 'DEPLOY' | 'ROLLBACK' | 'INDEX' | 'DONE' | 'NEXT';
+export type DeploymentMachineState = State<
+  DeployMachineContext,
+  { type: DeploymentMachineEvents },
+  DeployMachineSchema,
+  {
+    value: any;
+    context: DeployMachineContext;
+  }
+>;
+export interface DeployMachineSchema {
   states: {
     idle: {};
     deploy: {
@@ -40,7 +48,6 @@ interface DeployMachineSchema {
     };
     rollback: {
       states: {
-        // uploadRollbackStack: {};
         triggerRollback: {};
         rollingBack: {};
         waitingForRollback: {};

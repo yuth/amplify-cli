@@ -2,15 +2,24 @@ import * as aws from 'aws-sdk';
 import assert from 'assert';
 import * as path from 'path';
 import throttle from 'lodash.throttle';
-import { createDeploymentMachine, DeploymentMachineOp, DeploymentMachineStep, StateMachineHelperFunctions } from './state-machine';
-import { interpret } from 'xstate';
+import {
+  createDeploymentMachine,
+  DeploymentMachineOp,
+  DeploymentMachineStep,
+  StateMachineHelperFunctions,
+  DeploymentMachineState,
+} from './state-machine';
+import { interpret, State } from 'xstate';
 import { IStackProgressPrinter, StackEventMonitor } from './stack-event-monitor';
 import { StackProgressPrinter } from './stack-progress-printer';
 import ora from 'ora';
 import configurationManager from '../configuration-manager';
-import { $TSContext } from 'amplify-cli-core';
+import { $TSContext, DeploymentStatus, IDeploymentStateManager } from 'amplify-cli-core';
 import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
 import { getBucketKey, getHttpUrl } from './helpers';
+import { DeploymentStateManager } from './deployment-state-manager';
+import { DeploymentStepStatus } from 'amplify-cli-core';
+import { update } from 'lodash';
 
 interface DeploymentManagerOptions {
   throttleDelay?: number;
@@ -68,7 +77,7 @@ export class DeploymentManager {
     this.cfnClient = new aws.CloudFormation(creds);
   }
 
-  public deploy = async (): Promise<void> => {
+  public deploy = async (deploymentStateManager: IDeploymentStateManager): Promise<void> => {
     // sanity check before deployment
     const deploymentTemplates = this.deployment.reduce<Set<string>>((acc, step) => {
       acc.add(step.deployment.stackTemplatePath);
@@ -96,9 +105,10 @@ export class DeploymentManager {
     );
 
     let maxDeployed = 0;
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const service = interpret(machine)
-        .onTransition(state => {
+        .onTransition(async state => {
+          await this.updateDeploymentStatus(state, deploymentStateManager);
           if (state.changed) {
             maxDeployed = Math.max(maxDeployed, state.context.currentIndex + 1);
             if (state.matches('idle')) {
@@ -118,7 +128,7 @@ export class DeploymentManager {
             case 'rolledBack':
             case 'failed':
               return reject(new Error('Deployment failed'));
-              this.spinner.fail(`Failed to deploy`);
+              break;
             default:
             // intentionally left blank as we don't care about intermediate states
           }
@@ -281,5 +291,42 @@ export class DeploymentManager {
 
   private rollBackStack = async (currentStack: Readonly<DeploymentMachineOp>): Promise<void> => {
     await this.doDeploy(currentStack);
+  };
+
+  private updateDeploymentStatus = async (
+    machineState: DeploymentMachineState,
+    deploymentStateManager: IDeploymentStateManager,
+  ): Promise<void> => {
+    if (machineState.changed) {
+      if (machineState.value === 'rollback' && machineState.history?.matches('deploy')) {
+        deploymentStateManager.startRollback();
+      } else if (machineState.matches('deploy.triggerDeploy')) {
+        if (!machineState.history?.matches('idle')) {
+          if (machineState.context.currentIndex < machineState.context.stacks.length - 1) {
+            await deploymentStateManager.advanceStep(DeploymentStepStatus.DEPLOYED);
+          } else {
+            await deploymentStateManager.updateCurrentStepStatus(DeploymentStepStatus.DEPLOYED);
+          }
+        }
+      } else if (machineState.matches('rollback.triggerRollback')) {
+        if (machineState.context.currentIndex > 0) {
+          await deploymentStateManager.advanceStep(DeploymentStepStatus.ROLLED_BACK);
+        } else {
+          await deploymentStateManager.updateCurrentStepStatus(DeploymentStepStatus.ROLLED_BACK);
+        }
+      } else if (machineState.matches('deploy.waitingForDeployment')) {
+        await deploymentStateManager.updateCurrentStepStatus(DeploymentStepStatus.DEPLOYING);
+      } else if (machineState.matches('deploy.waitForTablesToBeReady') || machineState.matches('rollback.waitForTablesToBeReady')) {
+        await deploymentStateManager.updateCurrentStepStatus(DeploymentStepStatus.WAITING_FOR_TABLE_TO_BE_READY);
+      } else if (machineState.matches('rollback.waitingForRollback')) {
+        await deploymentStateManager.updateCurrentStepStatus(DeploymentStepStatus.WAITING_FOR_ROLLBACK);
+      } else if (machineState.matches('deployed')) {
+        await deploymentStateManager.finishDeployment(DeploymentStatus.DEPLOYED);
+      } else if (machineState.matches('rolledBack')) {
+        await deploymentStateManager.finishDeployment(DeploymentStatus.ROLLED_BACK);
+      } else if (machineState.matches('failed')) {
+        await deploymentStateManager.finishDeployment(DeploymentStatus.FAILED);
+      }
+    }
   };
 }

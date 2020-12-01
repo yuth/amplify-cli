@@ -100,13 +100,16 @@ export class DeploymentStateManager implements IDeploymentStateManager {
     await this.saveState();
   };
 
-  public advanceStep = async (): Promise<void> => {
+  public advanceStep = async (lastStepStatus?: DeploymentStepStatus): Promise<void> => {
     // Sanity check, should not happen during normal execution
     if (
       (this.direction === 1 && this.currentState.currentStepIndex === this.currentState.steps.length - 1) ||
       (this.direction === -1 && this.currentState.currentStepIndex === 0)
     ) {
       throw new Error(`No more deployment steps to advance to (index: ${this.currentState.currentStepIndex}, direction: ${this.direction}`);
+    }
+    if (lastStepStatus) {
+      this.currentState.steps[this.currentState.currentStepIndex].status = lastStepStatus;
     }
 
     this.currentState.currentStepIndex += this.direction;
