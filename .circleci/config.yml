@@ -938,30 +938,6 @@ jobs:
           when: always
       - store_artifacts:
           path: ../uitest_android_results
-  schema-iterative-update-4-amplify_e2e_tests:
-    working_directory: ~/repo
-    docker: *ref_0
-    resource_class: large
-    steps: *ref_8
-    environment:
-      TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
-      CLI_REGION: us-east-2
-  schema-iterative-update-3-amplify_e2e_tests:
-    working_directory: ~/repo
-    docker: *ref_0
-    resource_class: large
-    steps: *ref_8
-    environment:
-      TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
-      CLI_REGION: us-west-2
-  schema-iterative-update-2-amplify_e2e_tests:
-    working_directory: ~/repo
-    docker: *ref_0
-    resource_class: large
-    steps: *ref_8
-    environment:
-      TEST_SUITE: src/__tests__/schema-iterative-update-2.test.ts
-      CLI_REGION: eu-west-2
   schema-iterative-update-1-amplify_e2e_tests:
     working_directory: ~/repo
     docker: *ref_0
@@ -969,6 +945,30 @@ jobs:
     steps: *ref_8
     environment:
       TEST_SUITE: src/__tests__/schema-iterative-update-1.test.ts
+      CLI_REGION: us-east-2
+  schema-iterative-update-2-amplify_e2e_tests:
+    working_directory: ~/repo
+    docker: *ref_0
+    resource_class: large
+    steps: *ref_8
+    environment:
+      TEST_SUITE: src/__tests__/schema-iterative-update-2.test.ts
+      CLI_REGION: us-west-2
+  schema-iterative-update-3-amplify_e2e_tests:
+    working_directory: ~/repo
+    docker: *ref_0
+    resource_class: large
+    steps: *ref_8
+    environment:
+      TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
+      CLI_REGION: eu-west-2
+  schema-iterative-update-4-amplify_e2e_tests:
+    working_directory: ~/repo
+    docker: *ref_0
+    resource_class: large
+    steps: *ref_8
+    environment:
+      TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
       CLI_REGION: eu-central-1
   plugin-amplify_e2e_tests:
     working_directory: ~/repo
@@ -1410,25 +1410,15 @@ jobs:
     environment:
       TEST_SUITE: src/__tests__/api_2.test.ts
       CLI_REGION: eu-west-2
-  schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
+  schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
     working_directory: ~/repo
     docker: *ref_0
     resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
       AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
-      TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
+      TEST_SUITE: src/__tests__/schema-iterative-update-1.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_9
-  schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
-    working_directory: ~/repo
-    docker: *ref_0
-    resource_class: large
-    environment:
-      AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
-      TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
-      CLI_REGION: us-west-2
     steps: *ref_9
   schema-iterative-update-2-amplify_e2e_tests_pkg_linux:
     working_directory: ~/repo
@@ -1438,16 +1428,26 @@ jobs:
       AMPLIFY_DIR: /home/circleci/repo/out
       AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-iterative-update-2.test.ts
-      CLI_REGION: eu-west-2
+      CLI_REGION: us-west-2
     steps: *ref_9
-  schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
+  schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
     working_directory: ~/repo
     docker: *ref_0
     resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
       AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
-      TEST_SUITE: src/__tests__/schema-iterative-update-1.test.ts
+      TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
+      CLI_REGION: eu-west-2
+    steps: *ref_9
+  schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
+    docker: *ref_0
+    resource_class: large
+    environment:
+      AMPLIFY_DIR: /home/circleci/repo/out
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
   plugin-amplify_e2e_tests_pkg_linux:
@@ -2051,7 +2051,8 @@ workflows:
               only:
                 - master
                 - beta
-                - backendManager
+                - release
+                - iterative-update-after-merge
           requires:
             - build
       - build_pkg_binaries:
@@ -2197,11 +2198,12 @@ workflows:
             branches:
               only:
                 - backendManager
-      - schema-iterative-update-4-amplify_e2e_tests:
+      - schema-iterative-update-1-amplify_e2e_tests:
           filters: &ref_10
             branches:
               only:
                 - master
+                - iterative-update-after-merge
           requires:
             - publish_to_local_registry
       - amplify-configure-amplify_e2e_tests:
@@ -2220,7 +2222,7 @@ workflows:
           filters: *ref_10
           requires:
             - publish_to_local_registry
-            - schema-iterative-update-4-amplify_e2e_tests
+            - schema-iterative-update-1-amplify_e2e_tests
       - schema-auth-4-amplify_e2e_tests:
           filters: *ref_10
           requires:
@@ -2241,7 +2243,7 @@ workflows:
           requires:
             - publish_to_local_registry
             - auth_3-amplify_e2e_tests
-      - schema-iterative-update-3-amplify_e2e_tests:
+      - schema-iterative-update-2-amplify_e2e_tests:
           filters: *ref_10
           requires:
             - publish_to_local_registry
@@ -2261,7 +2263,7 @@ workflows:
           filters: *ref_10
           requires:
             - publish_to_local_registry
-            - schema-iterative-update-3-amplify_e2e_tests
+            - schema-iterative-update-2-amplify_e2e_tests
       - api_3-amplify_e2e_tests:
           filters: *ref_10
           requires:
@@ -2282,7 +2284,7 @@ workflows:
           requires:
             - publish_to_local_registry
             - layer-amplify_e2e_tests
-      - schema-iterative-update-2-amplify_e2e_tests:
+      - schema-iterative-update-3-amplify_e2e_tests:
           filters: *ref_10
           requires:
             - publish_to_local_registry
@@ -2302,7 +2304,7 @@ workflows:
           filters: *ref_10
           requires:
             - publish_to_local_registry
-            - schema-iterative-update-2-amplify_e2e_tests
+            - schema-iterative-update-3-amplify_e2e_tests
       - import_auth_1-amplify_e2e_tests:
           filters: *ref_10
           requires:
@@ -2323,7 +2325,7 @@ workflows:
           requires:
             - publish_to_local_registry
             - migration-api-key-migration1-amplify_e2e_tests
-      - schema-iterative-update-1-amplify_e2e_tests:
+      - schema-iterative-update-4-amplify_e2e_tests:
           filters: *ref_10
           requires:
             - publish_to_local_registry
@@ -2343,7 +2345,7 @@ workflows:
           filters: *ref_10
           requires:
             - publish_to_local_registry
-            - schema-iterative-update-1-amplify_e2e_tests
+            - schema-iterative-update-4-amplify_e2e_tests
       - import_auth_2-amplify_e2e_tests:
           filters: *ref_10
           requires:
@@ -2467,7 +2469,7 @@ workflows:
           requires:
             - publish_to_local_registry
             - function_2-amplify_e2e_tests
-      - schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
+      - schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
           filters: &ref_11
             branches:
               only:
@@ -2495,7 +2497,7 @@ workflows:
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
-            - schema-iterative-update-4-amplify_e2e_tests_pkg_linux
+            - schema-iterative-update-1-amplify_e2e_tests_pkg_linux
       - schema-auth-4-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:
@@ -2520,7 +2522,7 @@ workflows:
             - done_with_node_e2e_tests
             - build_pkg_binaries
             - auth_3-amplify_e2e_tests_pkg_linux
-      - schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
+      - schema-iterative-update-2-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:
             - done_with_node_e2e_tests
@@ -2545,7 +2547,7 @@ workflows:
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
-            - schema-iterative-update-3-amplify_e2e_tests_pkg_linux
+            - schema-iterative-update-2-amplify_e2e_tests_pkg_linux
       - api_3-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:
@@ -2570,7 +2572,7 @@ workflows:
             - done_with_node_e2e_tests
             - build_pkg_binaries
             - layer-amplify_e2e_tests_pkg_linux
-      - schema-iterative-update-2-amplify_e2e_tests_pkg_linux:
+      - schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:
             - done_with_node_e2e_tests
@@ -2595,7 +2597,7 @@ workflows:
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
-            - schema-iterative-update-2-amplify_e2e_tests_pkg_linux
+            - schema-iterative-update-3-amplify_e2e_tests_pkg_linux
       - import_auth_1-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:
@@ -2620,7 +2622,7 @@ workflows:
             - done_with_node_e2e_tests
             - build_pkg_binaries
             - migration-api-key-migration1-amplify_e2e_tests_pkg_linux
-      - schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
+      - schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:
             - done_with_node_e2e_tests
@@ -2645,7 +2647,7 @@ workflows:
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
-            - schema-iterative-update-1-amplify_e2e_tests_pkg_linux
+            - schema-iterative-update-4-amplify_e2e_tests_pkg_linux
       - import_auth_2-amplify_e2e_tests_pkg_linux:
           filters: *ref_11
           requires:

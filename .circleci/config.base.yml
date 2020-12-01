@@ -857,7 +857,8 @@ workflows:
               only:
                 - master
                 - beta
-                - backendManager
+                - release
+                - iterative-update-after-merge
           requires:
             - build
       - build_pkg_binaries:
@@ -875,6 +876,7 @@ workflows:
             branches:
               only:
                 - master
+                - iterative-update-after-merge
           requires:
             - publish_to_local_registry
       - done_with_node_e2e_tests:
