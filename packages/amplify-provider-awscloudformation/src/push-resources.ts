@@ -52,7 +52,7 @@ export async function run(context, resourceDefinition) {
 
   try {
     const { resourcesToBeCreated, resourcesToBeUpdated, resourcesToBeSynced, resourcesToBeDeleted, allResources } = resourceDefinition;
-    const meta = context.amplify.getProjectMeta().providers.awscloudformation;
+    const clousformationMeta = context.amplify.getProjectMeta().providers.awscloudformation;
     const {
       parameters: { options },
     } = context;
@@ -64,8 +64,6 @@ export async function run(context, resourceDefinition) {
     } else {
       resources = resourcesToBeCreated.concat(resourcesToBeUpdated);
     }
-
-    let projectDetails = context.amplify.getProjectDetails();
 
     validateCfnTemplates(context, resources);
 
@@ -94,7 +92,7 @@ export async function run(context, resourceDefinition) {
       const gqlResource = getGqlUpdatedResource(resourcesToBeUpdated);
 
       if (gqlResource) {
-        const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, meta.StackId);
+        const gqlManager = await GraphQLResourceManager.createInstance(context, gqlResource, clousformationMeta.StackId);
         deploymentSteps = await gqlManager.run();
 
         if (deploymentSteps.length > 1) {
@@ -119,13 +117,15 @@ export async function run(context, resourceDefinition) {
     await uploadAppSyncFiles(context, resources, allResources);
     await prePushAuthTransform(context, resources);
     await prePushGraphQLCodegen(context, resourcesToBeCreated, resourcesToBeUpdated);
+
+    let projectDetails = context.amplify.getProjectDetails();
     await updateS3Templates(context, resources, projectDetails.amplifyMeta);
 
     // We do not need CloudFormation update if only syncable resources are the changes.
     if (resourcesToBeCreated.length > 0 || resourcesToBeUpdated.length > 0 || resourcesToBeDeleted.length > 0) {
-      if (deploymentSteps.length > 0) {
+      if (deploymentSteps.length > 1) {
         // create deployment manager
-        const deploymentManager = await DeploymentManager.createInstance(context, meta.DeploymentBucketName, spinner);
+        const deploymentManager = await DeploymentManager.createInstance(context, clousformationMeta.DeploymentBucketName, spinner);
 
         deploymentSteps.forEach(step => deploymentManager.addStep(step));
         // generate nested stack
@@ -137,11 +137,11 @@ export async function run(context, resourceDefinition) {
         const finalStep: DeploymentOp = {
           stackTemplatePathOrUrl: nestedStackFileName,
           tableNames: [],
-          stackName: meta.StackName,
+          stackName: clousformationMeta.StackName,
           parameters: {
-            DeploymentBucketName: meta.DeploymentBucketName,
-            AuthRoleName: meta.AuthRoleName,
-            UnauthRoleName: meta.UnauthRoleName,
+            DeploymentBucketName: clousformationMeta.DeploymentBucketName,
+            AuthRoleName: clousformationMeta.AuthRoleName,
+            UnauthRoleName: clousformationMeta.UnauthRoleName,
           },
           capabilities: ['CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
         };
@@ -159,7 +159,7 @@ export async function run(context, resourceDefinition) {
       } else {
         spinner.start();
 
-        const nestedStack = formNestedStack(context, projectDetails);
+        const nestedStack = formNestedStack(context, context.amplify.getProjectDetails());
 
         await updateCloudFormationNestedStack(context, nestedStack, resourcesToBeCreated, resourcesToBeUpdated);
       }

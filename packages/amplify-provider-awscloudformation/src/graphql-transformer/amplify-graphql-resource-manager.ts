@@ -138,12 +138,14 @@ export class GraphQLResourceManager {
         JSONUtilities.writeJson(filepath, this.templateState.pop(tableName));
       });
 
+      const deploymentRootKey = `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}`;
       const deploymentStep: DeploymentOp = {
-        stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
-        parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
+        // stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
+        stackTemplatePathOrUrl: `${deploymentRootKey}/cloudformation-template.json`,
+        parameters: { ...parameters, S3DeploymentRootKey: deploymentRootKey },
         stackName: this.resourceMeta.stackId,
         tableNames: tableNames,
-        clientRequestToken: `${buildHash}-step-${stepNumber}`,
+        // clientRequestToken: `${buildHash}-step-${stepNumber}`,
       };
       gqlSteps.push({
         deployment: deploymentStep,
@@ -168,12 +170,14 @@ export class GraphQLResourceManager {
 
     fs.copySync(cloudBuildDir, stepPath);
 
+    const deploymentRootKey = `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}`;
     return {
-      stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
-      parameters: { ...parameters, S3DeploymentRootKey: `${ROOT_APPSYNC_S3_KEY}/${buildHash}/states/${stepNumber}` },
+      // stackTemplatePathOrUrl: this.resourceMeta.providerMetadata.s3TemplateURL,
+      stackTemplatePathOrUrl: `${deploymentRootKey}/cloudformation-template.json`,
+      parameters: { ...parameters, S3DeploymentRootKey: deploymentRootKey },
       stackName: this.resourceMeta.stackId,
       tableNames: [],
-      clientRequestToken: `${buildHash}-inital-stack`,
+      // clientRequestToken: `${buildHash}-inital-stack`,
     };
   };
 

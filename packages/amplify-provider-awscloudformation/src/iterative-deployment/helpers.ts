@@ -1,4 +1,5 @@
 import { DeployMachineContext, DeploymentMachineOp } from './state-machine';
+import * as path from 'path';
 
 export const hasMoreRollback = (context: DeployMachineContext) => {
   return context.currentIndex >= 0;
@@ -45,5 +46,5 @@ export const getBucketKey = (keyOrUrl: string, bucketName: string): string => {
 };
 
 export const getHttpUrl = (keyOrUrl: string, bucketName: string): string => {
-  return keyOrUrl.startsWith('https://') ? keyOrUrl : `https://s3.amazonaws.com/${bucketName}/${keyOrUrl}`;
+  return keyOrUrl.startsWith('https://') ? keyOrUrl : `https://s3.amazonaws.com/${path.join(bucketName, keyOrUrl)}`;
 };
