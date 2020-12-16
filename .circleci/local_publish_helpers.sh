@@ -52,3 +52,12 @@ function setSudoNpmRegistryUrlToLocal {
   sudo npm set registry "$custom_registry_url"
   sudo yarn config set registry "$custom_registry_url"
 }
+
+# Start the Verdaccio server
+VERDACCIO_CONFIG_PATH="`dirname "$0"`/verdaccio.yaml"
+startLocalRegistry "$VERDACCIO_CONFIG_PATH" 
+setNpmRegistryUrlToLocal
+loginToLocalRegistry
+git global config user.email not@used.com
+git global config user.name "Doesnt Matter"
+
