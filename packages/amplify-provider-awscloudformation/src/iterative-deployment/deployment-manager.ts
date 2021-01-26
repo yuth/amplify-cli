@@ -286,15 +286,20 @@ export class DeploymentManager {
       };
     });
 
-    await cfn
-      .updateStack({
-        StackName: currentStack.stackName,
-        Parameters: parameters,
-        TemplateURL: currentStack.stackTemplateUrl,
-        Capabilities: currentStack.capabilities,
-        ClientRequestToken: currentStack.clientRequestToken,
-      })
-      .promise();
+    try {
+      await cfn
+        .updateStack({
+          StackName: currentStack.stackName,
+          Parameters: parameters,
+          TemplateURL: currentStack.stackTemplateUrl,
+          Capabilities: currentStack.capabilities,
+          ClientRequestToken: currentStack.clientRequestToken,
+        })
+        .promise();
+    } catch (e) {
+      // Todo: remove the catch block. Put here for debugging and getting the actual exception
+      throw e;
+    }
   };
 
   private waitForDeployment = async (stackParams: DeploymentMachineOp): Promise<void> => {

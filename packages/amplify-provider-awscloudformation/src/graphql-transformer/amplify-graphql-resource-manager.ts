@@ -148,6 +148,8 @@ export class GraphQLResourceManager {
         parameters: { ...parameters, S3DeploymentRootKey: deploymentRootKey },
         stackName: this.resourceMeta.stackId,
         tableNames: tableNames,
+        // Todo: This should be picked from root stack or from an const which is used everywhere
+        capabilities: ['CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
         // clientRequestToken: `${buildHash}-step-${stepNumber}`,
       };
 
