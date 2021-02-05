@@ -33,87 +33,6 @@ install_java: &ref_1
     source $BASH_ENV
 
     java -version
-install_gradle:
-  name: Install Gradle
-  command: |
-    wget https://services.gradle.org/distributions/gradle-6.3-bin.zip -P /tmp
-    sudo unzip -d /opt/gradle /tmp/gradle-*.zip
-    echo "export GRADLE_HOME=/opt/gradle/gradle-6.3" >> $BASH_ENV
-    echo "export PATH=$PATH:/opt/gradle/gradle-6.3/bin" >> $BASH_ENV
-    source $BASH_ENV
-    gradle --version
-install_go:
-  name: Install Go
-  command: |
-    curl -O https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz
-    sudo tar -C /usr/local -xzf go1.14.1.linux-amd64.tar.gz
-    rm go1.14.1.linux-amd64.tar.gz
-    echo "export PATH=$PATH:/usr/local/go/bin" >> $BASH_ENV
-    source $BASH_ENV
-    go version
-install_python:
-  name: Install Python
-  command: >
-    sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev
-    libnss3-dev libssl-dev libsqlite3-dev libreadline-dev libffi-dev curl
-
-    curl -O https://www.python.org/ftp/python/3.8.2/Python-3.8.2.tar.xz
-
-    sudo tar -C /usr/local -xf Python-3.8.2.tar.xz
-
-    cd /usr/local/Python-3.8.2
-
-    sudo ./configure
-
-    sudo make -j 4
-
-    sudo make install
-
-    sudo apt install python3-pip
-
-    pip3 install --user pipenv
-
-    python3 --version
-
-    pipenv --version
-install_dotnet:
-  name: Install .NET
-  command: >
-    sudo apt-get install apt-transport-https ca-certificates
-
-    wget -O- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >
-    microsoft.asc.gpg
-
-    sudo mv microsoft.asc.gpg /etc/apt/trusted.gpg.d/
-
-    wget https://packages.microsoft.com/config/debian/9/prod.list
-
-    sudo mv prod.list /etc/apt/sources.list.d/microsoft-prod.list
-
-    sudo chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
-
-    sudo chown root:root /etc/apt/sources.list.d/microsoft-prod.list
-
-
-    sudo apt-get update
-
-    sudo apt-get install apt-transport-https
-
-    sudo apt-get update
-
-    sudo apt-get install dotnet-sdk-3.1
-
-    dotnet --version
-
-    dotnet tool install -g amazon.lambda.tools
-
-    dotnet tool install -g amazon.lambda.testtool-3.1
-
-    echo "export PATH=$PATH:$HOME/.dotnet/tools" >> $BASH_ENV
-
-    source $BASH_ENV
-
-    dotnet tool list -g
 run_e2e_tests: &ref_4
   name: Run Amplify end-to-end tests
   command: |
@@ -128,6 +47,7 @@ run_e2e_tests: &ref_4
     unsetNpmRegistryUrl
   no_output_timeout: 90m
 e2e_test_image:
+  working_directory: ~/repo
   docker: &ref_3
     - image: >-
         744586199449.dkr.ecr.us-east-2.amazonaws.com/amplify-cli-base-image:latest
@@ -302,6 +222,7 @@ jobs:
             unsetSudoNpmRegistryUrl
             amplify version
   amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: &ref_5
@@ -337,6 +258,7 @@ jobs:
     steps:
       - run: echo 'Done with pkg CLI E2E Tests'
   amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -950,6 +872,7 @@ jobs:
       - store_artifacts:
           path: ../uitest_android_results
   function_5-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -957,6 +880,7 @@ jobs:
       TEST_SUITE: src/__tests__/function_5.test.ts
       CLI_REGION: us-east-2
   schema-iterative-update-locking-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -964,6 +888,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
       CLI_REGION: us-west-2
   plugin-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -971,6 +896,7 @@ jobs:
       TEST_SUITE: src/__tests__/plugin.test.ts
       CLI_REGION: eu-west-2
   init-special-case-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -978,6 +904,7 @@ jobs:
       TEST_SUITE: src/__tests__/init-special-case.test.ts
       CLI_REGION: eu-central-1
   datastore-modelgen-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -985,6 +912,7 @@ jobs:
       TEST_SUITE: src/__tests__/datastore-modelgen.test.ts
       CLI_REGION: ap-northeast-1
   amplify-configure-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -992,6 +920,7 @@ jobs:
       TEST_SUITE: src/__tests__/amplify-configure.test.ts
       CLI_REGION: ap-southeast-1
   init-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -999,6 +928,7 @@ jobs:
       TEST_SUITE: src/__tests__/init.test.ts
       CLI_REGION: ap-southeast-2
   tags-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1006,6 +936,7 @@ jobs:
       TEST_SUITE: src/__tests__/tags.test.ts
       CLI_REGION: us-east-2
   schema-versioned-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1013,6 +944,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-versioned.test.ts
       CLI_REGION: us-west-2
   schema-data-access-patterns-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1020,6 +952,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-data-access-patterns.test.ts
       CLI_REGION: eu-west-2
   interactions-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1027,6 +960,7 @@ jobs:
       TEST_SUITE: src/__tests__/interactions.test.ts
       CLI_REGION: eu-central-1
   schema-predictions-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1034,6 +968,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-predictions.test.ts
       CLI_REGION: ap-northeast-1
   amplify-app-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1041,6 +976,7 @@ jobs:
       TEST_SUITE: src/__tests__/amplify-app.test.ts
       CLI_REGION: ap-southeast-1
   hosting-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1048,6 +984,7 @@ jobs:
       TEST_SUITE: src/__tests__/hosting.test.ts
       CLI_REGION: ap-southeast-2
   analytics-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1055,6 +992,7 @@ jobs:
       TEST_SUITE: src/__tests__/analytics.test.ts
       CLI_REGION: us-east-2
   feature-flags-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1062,6 +1000,7 @@ jobs:
       TEST_SUITE: src/__tests__/feature-flags.test.ts
       CLI_REGION: us-west-2
   schema-iterative-update-2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1069,6 +1008,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-iterative-update-2.test.ts
       CLI_REGION: eu-west-2
   containers-api-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1076,6 +1016,7 @@ jobs:
       TEST_SUITE: src/__tests__/containers-api.test.ts
       CLI_REGION: eu-central-1
   predictions-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1083,6 +1024,7 @@ jobs:
       TEST_SUITE: src/__tests__/predictions.test.ts
       CLI_REGION: ap-northeast-1
   hostingPROD-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1090,6 +1032,7 @@ jobs:
       TEST_SUITE: src/__tests__/hostingPROD.test.ts
       CLI_REGION: ap-southeast-1
   schema-auth-10-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1097,6 +1040,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-10.test.ts
       CLI_REGION: ap-southeast-2
   schema-key-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1104,6 +1048,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-key.test.ts
       CLI_REGION: us-east-2
   auth_1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1111,6 +1056,7 @@ jobs:
       TEST_SUITE: src/__tests__/auth_1.test.ts
       CLI_REGION: us-west-2
   auth_5-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1118,6 +1064,7 @@ jobs:
       TEST_SUITE: src/__tests__/auth_5.test.ts
       CLI_REGION: eu-west-2
   function_3-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1125,6 +1072,7 @@ jobs:
       TEST_SUITE: src/__tests__/function_3.test.ts
       CLI_REGION: eu-central-1
   schema-iterative-update-1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1132,6 +1080,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-iterative-update-1.test.ts
       CLI_REGION: ap-northeast-1
   schema-auth-3-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1139,6 +1088,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-3.test.ts
       CLI_REGION: ap-southeast-1
   delete-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1146,6 +1096,7 @@ jobs:
       TEST_SUITE: src/__tests__/delete.test.ts
       CLI_REGION: ap-southeast-2
   function_2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1153,6 +1104,7 @@ jobs:
       TEST_SUITE: src/__tests__/function_2.test.ts
       CLI_REGION: us-east-2
   auth_3-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1160,6 +1112,7 @@ jobs:
       TEST_SUITE: src/__tests__/auth_3.test.ts
       CLI_REGION: us-west-2
   layer-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1167,6 +1120,7 @@ jobs:
       TEST_SUITE: src/__tests__/layer.test.ts
       CLI_REGION: eu-west-2
   migration-api-key-migration1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1174,6 +1128,7 @@ jobs:
       TEST_SUITE: src/__tests__/migration/api.key.migration1.test.ts
       CLI_REGION: eu-central-1
   auth_4-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1181,6 +1136,7 @@ jobs:
       TEST_SUITE: src/__tests__/auth_4.test.ts
       CLI_REGION: ap-northeast-1
   schema-auth-7-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1188,6 +1144,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-7.test.ts
       CLI_REGION: ap-southeast-1
   schema-auth-8-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1195,6 +1152,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-8.test.ts
       CLI_REGION: ap-southeast-2
   schema-searchable-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1202,6 +1160,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-searchable.test.ts
       CLI_REGION: us-east-2
   schema-auth-4-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1209,6 +1168,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-4.test.ts
       CLI_REGION: us-west-2
   api_3-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1216,6 +1176,7 @@ jobs:
       TEST_SUITE: src/__tests__/api_3.test.ts
       CLI_REGION: eu-west-2
   import_auth_1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1223,6 +1184,7 @@ jobs:
       TEST_SUITE: src/__tests__/import_auth_1.test.ts
       CLI_REGION: eu-central-1
   import_auth_2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1230,6 +1192,7 @@ jobs:
       TEST_SUITE: src/__tests__/import_auth_2.test.ts
       CLI_REGION: ap-northeast-1
   import_s3_1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1237,6 +1200,7 @@ jobs:
       TEST_SUITE: src/__tests__/import_s3_1.test.ts
       CLI_REGION: ap-southeast-1
   import_dynamodb_1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1244,6 +1208,7 @@ jobs:
       TEST_SUITE: src/__tests__/import_dynamodb_1.test.ts
       CLI_REGION: ap-southeast-2
   env-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1251,6 +1216,7 @@ jobs:
       TEST_SUITE: src/__tests__/env.test.ts
       CLI_REGION: us-east-2
   auth_2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1258,6 +1224,7 @@ jobs:
       TEST_SUITE: src/__tests__/auth_2.test.ts
       CLI_REGION: us-west-2
   schema-auth-9-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1265,6 +1232,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-9.test.ts
       CLI_REGION: eu-west-2
   schema-auth-11-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1272,6 +1240,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-11.test.ts
       CLI_REGION: eu-central-1
   migration-api-key-migration2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1279,6 +1248,7 @@ jobs:
       TEST_SUITE: src/__tests__/migration/api.key.migration2.test.ts
       CLI_REGION: ap-northeast-1
   function_1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1286,6 +1256,7 @@ jobs:
       TEST_SUITE: src/__tests__/function_1.test.ts
       CLI_REGION: ap-southeast-1
   schema-auth-1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1293,6 +1264,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-1.test.ts
       CLI_REGION: ap-southeast-2
   function_4-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1300,6 +1272,7 @@ jobs:
       TEST_SUITE: src/__tests__/function_4.test.ts
       CLI_REGION: us-east-2
   schema-function-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1307,6 +1280,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-function.test.ts
       CLI_REGION: us-west-2
   schema-model-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1314,6 +1288,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-model.test.ts
       CLI_REGION: eu-west-2
   migration-api-connection-migration-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1321,6 +1296,7 @@ jobs:
       TEST_SUITE: src/__tests__/migration/api.connection.migration.test.ts
       CLI_REGION: eu-central-1
   schema-connection-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1328,6 +1304,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-connection.test.ts
       CLI_REGION: ap-northeast-1
   schema-auth-6-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1335,6 +1312,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-6.test.ts
       CLI_REGION: ap-southeast-1
   schema-iterative-update-3-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1342,6 +1320,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
       CLI_REGION: ap-southeast-2
   schema-auth-2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1349,6 +1328,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-2.test.ts
       CLI_REGION: us-east-2
   api_1-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1356,6 +1336,7 @@ jobs:
       TEST_SUITE: src/__tests__/api_1.test.ts
       CLI_REGION: us-west-2
   schema-auth-5-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1363,6 +1344,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-auth-5.test.ts
       CLI_REGION: eu-west-2
   storage-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1370,6 +1352,7 @@ jobs:
       TEST_SUITE: src/__tests__/storage.test.ts
       CLI_REGION: eu-central-1
   api_2-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1377,6 +1360,7 @@ jobs:
       TEST_SUITE: src/__tests__/api_2.test.ts
       CLI_REGION: ap-northeast-1
   schema-iterative-update-4-amplify_e2e_tests:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     steps: *ref_5
@@ -1384,6 +1368,7 @@ jobs:
       TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
       CLI_REGION: ap-southeast-1
   function_5-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1393,6 +1378,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   schema-iterative-update-locking-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1402,6 +1388,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   plugin-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1411,6 +1398,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   init-special-case-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1420,6 +1408,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   datastore-modelgen-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1429,6 +1418,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   amplify-configure-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1438,6 +1428,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   init-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1447,6 +1438,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   tags-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1456,6 +1448,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   schema-versioned-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1465,6 +1458,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   schema-data-access-patterns-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1474,6 +1468,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   interactions-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1483,6 +1478,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   schema-predictions-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1492,6 +1488,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   amplify-app-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1501,6 +1498,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   hosting-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1510,6 +1508,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   analytics-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1519,6 +1518,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   feature-flags-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1528,6 +1528,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   schema-iterative-update-2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1537,6 +1538,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   containers-api-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1546,6 +1548,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   predictions-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1555,6 +1558,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   hostingPROD-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1564,6 +1568,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   schema-auth-10-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1573,6 +1578,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   schema-key-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1582,6 +1588,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   auth_1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1591,6 +1598,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   auth_5-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1600,6 +1608,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   function_3-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1609,6 +1618,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1618,6 +1628,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   schema-auth-3-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1627,6 +1638,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   delete-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1636,6 +1648,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   function_2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1645,6 +1658,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   auth_3-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1654,6 +1668,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   layer-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1663,6 +1678,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   migration-api-key-migration1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1672,6 +1688,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   auth_4-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1681,6 +1698,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   schema-auth-7-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1690,6 +1708,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   schema-auth-8-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1699,6 +1718,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   schema-searchable-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1708,6 +1728,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   schema-auth-4-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1717,6 +1738,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   api_3-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1726,6 +1748,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   import_auth_1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1735,6 +1758,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   import_auth_2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1744,6 +1768,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   import_s3_1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1753,6 +1778,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   import_dynamodb_1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1762,6 +1788,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   env-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1771,6 +1798,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   auth_2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1780,6 +1808,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   schema-auth-9-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1789,6 +1818,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   schema-auth-11-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1798,6 +1828,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   migration-api-key-migration2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1807,6 +1838,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   function_1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1816,6 +1848,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   schema-auth-1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1825,6 +1858,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   function_4-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1834,6 +1868,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   schema-function-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1843,6 +1878,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   schema-model-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1852,6 +1888,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   migration-api-connection-migration-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1861,6 +1898,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   schema-connection-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1870,6 +1908,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   schema-auth-6-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1879,6 +1918,7 @@ jobs:
       CLI_REGION: ap-southeast-1
     steps: *ref_6
   schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1888,6 +1928,7 @@ jobs:
       CLI_REGION: ap-southeast-2
     steps: *ref_6
   schema-auth-2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1897,6 +1938,7 @@ jobs:
       CLI_REGION: us-east-2
     steps: *ref_6
   api_1-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1906,6 +1948,7 @@ jobs:
       CLI_REGION: us-west-2
     steps: *ref_6
   schema-auth-5-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1915,6 +1958,7 @@ jobs:
       CLI_REGION: eu-west-2
     steps: *ref_6
   storage-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1924,6 +1968,7 @@ jobs:
       CLI_REGION: eu-central-1
     steps: *ref_6
   api_2-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:
@@ -1933,6 +1978,7 @@ jobs:
       CLI_REGION: ap-northeast-1
     steps: *ref_6
   schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
+    working_directory: ~/repo
     docker: *ref_3
     resource_class: large
     environment:

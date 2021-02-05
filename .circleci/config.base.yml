@@ -1,7 +1,9 @@
 version: 2.1
+
 machine:
   environment:
     PATH: '${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin'
+
 defaults: &defaults
   working_directory: ~/repo
   docker:
@@ -10,11 +12,13 @@ defaults: &defaults
         username: $DOCKERHUB_USERNAME
         password: $DOCKERHUB_ACCESS_TOKEN
   resource_class: large
+
 update_os_packages: &update_os_packages
   name: Update OS Packages
   command: |
     sudo apt-get update
     sudo apt-get install xdg-utils
+
 install_java: &install_java
   name: Install Java
   command: |
@@ -25,59 +29,7 @@ install_java: &install_java
     echo "export PATH=$PATH:/usr/local/jdk-11.0.2/bin" >> $BASH_ENV
     source $BASH_ENV
     java -version
-install_gradle: &install_gradle
-  name: Install Gradle
-  command: |
-    wget https://services.gradle.org/distributions/gradle-6.3-bin.zip -P /tmp
-    sudo unzip -d /opt/gradle /tmp/gradle-*.zip
-    echo "export GRADLE_HOME=/opt/gradle/gradle-6.3" >> $BASH_ENV
-    echo "export PATH=$PATH:/opt/gradle/gradle-6.3/bin" >> $BASH_ENV
-    source $BASH_ENV
-    gradle --version
-install_go: &install_go
-  name: Install Go
-  command: |
-    curl -O https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz
-    sudo tar -C /usr/local -xzf go1.14.1.linux-amd64.tar.gz
-    rm go1.14.1.linux-amd64.tar.gz
-    echo "export PATH=$PATH:/usr/local/go/bin" >> $BASH_ENV
-    source $BASH_ENV
-    go version
-install_python: &install_python
-  name: Install Python
-  command: |
-    sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libsqlite3-dev libreadline-dev libffi-dev curl
-    curl -O https://www.python.org/ftp/python/3.8.2/Python-3.8.2.tar.xz
-    sudo tar -C /usr/local -xf Python-3.8.2.tar.xz
-    cd /usr/local/Python-3.8.2
-    sudo ./configure
-    sudo make -j 4
-    sudo make install
-    sudo apt install python3-pip
-    pip3 install --user pipenv
-    python3 --version
-    pipenv --version
-install_dotnet: &install_dotnet
-  name: Install .NET
-  command: |
-    sudo apt-get install apt-transport-https ca-certificates
-    wget -O- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.asc.gpg
-    sudo mv microsoft.asc.gpg /etc/apt/trusted.gpg.d/
-    wget https://packages.microsoft.com/config/debian/9/prod.list
-    sudo mv prod.list /etc/apt/sources.list.d/microsoft-prod.list
-    sudo chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
-    sudo chown root:root /etc/apt/sources.list.d/microsoft-prod.list
 
-    sudo apt-get update
-    sudo apt-get install apt-transport-https
-    sudo apt-get update
-    sudo apt-get install dotnet-sdk-3.1
-    dotnet --version
-    dotnet tool install -g amazon.lambda.tools
-    dotnet tool install -g amazon.lambda.testtool-3.1
-    echo "export PATH=$PATH:$HOME/.dotnet/tools" >> $BASH_ENV
-    source $BASH_ENV
-    dotnet tool list -g
 run_e2e_tests: &run_e2e_tests
   name: Run Amplify end-to-end tests
   command: |
@@ -93,6 +45,7 @@ run_e2e_tests: &run_e2e_tests
   no_output_timeout: 90m
 
 e2e_test_image: &e2e_test_image
+  working_directory: ~/repo
   docker:
     - image: 744586199449.dkr.ecr.us-east-2.amazonaws.com/amplify-cli-base-image:latest
   resource_class: large
