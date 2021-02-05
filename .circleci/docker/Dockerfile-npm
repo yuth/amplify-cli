@@ -1,0 +1,8 @@
+FROM circleci/node:10.18
+WORKDIR /tmp
+RUN echo "Hello 11 world"
+RUN sudo npm set registry "http://host.docker.internal:4873"
+RUN sudo npm install -g @aws-amplify/cli
+RUN sudo npm set registry "https://registry.npmjs.org/"
+RUN amplify -v
+RUN which amplify

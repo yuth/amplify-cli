@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  aws-ecr: circleci/aws-ecr@6.15.3
+
 machine:
   environment:
     PATH: '${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin'
@@ -47,7 +50,7 @@ run_e2e_tests: &run_e2e_tests
 e2e_test_image: &e2e_test_image
   working_directory: ~/repo
   docker:
-    - image: 744586199449.dkr.ecr.us-east-2.amazonaws.com/amplify-cli-base-image:latest
+    - image: 744586199449.dkr.ecr.us-east-2.amazonaws.com/amplify-cli-npm-image:${CIRCLE_SHA1}
   resource_class: large
 
 jobs:
@@ -150,6 +153,33 @@ jobs:
           key: amplfiy-pkg-tag-{{ .Branch }}-{{ .Revision }}
           paths:
             - ~/repo/.amplify-pkg-version
+
+  build_image_with_amplify_cli:
+    docker:
+      - image: 744586199449.dkr.ecr.us-east-2.amazonaws.com/amplify-cli-base-image:latest
+    steps:
+      - attach_workspace:
+          at: ./
+      - restore_cache:
+          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - setup_remote_docker
+      - run:
+          name: Publish to verdaccio
+          command: |
+            source .circleci/local_publish_helpers.sh
+            startLocalRegistry "$(pwd)/.circleci/verdaccio.yaml"
+            setNpmRegistryUrlToLocal
+            loginToLocalRegistry
+            git config user.email not@used.com
+            git config user.name "Doesnt Matter"
+            yarn publish-to-verdaccio
+            unsetNpmRegistryUrl
+      - aws-ecr/build-and-push-image:
+          checkout: true
+          create-repo: true
+          dockerfile: .circleci/docker/Dockerfile-npm
+          repo: amplify-cli-npm-image
+          tag: '${CIRCLE_SHA1}'
 
   build_pkg_binaries:
     <<: *defaults
@@ -833,6 +863,19 @@ workflows:
             branches:
               only:
                 - master
+      - build_image_with_amplify_cli:
+          filters:
+            branches:
+              only:
+                - master
+                - beta
+                - backendManager
+                - iterative-update
+                - release
+                - compute-functions
+                - ci-docker-image
+            requires:
+              - build
       - amplify_e2e_tests:
           filters:
             branches:
@@ -842,7 +885,7 @@ workflows:
                 - iterative-update
                 - ci-docker-image
           requires:
-            - publish_to_local_registry
+            - build_image_with_amplify_cli
       - done_with_node_e2e_tests:
           requires:
             - amplify_e2e_tests
