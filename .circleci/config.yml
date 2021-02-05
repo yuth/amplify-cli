@@ -180,6 +180,12 @@ jobs:
             git config user.name "Doesnt Matter"
             yarn publish-to-verdaccio
             unsetNpmRegistryUrl
+      - run:
+          name: keep the verdaccio server running
+          background: true
+          command: >-
+            / source .circleci/local_publish_helpers.sh startLocalRegistry
+            "$(pwd)/.circleci/verdaccio.yaml"
       - aws-ecr/build-and-push-image:
           checkout: true
           create-repo: true
