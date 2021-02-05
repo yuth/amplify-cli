@@ -186,6 +186,7 @@ jobs:
           dockerfile: .circleci/docker/Dockerfile-npm
           region: ECR_REGION
           repo: amplify-cli-npm-image
+          extra-build-args: '--network=host'
           tag: '${CIRCLE_SHA1}'
   build_pkg_binaries:
     working_directory: ~/repo
