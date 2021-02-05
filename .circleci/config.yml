@@ -2090,14 +2090,11 @@ workflows:
             branches:
               only:
                 - master
-                - beta
-                - backendManager
-                - iterative-update
-                - release
                 - compute-functions
+                - iterative-update
                 - ci-docker-image
-            requires:
-              - build
+          requires:
+            - build
       - done_with_node_e2e_tests:
           requires:
             - schema-searchable-amplify_e2e_tests
