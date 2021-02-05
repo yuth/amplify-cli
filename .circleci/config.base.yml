@@ -178,7 +178,7 @@ jobs:
       - run:
           name: keep the verdaccio server running
           background: true
-          command: /
+          command: |
             source .circleci/local_publish_helpers.sh
             startLocalRegistry "$(pwd)/.circleci/verdaccio.yaml"
 
