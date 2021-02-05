@@ -184,6 +184,7 @@ jobs:
           checkout: true
           create-repo: true
           dockerfile: .circleci/docker/Dockerfile-npm
+          region: us-east-2
           repo: amplify-cli-npm-image
           tag: '${CIRCLE_SHA1}'
   build_pkg_binaries:
