@@ -2,9 +2,9 @@
   "editor.rulers": [140],
   "files.exclude": {
     "**/.git": true,
-    "**/node_modules": true,
     "**/build": true,
-    "**/coverage": true
+    "**/coverage": true,
+    "**/node_modules": true
   },
   "editor.formatOnSave": false,
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],

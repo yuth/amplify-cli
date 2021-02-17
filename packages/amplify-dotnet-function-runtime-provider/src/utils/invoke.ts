@@ -13,6 +13,11 @@ export const invoke = async (request: InvocationRequest): Promise<string> => {
     tempDir = fs.mkdtempSync(path.join(request.srcRoot, 'amplify'));
     eventFile = path.join(tempDir, 'event.json');
     fs.writeFileSync(eventFile, request.event);
+
+    console.log('$PATH');
+    console.log(process.env.PATH);
+    console.log('\n\n\n\n\n');
+
     const execPromise = execa(
       executableName,
       ['lambda-test-tool-3.1', '--no-ui', '--function-handler', request.handler, '--payload', eventFile, '--pause-exit', 'false'],
