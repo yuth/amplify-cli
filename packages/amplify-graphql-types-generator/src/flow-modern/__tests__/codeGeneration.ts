@@ -1,4 +1,5 @@
 import { parse } from 'graphql';
+import * as path from 'path';
 
 import { loadSchema } from '../../loading';
 const schema = loadSchema(require.resolve('../../../test/fixtures/starwars/schema.json'));
@@ -7,12 +8,14 @@ import { compileToIR, CompilerOptions, CompilerContext } from '../../compiler';
 
 import { generateSource } from '../codeGeneration';
 
+jest.spyOn(path, 'join').mockImplementation((...args) => args.join('/'));
+
 function compile(
   source: string,
   options: CompilerOptions = {
     mergeInFieldsFromFragmentSpreads: true,
     addTypename: true,
-  }
+  },
 ): CompilerContext {
   const document = parse(source);
   return compileToIR(schema, document, options);

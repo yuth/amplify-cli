@@ -1,5 +1,7 @@
 import * as path from 'path';
 
+jest.spyOn(path, 'join').mockImplementation((...args) => args.join('/'));
+
 import { loadAndMergeQueryDocuments } from '../src/loading';
 
 describe('Validation', () => {
@@ -14,6 +16,6 @@ describe('Validation', () => {
     const inputPaths = [path.join(__dirname, './fixtures/misc/invalid-gqlQueries.js')];
     expect(() => {
       loadAndMergeQueryDocuments(inputPaths);
-    }).toThrowErrorMatchingSnapshot();
+    }).toThrowError('Could not parse graphql operations in ');
   });
 });
