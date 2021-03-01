@@ -7,8 +7,7 @@ import * as request from 'request';
 let port = 20005; // for testing
 let route = '/mock-testing';
 let bucket = 'mock-testing';
-let localDirS3 = __dirname + '/test-data/';
-const actual_file = __dirname + '/test-data/2.png';
+let localDirS3 = path.join(__dirname, '/test-data/');
 
 let s3client;
 let simulator;
@@ -58,7 +57,6 @@ describe('test server running', () => {
 });
 
 describe('Test get api', () => {
-  const actual_file = __dirname + '/test-data/2.png';
   test('get image work ', async () => {
     const data = await s3client.getObject({ Bucket: bucket, Key: '2.png' }).promise();
     expect(data).toBeDefined();
@@ -120,19 +118,19 @@ describe('Test list api', () => {
 });
 
 describe('Test delete api', () => {
-  const dirPathOne = __dirname + '/test-data/deleteOne';
+  const dirPathOne = path.join(__dirname, 'test-data', 'deleteOne');
   beforeEach(() => {
     fs.ensureDirSync(dirPathOne);
-    fs.copySync(__dirname + '/test-data/normal/', dirPathOne + '/');
+    fs.copySync(path.join(__dirname, 'test-data', 'normal'), dirPathOne);
   });
   test('test one delete ', async () => {
     const data = await s3client.deleteObject({ Bucket: bucket, Key: 'deleteOne/2.png' }).promise();
-    expect(fs.rmdirSync(dirPathOne)).toBeUndefined;
+    expect(fs.rmdirSync(dirPathOne)).toBeUndefined();
   });
 });
 
 describe('Test put api', () => {
-  const actual_file = __dirname + '/test-data/2.png';
+  const actual_file = path.join(__dirname, 'test-data', '2.png');
   const buffer = fs.readFileSync(actual_file);
   test('put image', async () => {
     const params = {
@@ -145,7 +143,7 @@ describe('Test put api', () => {
     expect(data).toBeDefined();
   });
 
-  const file = __dirname + '/test-data/abc.txt';
+  const file = path.join(__dirname, '/test-data', 'abc.txt');
   const buf1 = fs.readFileSync(file);
   const Jsonobj = {
     __typename: 'UserData',
@@ -196,14 +194,14 @@ describe('Test put api', () => {
       ContentType: 'application/json',
     };
     const data = await s3client.upload(params).promise();
-    const jsonFile = __dirname + '/test-data/upload/abc.json';
+    const jsonFile = path.join(__dirname, 'test-data', 'upload', 'abc.json');
     const contents = fs.readFileSync(jsonFile);
     const obj = JSON.parse(contents.toString());
     expect(data).toBeDefined();
     expect(JSON.stringify(obj)).toBe(JSON.stringify(Jsonobj));
   });
 
-  const file1 = __dirname + '/test-data/Snake_River_(5mb).jpg';
+  const file1 = path.join(__dirname, 'test-data', 'Snake_River_(5mb).jpg');
   const buf2 = fs.readFileSync(file1);
 
   test(' multipart upload', async () => {
