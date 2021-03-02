@@ -125,7 +125,7 @@ export type CircleCIConfig = {
   };
 };
 
-function getTestFiles(dir: string, pattern = '**/*.test.ts'): string[] {
+function getTestFiles(dir: string, pattern = '**/schema-iterative-update-2.test.ts'): string[] {
   return sortTestsBasedOnTime(glob.sync(pattern, { cwd: dir }));
 }
 

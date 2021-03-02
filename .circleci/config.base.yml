@@ -568,6 +568,7 @@ workflows:
                 - iterative-update
                 - release
                 - compute-functions
+                - docker-img
           requires:
             - build
       - build_pkg_binaries:
@@ -602,8 +603,8 @@ workflows:
             branches:
               only:
                 - master
+                - docker-img
           requires:
-            - done_with_node_e2e_tests
             - build_pkg_binaries
       - done_with_pkg_linux_e2e_tests:
           context: amplify-cli-ecr
