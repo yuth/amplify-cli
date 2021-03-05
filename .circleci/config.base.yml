@@ -538,6 +538,7 @@ workflows:
     jobs:
       - build:
           context: amplify-cli-ecr
+      - lint
       - publish_to_local_registry:
           context: amplify-cli-ecr
           requires:
