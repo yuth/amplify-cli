@@ -63,7 +63,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: .
-  test:
+  lint:
     working_directory: ~/repo
     docker: *ref_0
     resource_class: large
@@ -73,14 +73,26 @@ jobs:
       - restore_cache:
           key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
       - run:
+          name: Lint
+          command: yarn lint
+  test:
+    working_directory: ~/repo
+    docker: *ref_0
+    resource_class: large
+    parallelism: 10
+    steps:
+      - attach_workspace:
+          at: ./
+      - restore_cache:
+          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - run:
           name: Install Java
           command: sudo apt-get install default-jdk
       - run:
-          name: Lint
-          command: yarn lint
-      - run:
           name: Run tests
-          command: yarn test-ci
+          command: >-
+            yarn -s lerna list --json | jq .[].name | circleci tests split |
+            xargs  printf -- '--scope %s\n' | xargs yarn test-ci
       - run:
           name: Collect code coverage
           command: yarn coverage
@@ -1914,6 +1926,7 @@ workflows:
       - deploy:
           context: amplify-cli-ecr
           requires:
+            - lint
             - test
             - mock_e2e_tests
             - graphql_e2e_tests

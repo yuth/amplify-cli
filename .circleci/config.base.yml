@@ -37,7 +37,6 @@ run_e2e_tests: &run_e2e_tests
     unsetNpmRegistryUrl
   no_output_timeout: 90m
 
-
 install_cli_from_local_registery: &install_cli_from_local_registery
   name: Start verdaccio, install node CLI and amplify-app
   command: |
@@ -67,8 +66,20 @@ jobs:
           root: .
           paths: .
 
+  lint:
+    <<: *node12
+    steps:
+      - attach_workspace:
+          at: ./
+      - restore_cache:
+          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - run:
+          name: Lint
+          command: yarn lint
+
   test:
     <<: *node12
+    parallelism: 10
     steps:
       - attach_workspace:
           at: ./
@@ -78,11 +89,8 @@ jobs:
           name: Install Java
           command: sudo apt-get install default-jdk
       - run:
-          name: Lint
-          command: yarn lint
-      - run:
           name: Run tests
-          command: yarn test-ci
+          command: yarn -s lerna list --json | jq .[].name | circleci tests split | xargs  printf -- '--scope %s\n' | xargs yarn test-ci
       - run:
           name: Collect code coverage
           command: yarn coverage
@@ -678,6 +686,7 @@ workflows:
       - deploy:
           context: amplify-cli-ecr
           requires:
+            - lint
             - test
             - mock_e2e_tests
             - graphql_e2e_tests
