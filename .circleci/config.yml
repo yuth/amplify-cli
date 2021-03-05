@@ -1757,6 +1757,7 @@ workflows:
     jobs:
       - build:
           context: amplify-cli-ecr
+      - lint
       - test:
           context: amplify-cli-ecr
           requires:
