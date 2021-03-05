@@ -552,7 +552,9 @@ workflows:
     jobs:
       - build:
           context: amplify-cli-ecr
-      - lint
+      - lint:
+          requires:
+            - build
       - test:
           context: amplify-cli-ecr
           requires:
