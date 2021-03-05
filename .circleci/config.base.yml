@@ -79,7 +79,7 @@ jobs:
 
   test:
     <<: *node12
-    parallelism: 10
+    parallelism: 25
     steps:
       - attach_workspace:
           at: ./

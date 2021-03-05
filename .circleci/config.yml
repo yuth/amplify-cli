@@ -79,7 +79,7 @@ jobs:
     working_directory: ~/repo
     docker: *ref_0
     resource_class: large
-    parallelism: 10
+    parallelism: 25
     steps:
       - attach_workspace:
           at: ./
