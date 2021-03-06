@@ -80,6 +80,8 @@ jobs:
     docker: *ref_0
     resource_class: large
     parallelism: 25
+    environment:
+      AMPLIFY_CLI_DISABLE_LOGGING: true
     steps:
       - attach_workspace:
           at: ./
