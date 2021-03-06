@@ -92,7 +92,7 @@ jobs:
           name: Run tests
           command: >-
             yarn -s lerna list --json | jq .[].name | circleci tests split |
-            xargs  printf -- '--scope %s\n' | xargs -I % lerna run test
+            xargs  printf -- '--scope %s\n' | xargs -I % yarn lerna run test
             --concurrency 1 % -- --ci -i
       - run:
           name: Collect code coverage
