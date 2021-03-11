@@ -622,6 +622,7 @@ test('Test that only authorized members are allowed to view subscriptions', asyn
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -646,7 +647,7 @@ test('Test that only authorized members are allowed to view subscriptions', asyn
 });
 
 test('Test that an user not in the group is not allowed to view the subscription', async () => {
-  // suscribe to create students as user 3
+  // subscribe to create students as user 3
   // const observer = onCreateStudent(GRAPHQL_CLIENT_3)
   const observer = GRAPHQL_CLIENT_3.subscribe({
     query: gql`
@@ -660,12 +661,14 @@ test('Test that an user not in the group is not allowed to view the subscription
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     observer.subscribe({
       error: (err: any) => {
-        expect(err.graphQLErrors[0].message).toEqual('Not Authorized to access onCreateStudent on type Subscription');
-        expect(err.graphQLErrors[0].errorType).toEqual('Unauthorized');
+        expect(err.errors[0].message).toEqual(
+          'Connection failed: {"errors":[{"errorType":"Unauthorized","message":"Not Authorized to access onCreateStudent on type Subscription"}]}',
+        );
         resolve(undefined);
       },
     });
@@ -683,7 +686,7 @@ test('Test that an user not in the group is not allowed to view the subscription
 });
 
 test('Test a subscription on update', async () => {
-  // susbcribe to update students as user 2
+  // subscribe to update students as user 2
   const observer = GRAPHQL_CLIENT_2.subscribe({
     query: gql`
       subscription OnUpdateStudent {
@@ -696,6 +699,7 @@ test('Test a subscription on update', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -743,6 +747,7 @@ test('Test a subscription on delete', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -795,6 +800,7 @@ test('test that group is only allowed to listen to subscriptions and listen to o
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -827,6 +833,7 @@ test('authorized group is allowed to listen to onUpdate', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -860,6 +867,7 @@ test('authorized group is allowed to listen to onDelete', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -889,6 +897,7 @@ test('Test subscription onCreatePost with ownerField', async () => {
             postOwner
         }
     }`,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -920,16 +929,15 @@ test('Test onCreatePost with optional argument', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = failedObserver.subscribe(
       event => {},
       err => {
-        expect(err).toHaveProperty('graphQLErrors');
-        const gqlErrors = err.graphQLErrors;
-        subscription.unsubscribe();
-        expect(gqlErrors[0].message).toEqual('Not Authorized to access onCreatePost on type Subscription');
-        expect(gqlErrors[0].errorType).toEqual('Unauthorized');
+        expect(err.errors[0].message).toEqual(
+          'Connection failed: {"errors":[{"errorType":"Unauthorized","message":"Not Authorized to access onCreatePost on type Subscription"}]}',
+        );
         resolve(undefined);
       },
     );
@@ -952,6 +960,7 @@ test('Test that IAM can listen and read to onCreatePost', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe(
@@ -987,6 +996,7 @@ test('test that subcsription with apiKey', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
 
   const subscriptionPromise = new Promise((resolve, _) => {
@@ -1020,6 +1030,7 @@ test('test that subscription with apiKey onUpdate', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -1062,6 +1073,7 @@ test('test that subscription with apiKey onDelete', async () => {
         }
       }
     `,
+    fetchPolicy: 'network-only',
   });
   const subscriptionPromise = new Promise((resolve, _) => {
     const subscription = observer.subscribe((event: any) => {
@@ -1104,7 +1116,7 @@ async function createMember(client: AWSAppSyncClient<any>, input: MemberInput) {
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function updateMember(client: AWSAppSyncClient<any>, input: MemberInput) {
@@ -1118,7 +1130,7 @@ async function updateMember(client: AWSAppSyncClient<any>, input: MemberInput) {
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function deleteMember(client: AWSAppSyncClient<any>, input: MemberInput) {
@@ -1132,7 +1144,7 @@ async function deleteMember(client: AWSAppSyncClient<any>, input: MemberInput) {
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function createStudent(client: AWSAppSyncClient<any>, input: CreateStudentInput) {
@@ -1147,7 +1159,7 @@ async function createStudent(client: AWSAppSyncClient<any>, input: CreateStudent
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function updateStudent(client: AWSAppSyncClient<any>, input: UpdateStudentInput) {
@@ -1162,7 +1174,7 @@ async function updateStudent(client: AWSAppSyncClient<any>, input: UpdateStudent
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function deleteStudent(client: AWSAppSyncClient<any>, input: DeleteTypeInput) {
@@ -1177,7 +1189,7 @@ async function deleteStudent(client: AWSAppSyncClient<any>, input: DeleteTypeInp
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function createPost(client: AWSAppSyncClient<any>, input: CreatePostInput) {
@@ -1190,7 +1202,7 @@ async function createPost(client: AWSAppSyncClient<any>, input: CreatePostInput)
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function createTodo(client: AWSAppSyncClient<any>, input: CreateTodoInput) {
@@ -1203,7 +1215,7 @@ async function createTodo(client: AWSAppSyncClient<any>, input: CreateTodoInput)
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function updateTodo(client: AWSAppSyncClient<any>, input: UpdateTodoInput) {
@@ -1216,7 +1228,7 @@ async function updateTodo(client: AWSAppSyncClient<any>, input: UpdateTodoInput)
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
 
 async function deleteTodo(client: AWSAppSyncClient<any>, input: DeleteTypeInput) {
@@ -1229,5 +1241,5 @@ async function deleteTodo(client: AWSAppSyncClient<any>, input: DeleteTypeInput)
       }
     }
   `;
-  return await client.mutate({ mutation: request, variables: { input } });
+  return await client.mutate<any>({ mutation: request, variables: { input } });
 }
