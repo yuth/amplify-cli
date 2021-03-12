@@ -312,14 +312,14 @@ function main(): void {
     join(process.cwd(), 'packages', 'amplify-e2e-tests'),
     CONCURRENCY,
   );
-  const splitPkgLinuxTests = splitTests(
-    splitNodeTests,
-    'amplify_e2e_tests_pkg_linux',
-    'build_test_deploy',
-    join(process.cwd(), 'packages', 'amplify-e2e-tests'),
-    CONCURRENCY,
-  );
-  saveConfig(splitPkgLinuxTests);
+  // const splitPkgLinuxTests = splitTests(
+  //   splitNodeTests,
+  //   'amplify_e2e_tests_pkg_linux',
+  //   'build_test_deploy',
+  //   join(process.cwd(), 'packages', 'amplify-e2e-tests'),
+  //   CONCURRENCY,
+  // );
+  // saveConfig(splitPkgLinuxTests);
 
   const splitPkgWinTests = splitTests(
     splitNodeTests,
