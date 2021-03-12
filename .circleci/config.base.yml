@@ -1,6 +1,8 @@
 version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@6.15.3
+  win: circleci/windows@2.4.0
+
 machine:
   environment:
     PATH: '${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin'
@@ -254,8 +256,49 @@ jobs:
             echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
             source $BASH_ENV
             amplify version
-      - run: *install_cli_from_local_registery
       - run: *run_e2e_tests
+      - store_test_results:
+          path: packages/amplify-e2e-tests/
+      - store_artifacts:
+          path: packages/amplify-e2e-tests/amplify-e2e-reports
+
+  amplify_e2e_tests_pkg_windows:
+    executor:
+      name: win/default
+      shell: cmd.exe
+    working_directory: ~/repo
+    environment:
+      AMPLIFY_DIR: /home/circleci/repo/out
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+    steps:
+      - attach_workspace:
+          at: ./
+      - restore_cache:
+          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - restore_cache:
+          key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Install yarn
+          command: npm install --global yarn
+      - run: yarn
+      - run:
+          name: Update PATH ton include the Amplify CLI
+          command: |
+            cd out
+            ECHO.Changing PATH to include subdirectory
+            ECHO.Current PATH is '%PATH%'
+            copy /y amplify-pkg-win.exe amplify.exe
+            REM Calls cd without arguments to get the current directory
+
+            setx /M PATH "%PATH%;%current_directory%"
+            @ECHO ON
+            cd ..
+            amplify version
+      - run:
+          name: Run E2E
+          command: cd packages/amplify-e2e-tests
+            yarn run e2e --maxWorkers=3 $TEST_SUITE
+
       - store_test_results:
           path: packages/amplify-e2e-tests/
       - store_artifacts:
@@ -629,6 +672,7 @@ workflows:
               only:
                 - master
                 - beta
+                - win-e2e
                 - backendManager
                 - iterative-update
                 - release
@@ -663,6 +707,13 @@ workflows:
           context: amplify-cli-ecr
           requires:
             - amplify_e2e_tests
+      - amplify_e2e_tests_pkg_windows:
+          filters:
+            branches:
+              only:
+                - win-e2e
+          requires:
+            - build_pkg_binaries
       - amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
           post-steps:

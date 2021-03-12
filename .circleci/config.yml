@@ -2,6 +2,7 @@
 version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@6.15.3
+  win: circleci/windows@2.4.0
 machine:
   environment:
     PATH: ${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin
@@ -21,7 +22,7 @@ defaults:
         aws_access_key_id: $ECR_ACCESS_KEY
         aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
   resource_class: large
-clean_e2e_resources: &ref_6
+clean_e2e_resources: &ref_7
   name: Cleanup resources
   command: |
     pwd
@@ -249,7 +250,7 @@ jobs:
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
       AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
-    steps: &ref_5
+    steps:
       - attach_workspace:
           at: ./
       - restore_cache:
@@ -264,8 +265,48 @@ jobs:
             echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
             source $BASH_ENV
             amplify version
-      - run: *ref_2
       - run: *ref_3
+      - store_test_results:
+          path: packages/amplify-e2e-tests/
+      - store_artifacts:
+          path: packages/amplify-e2e-tests/amplify-e2e-reports
+  amplify_e2e_tests_pkg_windows:
+    executor: &ref_5
+      name: win/default
+      shell: cmd.exe
+    working_directory: ~/repo
+    environment:
+      AMPLIFY_DIR: /home/circleci/repo/out
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+    steps: &ref_6
+      - attach_workspace:
+          at: ./
+      - restore_cache:
+          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - restore_cache:
+          key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Install yarn
+          command: npm install --global yarn
+      - run: yarn
+      - run:
+          name: Update PATH ton include the Amplify CLI
+          command: |
+            cd out
+            ECHO.Changing PATH to include subdirectory
+            ECHO.Current PATH is '%PATH%'
+            copy /y amplify-pkg-win.exe amplify.exe
+            REM Calls cd without arguments to get the current directory
+
+            setx /M PATH "%PATH%;%current_directory%"
+            @ECHO ON
+            cd ..
+            amplify version
+      - run:
+          name: Run E2E
+          command: >-
+            cd packages/amplify-e2e-tests yarn run e2e --maxWorkers=3
+            $TEST_SUITE
       - store_test_results:
           path: packages/amplify-e2e-tests/
       - store_artifacts:
@@ -1109,656 +1150,591 @@ jobs:
     environment:
       TEST_SUITE: src/__tests__/api_4.test.ts
       CLI_REGION: us-west-2
-  schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
+  schema-iterative-update-4-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  api_2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  api_2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/api_2.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  storage-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  storage-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/storage.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  schema-auth-5-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-5-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-5.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  api_1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  api_1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/api_1.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  schema-auth-2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-2.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-iterative-update-3-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  schema-auth-6-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-6-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-6.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  schema-connection-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-connection-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-connection.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  migration-api-connection-migration-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  migration-api-connection-migration-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/migration/api.connection.migration.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  schema-model-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-model-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-model.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  schema-function-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-function-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-function.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  function_4-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  function_4-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/function_4.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  schema-auth-1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-1.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  function_1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  function_1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/function_1.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  migration-api-key-migration2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  migration-api-key-migration2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/migration/api.key.migration2.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  schema-auth-11-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-11-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-11.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  schema-auth-9-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-9-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-9.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  auth_2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  auth_2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/auth_2.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  env-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  env-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/env.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  import_dynamodb_1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  import_dynamodb_1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/import_dynamodb_1.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  import_s3_1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  import_s3_1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/import_s3_1.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  import_auth_2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  import_auth_2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/import_auth_2.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  import_auth_1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  import_auth_1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/import_auth_1.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  api_3-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  api_3-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/api_3.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  schema-auth-4-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-4-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-4.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  schema-searchable-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-searchable-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-searchable.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  schema-auth-8-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-8-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-8.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  schema-auth-7-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-7-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-7.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  auth_4-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  auth_4-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/auth_4.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  migration-api-key-migration1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  migration-api-key-migration1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/migration/api.key.migration1.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  layer-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  layer-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/layer.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  auth_3-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  auth_3-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/auth_3.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  function_2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  function_2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/function_2.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  delete-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  delete-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/delete.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  schema-auth-3-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-3-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-3.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-iterative-update-1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-iterative-update-1.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  function_3-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  function_3-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/function_3.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  auth_5-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  auth_5-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/auth_5.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  auth_1-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  auth_1-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/auth_1.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  schema-key-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-key-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-key.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  schema-auth-10-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-auth-10-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-auth-10.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  hostingPROD-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  hostingPROD-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/hostingPROD.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  predictions-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  predictions-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/predictions.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  containers-api-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  containers-api-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/containers-api.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  schema-iterative-update-2-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-iterative-update-2-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-iterative-update-2.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  feature-flags-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  feature-flags-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/feature-flags.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  analytics-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  analytics-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/analytics.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  hosting-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  hosting-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/hosting.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  amplify-app-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  amplify-app-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/amplify-app.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  schema-predictions-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-predictions-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-predictions.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  interactions-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  interactions-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/interactions.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  schema-data-access-patterns-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-data-access-patterns-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-data-access-patterns.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  schema-versioned-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-versioned-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-versioned.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  notifications-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  notifications-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/notifications.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  tags-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  tags-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/tags.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  init-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  init-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/init.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  amplify-configure-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  amplify-configure-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/amplify-configure.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
-  datastore-modelgen-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  datastore-modelgen-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/datastore-modelgen.test.ts
       CLI_REGION: eu-west-2
-    steps: *ref_5
-  init-special-case-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  init-special-case-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/init-special-case.test.ts
       CLI_REGION: eu-central-1
-    steps: *ref_5
-  plugin-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  plugin-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/plugin.test.ts
       CLI_REGION: ap-northeast-1
-    steps: *ref_5
-  schema-iterative-update-locking-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  schema-iterative-update-locking-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
       CLI_REGION: ap-southeast-1
-    steps: *ref_5
-  migration-node-function-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  migration-node-function-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/migration/node.function.test.ts
       CLI_REGION: ap-southeast-2
-    steps: *ref_5
-  function_5-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  function_5-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/function_5.test.ts
       CLI_REGION: us-east-2
-    steps: *ref_5
-  api_4-amplify_e2e_tests_pkg_linux:
+    steps: *ref_6
+  api_4-amplify_e2e_tests_pkg_windows:
+    executor: *ref_5
     working_directory: ~/repo
-    docker: *ref_1
-    resource_class: large
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
       TEST_SUITE: src/__tests__/api_4.test.ts
       CLI_REGION: us-west-2
-    steps: *ref_5
+    steps: *ref_6
 workflows:
   version: 2
   nightly_console_integration_tests:
@@ -1830,6 +1806,7 @@ workflows:
               only:
                 - master
                 - beta
+                - win-e2e
                 - backendManager
                 - iterative-update
                 - release
@@ -1940,7 +1917,7 @@ workflows:
       - amplify_console_integration_tests:
           context: amplify-cli-ecr
           post-steps:
-            - run: *ref_6
+            - run: *ref_7
           filters:
             branches:
               only:
@@ -2001,9 +1978,9 @@ workflows:
                 - release
       - schema-iterative-update-4-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: &ref_7
-            - run: *ref_6
-          filters: &ref_8
+          post-steps: &ref_8
+            - run: *ref_7
+          filters: &ref_9
             branches:
               only:
                 - master
@@ -2013,393 +1990,393 @@ workflows:
             - publish_to_local_registry
       - schema-auth-6-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - function_1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - import_s3_1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-auth-7-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-iterative-update-4-amplify_e2e_tests
       - schema-auth-3-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-6-amplify_e2e_tests
       - hostingPROD-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - function_1-amplify_e2e_tests
       - amplify-app-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - import_s3_1-amplify_e2e_tests
       - init-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-7-amplify_e2e_tests
       - function_5-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-3-amplify_e2e_tests
       - api_2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-connection-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - migration-api-key-migration2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - import_auth_2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - auth_4-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - api_2-amplify_e2e_tests
       - schema-iterative-update-1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-connection-amplify_e2e_tests
       - predictions-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - migration-api-key-migration2-amplify_e2e_tests
       - schema-predictions-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - import_auth_2-amplify_e2e_tests
       - amplify-configure-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - auth_4-amplify_e2e_tests
       - api_4-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-iterative-update-1-amplify_e2e_tests
       - storage-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - migration-api-connection-migration-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-auth-11-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - import_auth_1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - migration-api-key-migration1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - storage-amplify_e2e_tests
       - function_3-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - migration-api-connection-migration-amplify_e2e_tests
       - containers-api-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-11-amplify_e2e_tests
       - interactions-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - import_auth_1-amplify_e2e_tests
       - datastore-modelgen-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - migration-api-key-migration1-amplify_e2e_tests
       - schema-auth-5-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-model-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-auth-9-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - api_3-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - layer-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-5-amplify_e2e_tests
       - auth_5-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-model-amplify_e2e_tests
       - schema-iterative-update-2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-9-amplify_e2e_tests
       - schema-data-access-patterns-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - api_3-amplify_e2e_tests
       - init-special-case-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - layer-amplify_e2e_tests
       - api_1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-function-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - auth_2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-auth-4-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - auth_3-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - api_1-amplify_e2e_tests
       - auth_1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-function-amplify_e2e_tests
       - feature-flags-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - auth_2-amplify_e2e_tests
       - schema-versioned-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-4-amplify_e2e_tests
       - plugin-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - auth_3-amplify_e2e_tests
       - schema-auth-2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - function_4-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - env-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-searchable-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - function_2-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-2-amplify_e2e_tests
       - schema-key-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - function_4-amplify_e2e_tests
       - analytics-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - env-amplify_e2e_tests
       - notifications-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-searchable-amplify_e2e_tests
       - schema-iterative-update-locking-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - function_2-amplify_e2e_tests
       - schema-iterative-update-3-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-auth-1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - import_dynamodb_1-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - schema-auth-8-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - publish_to_local_registry
       - delete-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-iterative-update-3-amplify_e2e_tests
       - schema-auth-10-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-1-amplify_e2e_tests
       - hosting-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - import_dynamodb_1-amplify_e2e_tests
       - tags-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - schema-auth-8-amplify_e2e_tests
       - migration-node-function-amplify_e2e_tests:
           context: amplify-cli-ecr
-          post-steps: *ref_7
-          filters: *ref_8
+          post-steps: *ref_8
+          filters: *ref_9
           requires:
             - delete-amplify_e2e_tests
       - schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: &ref_9
-            - run: *ref_6
-          filters: &ref_10
+          post-steps: &ref_10
+            - run: *ref_7
+          filters: &ref_11
             branches:
               only:
                 - master
@@ -2408,412 +2385,675 @@ workflows:
             - build_pkg_binaries
       - schema-auth-6-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - function_1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - import_s3_1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-auth-7-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-iterative-update-4-amplify_e2e_tests_pkg_linux
       - schema-auth-3-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-6-amplify_e2e_tests_pkg_linux
       - hostingPROD-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - function_1-amplify_e2e_tests_pkg_linux
       - amplify-app-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - import_s3_1-amplify_e2e_tests_pkg_linux
       - init-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-7-amplify_e2e_tests_pkg_linux
       - function_5-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-3-amplify_e2e_tests_pkg_linux
       - api_2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-connection-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - migration-api-key-migration2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - import_auth_2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - auth_4-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - api_2-amplify_e2e_tests_pkg_linux
       - schema-iterative-update-1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-connection-amplify_e2e_tests_pkg_linux
       - predictions-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - migration-api-key-migration2-amplify_e2e_tests_pkg_linux
       - schema-predictions-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - import_auth_2-amplify_e2e_tests_pkg_linux
       - amplify-configure-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - auth_4-amplify_e2e_tests_pkg_linux
       - api_4-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-iterative-update-1-amplify_e2e_tests_pkg_linux
       - storage-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - migration-api-connection-migration-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-auth-11-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - import_auth_1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - migration-api-key-migration1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - storage-amplify_e2e_tests_pkg_linux
       - function_3-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - migration-api-connection-migration-amplify_e2e_tests_pkg_linux
       - containers-api-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-11-amplify_e2e_tests_pkg_linux
       - interactions-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - import_auth_1-amplify_e2e_tests_pkg_linux
       - datastore-modelgen-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - migration-api-key-migration1-amplify_e2e_tests_pkg_linux
       - schema-auth-5-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-model-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-auth-9-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - api_3-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - layer-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-5-amplify_e2e_tests_pkg_linux
       - auth_5-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-model-amplify_e2e_tests_pkg_linux
       - schema-iterative-update-2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-9-amplify_e2e_tests_pkg_linux
       - schema-data-access-patterns-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - api_3-amplify_e2e_tests_pkg_linux
       - init-special-case-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - layer-amplify_e2e_tests_pkg_linux
       - api_1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-function-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - auth_2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-auth-4-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - auth_3-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - api_1-amplify_e2e_tests_pkg_linux
       - auth_1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-function-amplify_e2e_tests_pkg_linux
       - feature-flags-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - auth_2-amplify_e2e_tests_pkg_linux
       - schema-versioned-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-4-amplify_e2e_tests_pkg_linux
       - plugin-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - auth_3-amplify_e2e_tests_pkg_linux
       - schema-auth-2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - function_4-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - env-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-searchable-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - function_2-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-2-amplify_e2e_tests_pkg_linux
       - schema-key-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - function_4-amplify_e2e_tests_pkg_linux
       - analytics-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - env-amplify_e2e_tests_pkg_linux
       - notifications-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-searchable-amplify_e2e_tests_pkg_linux
       - schema-iterative-update-locking-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - function_2-amplify_e2e_tests_pkg_linux
       - schema-iterative-update-3-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-auth-1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - import_dynamodb_1-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - schema-auth-8-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
       - delete-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-iterative-update-3-amplify_e2e_tests_pkg_linux
       - schema-auth-10-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-1-amplify_e2e_tests_pkg_linux
       - hosting-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - import_dynamodb_1-amplify_e2e_tests_pkg_linux
       - tags-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - schema-auth-8-amplify_e2e_tests_pkg_linux
       - migration-node-function-amplify_e2e_tests_pkg_linux:
           context: amplify-cli-ecr
-          post-steps: *ref_9
-          filters: *ref_10
+          post-steps: *ref_10
+          filters: *ref_11
           requires:
             - delete-amplify_e2e_tests_pkg_linux
+      - schema-iterative-update-4-amplify_e2e_tests_pkg_windows:
+          filters: &ref_12
+            branches:
+              only:
+                - win-e2e
+          requires:
+            - build_pkg_binaries
+      - schema-auth-6-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - function_1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - import_s3_1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-auth-7-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-iterative-update-4-amplify_e2e_tests_pkg_windows
+      - schema-auth-3-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-6-amplify_e2e_tests_pkg_windows
+      - hostingPROD-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - function_1-amplify_e2e_tests_pkg_windows
+      - amplify-app-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - import_s3_1-amplify_e2e_tests_pkg_windows
+      - init-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-7-amplify_e2e_tests_pkg_windows
+      - function_5-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-3-amplify_e2e_tests_pkg_windows
+      - api_2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-connection-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - migration-api-key-migration2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - import_auth_2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - auth_4-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - api_2-amplify_e2e_tests_pkg_windows
+      - schema-iterative-update-1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-connection-amplify_e2e_tests_pkg_windows
+      - predictions-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - migration-api-key-migration2-amplify_e2e_tests_pkg_windows
+      - schema-predictions-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - import_auth_2-amplify_e2e_tests_pkg_windows
+      - amplify-configure-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - auth_4-amplify_e2e_tests_pkg_windows
+      - api_4-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-iterative-update-1-amplify_e2e_tests_pkg_windows
+      - storage-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - migration-api-connection-migration-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-auth-11-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - import_auth_1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - migration-api-key-migration1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - storage-amplify_e2e_tests_pkg_windows
+      - function_3-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - migration-api-connection-migration-amplify_e2e_tests_pkg_windows
+      - containers-api-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-11-amplify_e2e_tests_pkg_windows
+      - interactions-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - import_auth_1-amplify_e2e_tests_pkg_windows
+      - datastore-modelgen-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - migration-api-key-migration1-amplify_e2e_tests_pkg_windows
+      - schema-auth-5-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-model-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-auth-9-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - api_3-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - layer-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-5-amplify_e2e_tests_pkg_windows
+      - auth_5-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-model-amplify_e2e_tests_pkg_windows
+      - schema-iterative-update-2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-9-amplify_e2e_tests_pkg_windows
+      - schema-data-access-patterns-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - api_3-amplify_e2e_tests_pkg_windows
+      - init-special-case-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - layer-amplify_e2e_tests_pkg_windows
+      - api_1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-function-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - auth_2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-auth-4-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - auth_3-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - api_1-amplify_e2e_tests_pkg_windows
+      - auth_1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-function-amplify_e2e_tests_pkg_windows
+      - feature-flags-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - auth_2-amplify_e2e_tests_pkg_windows
+      - schema-versioned-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-4-amplify_e2e_tests_pkg_windows
+      - plugin-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - auth_3-amplify_e2e_tests_pkg_windows
+      - schema-auth-2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - function_4-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - env-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-searchable-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - function_2-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-2-amplify_e2e_tests_pkg_windows
+      - schema-key-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - function_4-amplify_e2e_tests_pkg_windows
+      - analytics-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - env-amplify_e2e_tests_pkg_windows
+      - notifications-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-searchable-amplify_e2e_tests_pkg_windows
+      - schema-iterative-update-locking-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - function_2-amplify_e2e_tests_pkg_windows
+      - schema-iterative-update-3-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-auth-1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - import_dynamodb_1-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - schema-auth-8-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - build_pkg_binaries
+      - delete-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-iterative-update-3-amplify_e2e_tests_pkg_windows
+      - schema-auth-10-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-1-amplify_e2e_tests_pkg_windows
+      - hosting-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - import_dynamodb_1-amplify_e2e_tests_pkg_windows
+      - tags-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - schema-auth-8-amplify_e2e_tests_pkg_windows
+      - migration-node-function-amplify_e2e_tests_pkg_windows:
+          filters: *ref_12
+          requires:
+            - delete-amplify_e2e_tests_pkg_windows
