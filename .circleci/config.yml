@@ -6,6 +6,67 @@ orbs:
 machine:
   environment:
     PATH: ${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin
+executors:
+  windows:
+    parameters:
+      version:
+        type: string
+      shell:
+        default: cmd.exe
+        type: string
+      size:
+        type: enum
+        description: |
+          The size of Windows resource to use. Defaults to medium.
+        default: medium
+        enum:
+          - medium
+          - large
+          - xlarge
+          - 2xlarge
+    machine:
+      image: windows-server-2019-vs2019:stable
+      resource_class: windows.<< parameters.size >>
+      shell: << parameters.shell >>
+  build_img:
+    parameters:
+      node_version:
+        type: number
+        default: 10
+      size:
+        type: enum
+        description: |
+          The size of Windows resource to use. Defaults to medium.
+        default: medium
+        enum:
+          - medium
+          - large
+          - xlarge
+          - 2xlarge
+    docker:
+      - image: circleci/node:<< parameters.node_version >>
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_ACCESS_TOKEN
+        resource_class: << parameters.size >>
+  test_img:
+    parameters:
+      size:
+        type: enum
+        description: |
+          The size of Windows resource to use. Defaults to medium.
+        default: medium
+        enum:
+          - medium
+          - large
+          - xlarge
+          - 2xlarge
+    docker:
+      - image: ${AWS_ECR_ACCOUNT_URL}/amplify-cli-e2e-base-image-repo:latest
+        aws_auth:
+          aws_access_key_id: $ECR_ACCESS_KEY
+          aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
+        resource_class: << parameters.size >>
 node10:
   working_directory: ~/repo
   docker: &ref_0
@@ -54,18 +115,22 @@ install_cli_from_local_registery: &ref_2
     unsetNpmRegistryUrl
 jobs:
   build:
-    working_directory: ~/repo
-    docker: *ref_0
-    resource_class: large
+    parameters:
+      os:
+        type: executors
+    executor: << parameters.os >>
     steps:
       - checkout
+      - npm install -g yarn
       - run: yarn run production-build
       - save_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          key: >-
+            amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}-<<
+            parameters.node-version >>
           paths:
             - ~/.cache
       - save_cache:
-          key: amplify-cli-ssh-deps-{{ .Branch }}
+          key: amplify-cli-ssh-deps-{{ .Branch }}-<< parameters.node-version >>
           paths:
             - ~/.ssh
       - persist_to_workspace:
@@ -1747,7 +1812,11 @@ workflows:
                 - master
     jobs:
       - build:
-          context: amplify-cli-ecr
+          matrix:
+            parameters:
+              os:
+                - windows
+                - build_img
       - publish_to_local_registry:
           context: amplify-cli-ecr
           requires:
@@ -1772,7 +1841,12 @@ workflows:
             - build
   build_test_deploy:
     jobs:
-      - build
+      - build:
+          matrix:
+            parameters:
+              os:
+                - windows
+                - build_img
       - test:
           requires:
             - build
