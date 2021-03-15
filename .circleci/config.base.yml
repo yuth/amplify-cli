@@ -8,6 +8,10 @@ machine:
     PATH: '${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin'
 
 executors:
+  parameters:
+    os:
+      type: string
+      default: build_img
   windows:
     parameters:
       shell:
