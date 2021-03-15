@@ -117,7 +117,7 @@ jobs:
   build:
     parameters:
       os:
-        type: executors
+        type: executor
     executor: << parameters.os >>
     steps:
       - checkout
