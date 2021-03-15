@@ -9,8 +9,6 @@ machine:
 executors:
   windows:
     parameters:
-      version:
-        type: string
       shell:
         default: cmd.exe
         type: string
