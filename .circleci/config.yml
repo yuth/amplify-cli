@@ -7,10 +7,6 @@ machine:
   environment:
     PATH: ${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin
 executors:
-  parameters:
-    os:
-      type: string
-      default: build_img
   windows:
     parameters:
       shell:
@@ -1834,7 +1830,11 @@ workflows:
               only:
                 - master
     jobs:
-      - build
+      - build:
+          matrix:
+            parameters:
+              os:
+                - build_img
       - cleanup_resources:
           requires:
             - build
