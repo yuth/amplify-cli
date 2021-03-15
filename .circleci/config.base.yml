@@ -43,7 +43,7 @@ executors:
         auth:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_ACCESS_TOKEN
-        resource_class: << parameters.size >>
+    resource_class: << parameters.size >>
   test_img:
     parameters:
       size:
@@ -58,7 +58,7 @@ executors:
         aws_auth:
           aws_access_key_id: $ECR_ACCESS_KEY
           aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
-        resource_class: << parameters.size >>
+    resource_class: << parameters.size >>
 
 node10: &node10
   working_directory: ~/repo
