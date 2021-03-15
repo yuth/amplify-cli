@@ -116,7 +116,7 @@ jobs:
     executor: << parameters.os >>
     steps:
       - checkout
-      - npm install -g yarn
+      - run: npm install -g yarn
       - run: yarn run production-build
       - save_cache:
           key: >-
