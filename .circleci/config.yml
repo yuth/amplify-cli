@@ -121,11 +121,11 @@ jobs:
       - save_cache:
           key: >-
             amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}-<<
-            parameters.node-version >>
+            parameters.os >>
           paths:
             - ~/.cache
       - save_cache:
-          key: amplify-cli-ssh-deps-{{ .Branch }}-<< parameters.node-version >>
+          key: amplify-cli-ssh-deps-{{ .Branch }}-<< parameters.os >>
           paths:
             - ~/.ssh
       - persist_to_workspace:
