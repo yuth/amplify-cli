@@ -91,7 +91,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - when:
           condition:
             equal: [*windows-executor, << parameters.os >>]
@@ -99,29 +99,29 @@ jobs:
             - run: npm install -g yarn
       - run: yarn run production-build
       - save_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
           paths:
             - ~/.cache
             - ./node_modules
       - save_cache:
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          paths:
+            - .
+      - save_cache:
           key: amplify-cli-ssh-deps-{{ .Branch }}
           paths:
             - ~/.ssh
-      - persist_to_workspace:
-          root: .
-          paths: packages
+      # - persist_to_workspace:
+      #     root: .
+      #     paths: packages
 
   test:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *node10
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Install Java
           command: sudo apt-get install default-jdk
@@ -136,16 +136,12 @@ jobs:
           command: yarn coverage
 
   mock_e2e_tests:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *node10
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Install Java
           command: sudo apt-get install default-jdk
@@ -159,16 +155,12 @@ jobs:
           path: packages/amplify-util-mock/
 
   publish_to_local_registry:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Publish to verdaccio
           command: |
@@ -203,16 +195,12 @@ jobs:
             - ~/repo/.amplify-pkg-version
 
   build_pkg_binaries:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -230,16 +218,12 @@ jobs:
             - ~/repo/out
 
   graphql_e2e_tests:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Run GraphQL end-to-end tests
           command: cd packages/graphql-transformers-e2e-tests/ && yarn e2e --maxWorkers=3
@@ -247,16 +231,12 @@ jobs:
       - store_test_results:
           path: packages/graphql-transformers-e2e-tests/
   amplify_sudo_install_test:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Update OS Packages
           command: sudo apt-get update
@@ -272,16 +252,12 @@ jobs:
             amplify version
 
   amplify_e2e_tests:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
       - run: *install_cli_from_local_registery
@@ -292,29 +268,17 @@ jobs:
           path: ~/repo/packages/amplify-e2e-tests/amplify-e2e-reports
 
   done_with_node_e2e_tests:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - run: echo 'Done with Node CLI E2E Tests'
 
   done_with_pkg_linux_e2e_tests:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - run: echo 'Done with pkg CLI E2E Tests'
 
   amplify_e2e_tests_pkg_linux:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
       AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
@@ -322,7 +286,7 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -340,11 +304,10 @@ jobs:
           path: packages/amplify-e2e-tests/amplify-e2e-reports
 
   amplify_e2e_tests_pkg_windows:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    executor:
+      name: win/default
+      shell: cmd.exe
+    working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
       AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
@@ -352,7 +315,7 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -383,17 +346,13 @@ jobs:
           path: packages/amplify-e2e-tests/amplify-e2e-reports
 
   amplify_migration_tests_v4:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
 
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Run tests migrating from CLI v4.0.0
           command: |
@@ -409,18 +368,14 @@ jobs:
     working_directory: ~/repo
 
   amplify_migration_tests_v4_30_0:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     environment:
       AMPLIFY_PATH: /home/circleci/.npm-global/lib/node_modules/@aws-amplify/cli/bin/amplify
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Update OS Packages
           command: sudo apt-get update
@@ -439,16 +394,12 @@ jobs:
     working_directory: ~/repo
 
   amplify_migration_tests_latest:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Run tests migrating from latest CLI
           command: |
@@ -464,16 +415,12 @@ jobs:
     working_directory: ~/repo
 
   amplify_console_integration_tests:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run: *install_cli_from_local_registery
       - run:
           command: |
@@ -587,11 +534,7 @@ jobs:
           path: ../aws-amplify-cypress-api/cypress/screenshots
 
   deploy:
-    parameters:
-      os:
-        type: executor
-        default: os.build_img
-    executor: << parameters.os >>
+    <<: *defaults
     steps:
       - attach_workspace:
           at: ./
@@ -617,7 +560,7 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-unified-changelog-{{ .Branch }}-{{ .Revision }}
       - restore_cache:
@@ -672,7 +615,7 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: 'Run cleanup script'
           command: |
@@ -689,7 +632,7 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}-<< parameters.os >>
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: 'Run cleanup script'
           command: |
