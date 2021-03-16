@@ -8,7 +8,7 @@ machine:
     PATH: '${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin'
 
 executors:
-  windows:
+  windows: &windows-executor
     parameters:
       shell:
         default: cmd.exe
@@ -27,7 +27,7 @@ executors:
     environment:
       - OS: windows
     resource_class: << parameters.size >>
-  build_img:
+  build_img: &build-executor
     parameters:
       size:
         type: enum
@@ -44,7 +44,7 @@ executors:
     resource_class: << parameters.size >>
     environment:
       - OS: linux
-  test_img:
+  test_img: &e2e-executor
     parameters:
       size:
         type: enum
@@ -123,7 +123,7 @@ jobs:
     steps:
       - checkout
       - when:
-          equal: [windows, os.environment.OS]
+          condition: equal [*windows-executor, << parameters.os >>]
           steps:
             - run: npm install -g yarn
       - run: yarn run production-build

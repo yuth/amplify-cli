@@ -125,9 +125,7 @@ jobs:
     steps:
       - checkout
       - when:
-          equal:
-            - windows
-            - os.environment.OS
+          condition: equal [*windows-executor, << parameters.os >>]
           steps:
             - run: npm install -g yarn
       - run: yarn run production-build
