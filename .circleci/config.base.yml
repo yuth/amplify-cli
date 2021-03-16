@@ -82,7 +82,7 @@ install_cli_from_local_registery: &install_cli_from_local_registery
     unsetNpmRegistryUrl
 
 commands:
-  installPackagedCli:
+  install_packaged_cli:
     description: 'Install Amplify Packaged CLI to PATH'
     parameters:
       os:
@@ -126,7 +126,7 @@ commands:
                   echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
                   source $BASH_ENV
                   amplify version
-  installYarn:
+  install_yarn:
     description: 'Install Amplify Packaged CLI to PATH'
     parameters:
       os:
@@ -134,10 +134,10 @@ commands:
         default: e2e-executor
     steps:
       - when:
-        condition:
-          equal: [*windows-executor, << parameters.os >>]
-        steps:
-          - run: npm install -g yarn
+          condition:
+            equal: [*windows-executor, << parameters.os >>]
+          steps:
+            - run: npm install -g yarn
 
 jobs:
   build:
@@ -152,8 +152,8 @@ jobs:
           keys:
             - amplify-build-artifact-{{ .Revision }}-{{ arch }}
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
-      - installYarn:
-          os: << parameters.os >>
+      # - install_yarn:
+      #     os: << parameters.os >>
       - run: yarn run production-build
       - save_cache:
           key: amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
@@ -393,10 +393,10 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
-      # - installYarn:
-      #     os: << parameters.os >>
-      # - installPackagedCli:
-      #     os: << parameters.os >>
+      - install_yarn:
+          os: << parameters.os >>
+      - install_packaged_cli:
+          os: << parameters.os >>
       - run:
           name: Run E2E
           command: cd packages/amplify-e2e-tests
