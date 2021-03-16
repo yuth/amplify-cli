@@ -26,8 +26,6 @@ executors:
       image: windows-server-2019-vs2019:stable
       resource_class: windows.<< parameters.size >>
       shell: << parameters.shell >>
-    environment:
-      - OS: windows
   build_img:
     parameters:
       size:
@@ -40,16 +38,20 @@ executors:
           - large
           - xlarge
           - 2xlarge
+      shell:
+        default: bash
+        type: string
     docker:
       - image: circleci/node:10
         auth:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_ACCESS_TOKEN
     resource_class: << parameters.size >>
-    environment:
-      - OS: linux
   test_img:
     parameters:
+      shell:
+        default: bash
+        type: string
       size:
         type: enum
         description: |
@@ -66,8 +68,6 @@ executors:
           aws_access_key_id: $ECR_ACCESS_KEY
           aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
     resource_class: << parameters.size >>
-    environment:
-      - OS: linux
 node10:
   working_directory: ~/repo
   docker: &ref_1
