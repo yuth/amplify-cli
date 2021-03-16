@@ -26,7 +26,6 @@ executors:
       shell: << parameters.shell >>
     environment:
       - OS: windows
-    resource_class: << parameters.size >>
   build_img: &build-executor
     parameters:
       size:
