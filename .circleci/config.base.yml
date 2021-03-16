@@ -393,10 +393,10 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
-      - installYarn:
-          os: << parameters.os >>
-      - installPackagedCli:
-          os: << parameters.os >>
+      - installYarn
+        # os: << parameters.os >>
+      - installPackagedCli
+        # os: << parameters.os >>
       - run:
           name: Run E2E
           command: cd packages/amplify-e2e-tests
