@@ -8,66 +8,24 @@ machine:
     PATH: ${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin
 executors:
   windows: &ref_0
-    parameters:
-      shell:
-        default: cmd.exe
-        type: string
-      size:
-        type: enum
-        description: |
-          The size of Windows resource to use. Defaults to medium.
-        default: medium
-        enum:
-          - medium
-          - large
-          - xlarge
-          - 2xlarge
     machine:
       image: windows-server-2019-vs2019:stable
-      resource_class: windows.<< parameters.size >>
-      shell: << parameters.shell >>
+      resource_class: windows.medium
+      shell: cmd.exe
   build_img:
-    parameters:
-      size:
-        type: enum
-        description: |
-          The size of Windows resource to use. Defaults to medium.
-        default: medium
-        enum:
-          - medium
-          - large
-          - xlarge
-          - 2xlarge
-      shell:
-        default: bash
-        type: string
     docker:
       - image: circleci/node:10
         auth:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_ACCESS_TOKEN
-    resource_class: << parameters.size >>
+    resource_class: medium
   test_img:
-    parameters:
-      shell:
-        default: bash
-        type: string
-      size:
-        type: enum
-        description: |
-          The size of Windows resource to use. Defaults to medium.
-        default: medium
-        enum:
-          - medium
-          - large
-          - xlarge
-          - 2xlarge
     docker:
       - image: ${AWS_ECR_ACCOUNT_URL}/amplify-cli-e2e-base-image-repo:latest
         aws_auth:
           aws_access_key_id: $ECR_ACCESS_KEY
           aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
-    resource_class: << parameters.size >>
+    resource_class: medium
 node10:
   working_directory: ~/repo
   docker: &ref_1
