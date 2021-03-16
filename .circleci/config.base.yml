@@ -114,9 +114,9 @@ commands:
                   [System.Environment]::SetEnvironmentVariable("Path", $Environment, "Machine")
       - when:
           condition:
-            - or:
-                - equal: [*e2e-executor, << parameters.os >>]
-                - equal: [*build-executor, << parameters.os >>]
+            or:
+              - equal: [*e2e-executor, << parameters.os >>]
+              - equal: [*build-executor, << parameters.os >>]
           steps:
             - run:
                 name: Symlink Amplify packaged CLI

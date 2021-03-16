@@ -118,13 +118,13 @@ commands:
                   $Environment, "Machine")
       - when:
           condition:
-            - or:
-                - equal:
-                    - *ref_1
-                    - << parameters.os >>
-                - equal:
-                    - *ref_2
-                    - << parameters.os >>
+            or:
+              - equal:
+                  - *ref_1
+                  - << parameters.os >>
+              - equal:
+                  - *ref_2
+                  - << parameters.os >>
           steps:
             - run:
                 name: Symlink Amplify packaged CLI
