@@ -91,7 +91,9 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - when:
           condition:
             equal: [*windows-executor, << parameters.os >>]
@@ -99,10 +101,9 @@ jobs:
             - run: npm install -g yarn
       - run: yarn run production-build
       - save_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          key: amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
           paths:
-            - ~/.cache
-            - ./node_modules
+            - ./**/node_modules
       - save_cache:
           key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
           paths:
@@ -121,7 +122,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Install Java
           command: sudo apt-get install default-jdk
@@ -160,7 +163,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Publish to verdaccio
           command: |
@@ -200,7 +205,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -223,7 +230,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Run GraphQL end-to-end tests
           command: cd packages/graphql-transformers-e2e-tests/ && yarn e2e --maxWorkers=3
@@ -236,7 +245,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Update OS Packages
           command: sudo apt-get update
@@ -257,7 +268,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
       - run: *install_cli_from_local_registery
@@ -286,7 +299,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -315,7 +330,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -352,7 +369,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Run tests migrating from CLI v4.0.0
           command: |
@@ -375,7 +394,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Update OS Packages
           command: sudo apt-get update
@@ -399,7 +420,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: Run tests migrating from latest CLI
           command: |
@@ -420,7 +443,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run: *install_cli_from_local_registery
       - run:
           command: |
@@ -560,7 +585,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-unified-changelog-{{ .Branch }}-{{ .Revision }}
       - restore_cache:
@@ -601,7 +628,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplfiy-pkg-tag-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -615,7 +644,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: 'Run cleanup script'
           command: |
@@ -632,7 +663,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ checksum "yarn.lock" }}
       - run:
           name: 'Run cleanup script'
           command: |
