@@ -411,8 +411,6 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
-      - installYarn
-      - installPackagedCli
       - run:
           name: Run E2E
           command: >-
