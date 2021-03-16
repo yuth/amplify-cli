@@ -26,6 +26,9 @@ executors:
       image: windows-server-2019-vs2019:stable
       resource_class: windows.<< parameters.size >>
       shell: << parameters.shell >>
+    environment:
+      - OS: windows
+    resource_class: << parameters.size >>
   build_img:
     parameters:
       size:
@@ -44,6 +47,8 @@ executors:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_ACCESS_TOKEN
     resource_class: << parameters.size >>
+    environment:
+      - OS: linux
   test_img:
     parameters:
       size:
@@ -62,6 +67,8 @@ executors:
           aws_access_key_id: $ECR_ACCESS_KEY
           aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
     resource_class: << parameters.size >>
+    environment:
+      - OS: linux
 node10:
   working_directory: ~/repo
   docker: &ref_0
@@ -113,10 +120,16 @@ jobs:
     parameters:
       os:
         type: executor
+        default: os.build_img
     executor: << parameters.os >>
     steps:
       - checkout
-      - run: npm install -g yarn
+      - when:
+          equal:
+            - windows
+            - os.environment.OS
+          steps:
+            - run: npm install -g yarn
       - run: yarn run production-build
       - save_cache:
           key: >-
