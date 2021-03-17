@@ -7,7 +7,7 @@ executors:
   windows: &ref_0
     machine:
       image: windows-server-2019-vs2019:stable
-      resource_class: windows.xlarge
+      resource_class: windows.medium
       shell: powershell.exe
     working_directory: ~/repo
   build_img: &ref_2
