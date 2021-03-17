@@ -174,7 +174,7 @@ jobs:
     parameters:
       os:
         type: executor
-        default: os.build_img
+        default: executors.build_img
     executor: << parameters.os >>
     steps:
       - checkout
@@ -202,7 +202,7 @@ jobs:
     parameters:
       os:
         type: executor
-        default: os.build_img
+        default: executors.build_img
     executor: << parameters.os >>
     steps:
       - attach_workspace:
@@ -390,7 +390,7 @@ jobs:
     parameters: &ref_8
       os:
         type: executor
-        default: os.build_img
+        default: executors.build_img
     executor: << parameters.os >>
     working_directory: ~/repo
     environment:
