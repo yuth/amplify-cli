@@ -7,7 +7,7 @@ executors:
   windows: &ref_0
     machine:
       image: windows-server-2019-vs2019:stable
-      resource_class: windows.medium
+      resource_class: windows.large
       shell: powershell.exe
     working_directory: ~/repo
   build_img: &ref_2
@@ -17,7 +17,7 @@ executors:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_ACCESS_TOKEN
     working_directory: ~/repo
-    resource_class: medium
+    resource_class: large
   test_img: &ref_1
     docker:
       - image: ${AWS_ECR_ACCOUNT_URL}/amplify-cli-e2e-base-image-repo:latest
@@ -25,7 +25,7 @@ executors:
           aws_access_key_id: $ECR_ACCESS_KEY
           aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
     working_directory: ~/repo
-    resource_class: medium
+    resource_class: large
 node10:
   working_directory: ~/repo
   docker: &ref_6
@@ -136,6 +136,27 @@ commands:
               - << parameters.os >>
           steps:
             - run: npm install -g yarn
+  install_java:
+    description: Install Java on Linux and Docker images
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            or:
+              - equal:
+                  - *ref_1
+                  - << parameters.os >>
+              - equal:
+                  - *ref_2
+                  - << parameters.os >>
+          steps:
+            - run:
+                name: Install Java
+                command: |
+                  sudo apt-get install default-jdk
   run_e2e_tests:
     description: Run Amplify E2E tests
     parameters:
@@ -211,9 +232,8 @@ jobs:
           keys:
             - amplify-build-artifact-{{ .Revision }}-{{ arch }}
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
-      - run:
-          name: Install Java
-          command: sudo apt-get install default-jdk
+      - install_java:
+          os: <<parameters.os >>
       - run:
           name: Lint
           command: yarn lint
@@ -234,9 +254,8 @@ jobs:
           at: ./
       - restore_cache:
           key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
-      - run:
-          name: Install Java
-          command: sudo apt-get install default-jdk
+      - install_java:
+          os: <<parameters.os >>
       - run:
           name: Run Transformer end-to-end tests with mock server
           command: cd packages/amplify-util-mock/ && yarn e2e
@@ -402,15 +421,18 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          keys:
-            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
-            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+      - restore_cache:
+          key: amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
       - install_yarn:
           os: << parameters.os >>
       - install_packaged_cli:
           os: << parameters.os >>
+      - run:
+          name: Install packages
+          command: yarn production-build
       - run_e2e_tests:
           os: << parameters.os >>
       - store_test_results:
@@ -1979,7 +2001,6 @@ workflows:
           matrix:
             parameters:
               os:
-                - windows
                 - build_img
           requires:
             - build
