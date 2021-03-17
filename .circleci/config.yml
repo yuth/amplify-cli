@@ -93,39 +93,12 @@ commands:
                   cd C:\home\circleci\repo\out
                   mv amplify-pkg-win.exe amplify.exe
             - run:
-                name: Update PATH to include Packaged CLI
+                name: Move to CLI Binary to already existing PATH
                 command: >
-                  #Script to Add and/or remove items from the System Path
+                  # This is a Hack to make sure the Amplify CLI is in the PATH
 
-                  #Get Current Path
-
-                  $Environment =
-                  [System.Environment]::GetEnvironmentVariable("Path",
-                  "Machine")
-
-
-                  #Add Items to Environment
-
-                  $AddPathItems = "C:\home\circleci\repo\out;"
-
-                  $Environment =
-                  $Environment.Insert($Environment.Length,$AddPathItems)
-
-
-                  #Set Updated Path
-
-                  [System.Environment]::SetEnvironmentVariable("Path",
-                  $Environment, "Machine")
-
-
-                  # Update current session
-
-                  Set-ItemProperty -Path
-                  'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
-                  Manager\Environment' -Name PATH -Value ($Environment) #Append
-                  new path to existing path variable
-
-                  $Env:Path
+                  cp C:\home\circleci\repo\out\amplify.exe
+                  C:\Users\circleci\AppData\Local\Microsoft\WindowsApps
             - run:
                 name: Confirm Amplify CLI is installed and available in PATH
                 command: amplify version
@@ -226,9 +199,11 @@ jobs:
           paths:
             - ~/.ssh
   test:
-    working_directory: ~/repo
-    docker: *ref_3
-    resource_class: large
+    parameters:
+      os:
+        type: executor
+        default: os.build_img
+    executor: << parameters.os >>
     steps:
       - attach_workspace:
           at: ./
