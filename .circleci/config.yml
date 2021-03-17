@@ -116,6 +116,16 @@ commands:
 
                   [System.Environment]::SetEnvironmentVariable("Path",
                   $Environment, "Machine")
+
+
+                  # Update current session
+
+                  Set-ItemProperty -Path
+                  'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
+                  Manager\Environment' -Name PATH -Value ($Environment) #Append
+                  new path to existing path variable
+
+                  $Env:Path
             - run:
                 name: Confirm Amplify CLI is installed and available in PATH
                 command: amplify version
