@@ -323,7 +323,7 @@ function main(): void {
 
   const splitPkgWinTests = splitTests(
     splitNodeTests,
-    'amplify_e2e_tests_pkg_windows',
+    'amplify_e2e_tests_pkg',
     'build_test_deploy',
     join(process.cwd(), 'packages', 'amplify-e2e-tests'),
     CONCURRENCY,

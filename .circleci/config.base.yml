@@ -423,9 +423,6 @@ jobs:
           os: << parameters.os >>
       - install_packaged_cli:
           os: << parameters.os >>
-      - run:
-          name: Install packages
-          command: yarn
       - run_e2e_tests:
           os: << parameters.os >>
       - store_test_results:
