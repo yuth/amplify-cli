@@ -256,7 +256,9 @@ jobs:
           os: <<parameters.os >>
       - run:
           name: Run Transformer end-to-end tests with mock server
-          command: cd packages/amplify-util-mock/ && yarn e2e
+          command: |
+            cd packages/amplify-util-mock/
+            yarn e2e
           no_output_timeout: 90m
           environment:
             JEST_JUNIT_OUTPUT: 'reports/junit/js-test-results.xml'
@@ -341,7 +343,9 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - run:
           name: Run GraphQL end-to-end tests
-          command: cd packages/graphql-transformers-e2e-tests/ && yarn e2e --maxWorkers=3
+          command: |
+            cd packages/graphql-transformers-e2e-tests/ 
+            yarn e2e --maxWorkers=3
           no_output_timeout: 90m
       - store_test_results:
           path: packages/graphql-transformers-e2e-tests/
@@ -421,7 +425,7 @@ jobs:
           os: << parameters.os >>
       - run:
           name: Install packages
-          command: yarn production-build
+          command: yarn
       - run_e2e_tests:
           os: << parameters.os >>
       - store_test_results:
