@@ -112,6 +112,10 @@ commands:
 
                   #Set Updated Path
                   [System.Environment]::SetEnvironmentVariable("Path", $Environment, "Machine")
+            - run:
+                name: Confirm Amplify CLI is installed and available in PATH
+                command: amplify version
+
       - when:
           condition:
             or:
@@ -125,7 +129,10 @@ commands:
                   ln -sf amplify-pkg-linux amplify
                   echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
                   source $BASH_ENV
-                  amplify version
+            - run:
+                name: Confirm Amplify CLI is installed and available in PATH
+                command: amplify version
+
   install_yarn:
     description: 'Install Amplify Packaged CLI to PATH'
     parameters:
@@ -138,6 +145,33 @@ commands:
             equal: [*windows-executor, << parameters.os >>]
           steps:
             - run: npm install -g yarn
+  run_e2e_tests:
+    description: 'Run Amplify E2E tests'
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            equal: [*windows-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Run E2E tests
+                command: |
+                  cd packages/amplify-e2e-tests
+                  yarn run e2e --maxWorkers=3 $ENV:TEST_SUITE
+      - when:
+          condition:
+            or:
+              - equal: [*e2e-executor, << parameters.os >>]
+              - equal: [*build-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Run E2E tests
+                command: |
+                  cd packages/amplify-e2e-tests
+                  yarn run e2e --maxWorkers=3 $TEST_SUITE
 
 jobs:
   build:
@@ -152,8 +186,8 @@ jobs:
           keys:
             - amplify-build-artifact-{{ .Revision }}-{{ arch }}
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
-      # - install_yarn:
-      #     os: << parameters.os >>
+      - install_yarn:
+          os: << parameters.os >>
       - run: yarn run production-build
       - save_cache:
           key: amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
@@ -341,40 +375,12 @@ jobs:
     steps:
       - run: echo 'Done with Node CLI E2E Tests'
 
-  done_with_pkg_linux_e2e_tests:
+  done_with_pkg_e2e_tests:
     <<: *defaults
     steps:
       - run: echo 'Done with pkg CLI E2E Tests'
 
-  amplify_e2e_tests_pkg_linux:
-    <<: *defaults
-    environment:
-      AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
-    steps:
-      - attach_workspace:
-          at: ./
-      - restore_cache:
-          keys:
-            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
-            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
-      - restore_cache:
-          key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Symlink Amplify packaged CLI
-          command: |
-            cd out
-            ln -sf amplify-pkg-linux amplify
-            echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
-            source $BASH_ENV
-            amplify version
-      - run: *run_e2e_tests
-      - store_test_results:
-          path: packages/amplify-e2e-tests/
-      - store_artifacts:
-          path: packages/amplify-e2e-tests/amplify-e2e-reports
-
-  amplify_e2e_tests_pkg_windows:
+  amplify_e2e_tests_pkg:
     parameters:
       os:
         type: executor
@@ -397,11 +403,8 @@ jobs:
           os: << parameters.os >>
       - install_packaged_cli:
           os: << parameters.os >>
-      - run:
-          name: Run E2E
-          command: cd packages/amplify-e2e-tests
-            yarn run e2e --maxWorkers=3 $TEST_SUITE
-
+      - run_e2e_tests:
+          os: << parameters.os >>
       - store_test_results:
           path: packages/amplify-e2e-tests/
       - store_artifacts:
@@ -836,7 +839,7 @@ workflows:
           context: amplify-cli-ecr
           requires:
             - amplify_e2e_tests
-      - amplify_e2e_tests_pkg_windows:
+      - amplify_e2e_tests_pkg:
           matrix:
             parameters:
               os: [windows]
@@ -846,21 +849,10 @@ workflows:
                 - win-e2e
           requires:
             - build_pkg_binaries
-      - amplify_e2e_tests_pkg_linux:
-          context: amplify-cli-ecr
-          post-steps:
-            - run: *clean_e2e_resources
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - done_with_node_e2e_tests
-            - build_pkg_binaries
-      - done_with_pkg_linux_e2e_tests:
+      - done_with_pkg_e2e_tests:
           context: amplify-cli-ecr
           requires:
-            - amplify_e2e_tests_pkg_linux
+            - amplify_e2e_tests_pkg
       - amplify_migration_tests_latest:
           context: amplify-cli-ecr
           filters:
@@ -917,7 +909,7 @@ workflows:
                 - release
       - cleanup_resources_after_e2e_runs:
           requires:
-            - done_with_pkg_linux_e2e_tests
+            - done_with_pkg_e2e_tests
             - amplify_migration_tests_latest
             - amplify_migration_tests_v4
             - amplify_migration_tests_v4_30_0
@@ -930,7 +922,7 @@ workflows:
             - mock_e2e_tests
             - graphql_e2e_tests
             - integration_test
-            - done_with_pkg_linux_e2e_tests
+            - done_with_pkg_e2e_tests
             - amplify_sudo_install_test
             - amplify_console_integration_tests
             - amplify_migration_tests_latest
