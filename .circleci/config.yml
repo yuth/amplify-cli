@@ -28,7 +28,7 @@ executors:
     resource_class: medium
 node10:
   working_directory: ~/repo
-  docker: &ref_3
+  docker: &ref_6
     - image: circleci/node:10
       auth:
         username: $DOCKERHUB_USERNAME
@@ -36,7 +36,7 @@ node10:
   resource_class: large
 defaults:
   working_directory: ~/repo
-  docker: &ref_4
+  docker: &ref_3
     - image: ${AWS_ECR_ACCOUNT_URL}/amplify-cli-e2e-base-image-repo:latest
       aws_auth:
         aws_access_key_id: $ECR_ACCESS_KEY
@@ -49,7 +49,7 @@ clean_e2e_resources: &ref_10
     cd packages/amplify-e2e-tests
     yarn clean-e2e-resources job ${CIRCLE_BUILD_NUM}
   working_directory: ~/repo
-run_e2e_tests: &ref_6
+run_e2e_tests: &ref_5
   name: Run Amplify end-to-end tests
   command: |
     source .circleci/local_publish_helpers.sh
@@ -62,7 +62,7 @@ run_e2e_tests: &ref_6
     yarn run e2e --maxWorkers=3 $TEST_SUITE
     unsetNpmRegistryUrl
   no_output_timeout: 90m
-install_cli_from_local_registery: &ref_5
+install_cli_from_local_registery: &ref_4
   name: Start verdaccio, install node CLI and amplify-app
   command: |
     source .circleci/local_publish_helpers.sh
@@ -174,7 +174,7 @@ jobs:
     parameters:
       os:
         type: executor
-        default: executors.build_img
+        default: os.build_img
     executor: << parameters.os >>
     steps:
       - checkout
@@ -202,7 +202,7 @@ jobs:
     parameters:
       os:
         type: executor
-        default: executors.build_img
+        default: os.build_img
     executor: << parameters.os >>
     steps:
       - attach_workspace:
@@ -224,9 +224,11 @@ jobs:
           name: Collect code coverage
           command: yarn coverage
   mock_e2e_tests:
-    working_directory: ~/repo
-    docker: *ref_3
-    resource_class: large
+    parameters:
+      os:
+        type: executor
+        default: os.build_img
+    executor: << parameters.os >>
     steps:
       - attach_workspace:
           at: ./
@@ -245,7 +247,7 @@ jobs:
           path: packages/amplify-util-mock/
   publish_to_local_registry:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -288,7 +290,7 @@ jobs:
             - ~/repo/.amplify-pkg-version
   build_pkg_binaries:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -314,7 +316,7 @@ jobs:
             - ~/repo/out
   graphql_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -333,7 +335,7 @@ jobs:
           path: packages/graphql-transformers-e2e-tests/
   amplify_sudo_install_test:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -357,7 +359,7 @@ jobs:
             amplify version
   amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: &ref_7
       - attach_workspace:
@@ -368,21 +370,21 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
+      - run: *ref_4
       - run: *ref_5
-      - run: *ref_6
       - store_test_results:
           path: packages/amplify-e2e-tests/
       - store_artifacts:
           path: ~/repo/packages/amplify-e2e-tests/amplify-e2e-reports
   done_with_node_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - run: echo 'Done with Node CLI E2E Tests'
   done_with_pkg_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - run: echo 'Done with pkg CLI E2E Tests'
@@ -390,7 +392,7 @@ jobs:
     parameters: &ref_8
       os:
         type: executor
-        default: executors.build_img
+        default: os.build_img
     executor: << parameters.os >>
     working_directory: ~/repo
     environment:
@@ -417,7 +419,7 @@ jobs:
           path: packages/amplify-e2e-tests/amplify-e2e-reports
   amplify_migration_tests_v4:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -440,7 +442,7 @@ jobs:
           path: ~/repo/packages/amplify-migration-tests/amplify-migration-reports
   amplify_migration_tests_v4_30_0:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     environment:
       AMPLIFY_PATH: /home/circleci/.npm-global/lib/node_modules/@aws-amplify/cli/bin/amplify
@@ -468,7 +470,7 @@ jobs:
           path: ~/repo/packages/amplify-migration-tests/amplify-migration-reports
   amplify_migration_tests_latest:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -491,7 +493,7 @@ jobs:
           path: ~/repo/packages/amplify-migration-tests/amplify-migration-reports
   amplify_console_integration_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -500,7 +502,7 @@ jobs:
           keys:
             - amplify-build-artifact-{{ .Revision }}-{{ arch }}
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
-      - run: *ref_5
+      - run: *ref_4
       - run:
           command: |
             echo "export PATH=~/.npm-global/bin:$PATH" >> $BASH_ENV
@@ -626,7 +628,7 @@ jobs:
           path: ../aws-amplify-cypress-api/cypress/screenshots
   deploy:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -649,7 +651,7 @@ jobs:
             fi
   github_prerelease:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -678,7 +680,7 @@ jobs:
             yarn ts-node scripts/github-prerelease.ts $version
   github_prerelease_install_sanity_check:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - restore_cache:
@@ -698,7 +700,7 @@ jobs:
             amplify version
   github_release:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps:
       - attach_workspace:
@@ -716,7 +718,7 @@ jobs:
             yarn ts-node scripts/github-release.ts $version
   cleanup_resources:
     working_directory: ~/repo
-    docker: *ref_3
+    docker: *ref_6
     resource_class: large
     steps:
       - attach_workspace:
@@ -735,7 +737,7 @@ jobs:
           path: ~/repo/packages/amplify-e2e-tests/amplify-e2e-reports
   cleanup_resources_after_e2e_runs:
     working_directory: ~/repo
-    docker: *ref_3
+    docker: *ref_6
     resource_class: large
     steps:
       - attach_workspace:
@@ -754,7 +756,7 @@ jobs:
           path: ~/repo/packages/amplify-e2e-tests/amplify-e2e-reports
   schema-iterative-update-4-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -762,7 +764,7 @@ jobs:
       CLI_REGION: us-east-2
   api_2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -770,7 +772,7 @@ jobs:
       CLI_REGION: us-west-2
   storage-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -778,7 +780,7 @@ jobs:
       CLI_REGION: eu-west-2
   schema-auth-5-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -786,7 +788,7 @@ jobs:
       CLI_REGION: eu-central-1
   api_1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -794,7 +796,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   schema-auth-2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -802,7 +804,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   schema-iterative-update-3-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -810,7 +812,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   schema-auth-6-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -818,7 +820,7 @@ jobs:
       CLI_REGION: us-east-2
   schema-connection-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -826,7 +828,7 @@ jobs:
       CLI_REGION: us-west-2
   migration-api-connection-migration-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -834,7 +836,7 @@ jobs:
       CLI_REGION: eu-west-2
   schema-model-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -842,7 +844,7 @@ jobs:
       CLI_REGION: eu-central-1
   schema-function-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -850,7 +852,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   function_4-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -858,7 +860,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   schema-auth-1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -866,7 +868,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   function_1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -874,7 +876,7 @@ jobs:
       CLI_REGION: us-east-2
   migration-api-key-migration2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -882,7 +884,7 @@ jobs:
       CLI_REGION: us-west-2
   schema-auth-11-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -890,7 +892,7 @@ jobs:
       CLI_REGION: eu-west-2
   schema-auth-9-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -898,7 +900,7 @@ jobs:
       CLI_REGION: eu-central-1
   auth_2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -906,7 +908,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   env-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -914,7 +916,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   import_dynamodb_1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -922,7 +924,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   import_s3_1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -930,7 +932,7 @@ jobs:
       CLI_REGION: us-east-2
   import_auth_2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -938,7 +940,7 @@ jobs:
       CLI_REGION: us-west-2
   import_auth_1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -946,7 +948,7 @@ jobs:
       CLI_REGION: eu-west-2
   api_3-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -954,7 +956,7 @@ jobs:
       CLI_REGION: eu-central-1
   schema-auth-4-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -962,7 +964,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   schema-searchable-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -970,7 +972,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   schema-auth-8-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -978,7 +980,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   schema-auth-7-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -986,7 +988,7 @@ jobs:
       CLI_REGION: us-east-2
   auth_4-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -994,7 +996,7 @@ jobs:
       CLI_REGION: us-west-2
   migration-api-key-migration1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1002,7 +1004,7 @@ jobs:
       CLI_REGION: eu-west-2
   layer-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1010,7 +1012,7 @@ jobs:
       CLI_REGION: eu-central-1
   auth_3-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1018,7 +1020,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   function_2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1026,7 +1028,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   delete-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1034,7 +1036,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   schema-auth-3-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1042,7 +1044,7 @@ jobs:
       CLI_REGION: us-east-2
   schema-iterative-update-1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1050,7 +1052,7 @@ jobs:
       CLI_REGION: us-west-2
   function_3-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1058,7 +1060,7 @@ jobs:
       CLI_REGION: eu-west-2
   auth_5-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1066,7 +1068,7 @@ jobs:
       CLI_REGION: eu-central-1
   auth_1-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1074,7 +1076,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   schema-key-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1082,7 +1084,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   schema-auth-10-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1090,7 +1092,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   hostingPROD-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1098,7 +1100,7 @@ jobs:
       CLI_REGION: us-east-2
   predictions-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1106,7 +1108,7 @@ jobs:
       CLI_REGION: us-west-2
   containers-api-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1114,7 +1116,7 @@ jobs:
       CLI_REGION: eu-west-2
   schema-iterative-update-2-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1122,7 +1124,7 @@ jobs:
       CLI_REGION: eu-central-1
   feature-flags-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1130,7 +1132,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   analytics-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1138,7 +1140,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   hosting-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1146,7 +1148,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   amplify-app-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1154,7 +1156,7 @@ jobs:
       CLI_REGION: us-east-2
   schema-predictions-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1162,7 +1164,7 @@ jobs:
       CLI_REGION: us-west-2
   interactions-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1170,7 +1172,7 @@ jobs:
       CLI_REGION: eu-west-2
   schema-data-access-patterns-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1178,7 +1180,7 @@ jobs:
       CLI_REGION: eu-central-1
   schema-versioned-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1186,7 +1188,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   notifications-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1194,7 +1196,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   tags-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1202,7 +1204,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   init-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1210,7 +1212,7 @@ jobs:
       CLI_REGION: us-east-2
   amplify-configure-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1218,7 +1220,7 @@ jobs:
       CLI_REGION: us-west-2
   datastore-modelgen-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1226,7 +1228,7 @@ jobs:
       CLI_REGION: eu-west-2
   init-special-case-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1234,7 +1236,7 @@ jobs:
       CLI_REGION: eu-central-1
   plugin-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1242,7 +1244,7 @@ jobs:
       CLI_REGION: ap-northeast-1
   schema-iterative-update-locking-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1250,7 +1252,7 @@ jobs:
       CLI_REGION: ap-southeast-1
   migration-node-function-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1258,7 +1260,7 @@ jobs:
       CLI_REGION: ap-southeast-2
   function_5-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1266,7 +1268,7 @@ jobs:
       CLI_REGION: us-east-2
   api_4-amplify_e2e_tests:
     working_directory: ~/repo
-    docker: *ref_4
+    docker: *ref_3
     resource_class: large
     steps: *ref_7
     environment:
@@ -1974,9 +1976,19 @@ workflows:
                 - windows
                 - build_img
       - test:
+          matrix:
+            parameters:
+              os:
+                - windows
+                - build_img
           requires:
             - build
       - mock_e2e_tests:
+          matrix:
+            parameters:
+              os:
+                - windows
+                - build_img
           requires:
             - build
       - graphql_e2e_tests:
