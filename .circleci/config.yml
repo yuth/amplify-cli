@@ -2608,7 +2608,7 @@ workflows:
           matrix: &ref_13
             parameters:
               os:
-                - windows
+                - test_img
           filters: &ref_14
             branches:
               only:
