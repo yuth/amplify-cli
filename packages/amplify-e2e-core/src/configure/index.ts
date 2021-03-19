@@ -1,5 +1,5 @@
 import { nspawn as spawn, getCLIPath, singleSelect } from '..';
-import { ExecutionContext } from '../utils';
+import { Expect } from '../utils';
 
 type AmplifyConfiguration = {
   accessKeyId: string;
@@ -75,9 +75,7 @@ export function amplifyConfigure(settings: AmplifyConfiguration): Promise<void> 
 export function amplifyConfigureProject(settings: { cwd: string; enableContainers: boolean }): Promise<void> {
   const { enableContainers = false, cwd } = settings;
 
-  const confirmContainers: keyof Pick<ExecutionContext, 'sendConfirmYes' | 'sendConfirmNo'> = enableContainers
-    ? 'sendConfirmYes'
-    : 'sendConfirmNo';
+  const confirmContainers: keyof Pick<Expect, 'sendConfirmYes' | 'sendConfirmNo'> = enableContainers ? 'sendConfirmYes' : 'sendConfirmNo';
 
   return new Promise((resolve, reject) => {
     const chain = spawn(getCLIPath(), ['configure', 'project'], { cwd, stripColors: true })

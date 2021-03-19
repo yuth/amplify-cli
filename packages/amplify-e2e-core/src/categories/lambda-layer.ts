@@ -2,7 +2,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import _ from 'lodash';
 import { JSONUtilities } from 'amplify-cli-core';
-import { nspawn as spawn, ExecutionContext, getCLIPath, KEY_DOWN_ARROW } from '..';
+import { nspawn as spawn, Expect, getCLIPath, KEY_DOWN_ARROW } from '..';
 import { getLayerVersion, listVersions } from '../utils/sdk-calls';
 import { multiSelect } from '../utils/selectors';
 
@@ -59,7 +59,7 @@ export function addLayer(cwd: string, settings?: any, testingWithLatestCodebase:
   };
   settings = { ...defaultSettings, ...settings };
   return new Promise((resolve, reject) => {
-    const chain: ExecutionContext = spawn(getCLIPath(testingWithLatestCodebase), ['add', 'function'], { cwd, stripColors: true })
+    const chain: Expect = spawn(getCLIPath(testingWithLatestCodebase), ['add', 'function'], { cwd, stripColors: true })
       .wait('Select which capability you want to add:')
       .send(KEY_DOWN_ARROW)
       .sendCarriageReturn() // Layer
@@ -108,7 +108,7 @@ export function removeLayer(cwd: string): Promise<void> {
 
 export function updateLayer(cwd: string, settings?: any, testingWithLatestCodebase: boolean = false): Promise<void> {
   return new Promise((resolve, reject) => {
-    const chain: ExecutionContext = spawn(getCLIPath(testingWithLatestCodebase), ['update', 'function'], { cwd, stripColors: true })
+    const chain: Expect = spawn(getCLIPath(testingWithLatestCodebase), ['update', 'function'], { cwd, stripColors: true })
       .wait('Select which capability you want to update:')
       .send(KEY_DOWN_ARROW)
       .sendCarriageReturn(); // Layer
@@ -186,7 +186,7 @@ function getLayerRuntimeInfo(runtime: LayerRuntimes) {
   }
 }
 
-function waitForLayerSuccessPrintout(chain: ExecutionContext, settings: any, action: string) {
+function waitForLayerSuccessPrintout(chain: Expect, settings: any, action: string) {
   chain
     .wait(`✅ Lambda layer folders & files ${action}:`)
     .wait(path.join('amplify', 'backend', 'function', settings.layerName))

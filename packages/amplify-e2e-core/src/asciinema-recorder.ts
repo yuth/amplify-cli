@@ -29,8 +29,8 @@ export class Recorder {
     private args: string[],
     private options: any,
     cwd?: string,
-    private cols: number = 120,
-    private rows: number = 30,
+    private cols: number = 150,
+    private rows: number = 80,
   ) {
     this.exitCode = undefined;
     this.cwd = options.cwd || process.cwd();
