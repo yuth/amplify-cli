@@ -1994,7 +1994,6 @@ workflows:
           matrix:
             parameters:
               os:
-                - windows
                 - build_img
       - test:
           matrix:
@@ -2007,7 +2006,6 @@ workflows:
           matrix:
             parameters:
               os:
-                - windows
                 - build_img
           requires:
             - build
@@ -2615,323 +2613,388 @@ workflows:
                 - win-e2e
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-6-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - function_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - import_s3_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-7-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-iterative-update-4-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-auth-3-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-6-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - hostingPROD-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - function_1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - amplify-app-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - import_s3_1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - init-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-7-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - function_5-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-3-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - api_2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-connection-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - migration-api-key-migration2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - import_auth_2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - auth_4-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - api_2-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-iterative-update-1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-connection-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - predictions-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - migration-api-key-migration2-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-predictions-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - import_auth_2-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - amplify-configure-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - auth_4-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - api_4-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-iterative-update-1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - storage-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - migration-api-connection-migration-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-11-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - import_auth_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - migration-api-key-migration1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - storage-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - function_3-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - migration-api-connection-migration-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - containers-api-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-11-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - interactions-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - import_auth_1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - datastore-modelgen-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - migration-api-key-migration1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-auth-5-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-model-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-9-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - api_3-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - layer-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-5-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - auth_5-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-model-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-iterative-update-2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-9-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-data-access-patterns-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - api_3-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - init-special-case-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - layer-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - api_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-function-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - auth_2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-4-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - auth_3-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - api_1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - auth_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-function-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - feature-flags-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - auth_2-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-versioned-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-4-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - plugin-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - auth_3-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-auth-2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - function_4-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - env-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-searchable-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - function_2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-2-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-key-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - function_4-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - analytics-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - env-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - notifications-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-searchable-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-iterative-update-locking-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - function_2-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-iterative-update-3-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - import_dynamodb_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - schema-auth-8-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - build_pkg_binaries
+          context: amplify-cli-ecr
       - delete-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-iterative-update-3-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - schema-auth-10-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - hosting-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - import_dynamodb_1-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - tags-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - schema-auth-8-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
       - migration-node-function-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
             - delete-amplify_e2e_tests_pkg
+          context: amplify-cli-ecr
