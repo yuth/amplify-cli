@@ -62,9 +62,9 @@ export class Expect {
       params = command;
       command = params.shift();
     } else if (typeof command === 'string') {
-      command = command.split(' ');
-      params = params || command.slice(1);
-      command = command[0];
+      const commandSplit = command.split(' ');
+      params = commandSplit.length > 1 ? [...commandSplit.slice(1), ...(params || [])] : params;
+      command = commandSplit[0];
     }
 
     let childEnv = undefined;

@@ -25,7 +25,9 @@ export function getCLIPath(testingWithLatestCodebase = false) {
   if (isCI() && !testingWithLatestCodebase) {
     return process.env.AMPLIFY_PATH || (process.platform === 'win32' ? 'amplify.exe' : 'amplify');
   }
-  return path.join(__dirname, '..', '..', 'amplify-cli', 'bin', 'amplify');
+
+  const amplifyScriptPath = path.join(__dirname, '..', '..', 'amplify-cli', 'bin', 'amplify');
+  return process.platform === 'win32' ? `node.exe ${amplifyScriptPath}` : amplifyScriptPath;
 }
 
 export function isCI(): boolean {

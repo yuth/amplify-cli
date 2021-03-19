@@ -181,6 +181,7 @@ commands:
                 command: |
                   cd packages/amplify-e2e-tests
                   yarn run e2e --maxWorkers=3 $ENV:TEST_SUITE
+                no_output_timeout: 90m
       - when:
           condition:
             or:
@@ -198,6 +199,7 @@ commands:
                   amplify version
                   cd packages/amplify-e2e-tests
                   yarn run e2e --maxWorkers=3 $TEST_SUITE
+                no_output_timeout: 90m
 jobs:
   build:
     parameters:
