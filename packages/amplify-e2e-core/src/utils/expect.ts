@@ -353,7 +353,7 @@ export class Expect {
   };
 
   private exitHandler = (code: number, signal: any) => {
-    this.noOutputTimer?.cancel();
+    this.noOutputTimer?.clear();
     this.process?.removeOnExitHandlers(this.exitHandler);
     if (code !== 0) {
       if (code === EXIT_CODE_TIMEOUT) {
