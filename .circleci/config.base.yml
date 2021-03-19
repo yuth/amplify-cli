@@ -409,9 +409,6 @@ jobs:
         default: os.build_img
     executor: << parameters.os >>
     working_directory: ~/repo
-    environment:
-      AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
     steps:
       - attach_workspace:
           at: ./
