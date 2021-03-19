@@ -11,6 +11,9 @@ executors:
       resource_class: 'windows.medium'
       shell: powershell.exe
     working_directory: ~/repo
+    environment:
+      AMPLIFY_DIR: C:\home\circleci\repo\out
+      AMPLIFY_PATH: C:\home\circleci\repo\out\amplify-pkg-win.exe
 
   build_img: &build-executor
     docker:
@@ -29,7 +32,9 @@ executors:
           aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
     working_directory: ~/repo
     resource_class: large
-
+    environment:
+      AMPLIFY_DIR: /home/circleci/repo/out
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
 node10: &node10
   working_directory: ~/repo
   docker:
@@ -409,6 +414,9 @@ jobs:
         default: os.build_img
     executor: << parameters.os >>
     working_directory: ~/repo
+    environment:
+      AMPLIFY_DIR: /home/circleci/repo/out
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
     steps:
       - attach_workspace:
           at: ./

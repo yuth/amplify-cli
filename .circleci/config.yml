@@ -12,7 +12,7 @@ executors:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: C:\home\circleci\repo\out
-      AMPLIFY_PATH: C:\home\circleci\repo\outamplify-pkg-win.exe
+      AMPLIFY_PATH: C:\home\circleci\repo\out\amplify-pkg-win.exe
   build_img: &ref_2
     docker:
       - image: circleci/node:10
@@ -426,7 +426,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
     steps: &ref_9
       - attach_workspace:
           at: ./
@@ -1309,7 +1309,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-iterative-update-4.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1319,7 +1319,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/api_2.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1329,7 +1329,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/storage.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1339,7 +1339,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-5.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1349,7 +1349,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/api_1.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1359,7 +1359,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-2.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1369,7 +1369,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-iterative-update-3.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1379,7 +1379,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-6.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1389,7 +1389,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-connection.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1399,7 +1399,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/migration/api.connection.migration.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1409,7 +1409,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-model.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1419,7 +1419,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-function.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1429,7 +1429,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/function_4.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1439,7 +1439,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-1.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1449,7 +1449,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/function_1.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1459,7 +1459,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/migration/api.key.migration2.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1469,7 +1469,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-11.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1479,7 +1479,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-9.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1489,7 +1489,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/auth_2.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1499,7 +1499,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/env.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1509,7 +1509,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/import_dynamodb_1.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1519,7 +1519,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/import_s3_1.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1529,7 +1529,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/import_auth_2.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1539,7 +1539,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/import_auth_1.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1549,7 +1549,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/api_3.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1559,7 +1559,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-4.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1569,7 +1569,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-searchable.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1579,7 +1579,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-8.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1589,7 +1589,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-7.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1599,7 +1599,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/auth_4.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1609,7 +1609,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/migration/api.key.migration1.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1619,7 +1619,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/layer.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1629,7 +1629,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/auth_3.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1639,7 +1639,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/function_2.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1649,7 +1649,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/delete.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1659,7 +1659,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-3.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1669,7 +1669,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-iterative-update-1.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1679,7 +1679,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/function_3.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1689,7 +1689,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/auth_5.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1699,7 +1699,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/auth_1.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1709,7 +1709,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-key.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1719,7 +1719,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-auth-10.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1729,7 +1729,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/hostingPROD.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1739,7 +1739,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/predictions.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1749,7 +1749,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/containers-api.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1759,7 +1759,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-iterative-update-2.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1769,7 +1769,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/feature-flags.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1779,7 +1779,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/analytics.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1789,7 +1789,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/hosting.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1799,7 +1799,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/amplify-app.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1809,7 +1809,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-predictions.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1819,7 +1819,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/interactions.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1829,7 +1829,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-data-access-patterns.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1839,7 +1839,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-versioned.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1849,7 +1849,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/notifications.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1859,7 +1859,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/tags.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1869,7 +1869,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/init.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1879,7 +1879,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/amplify-configure.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
@@ -1889,7 +1889,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/datastore-modelgen.test.ts
       CLI_REGION: eu-west-2
     steps: *ref_9
@@ -1899,7 +1899,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/init-special-case.test.ts
       CLI_REGION: eu-central-1
     steps: *ref_9
@@ -1909,7 +1909,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/plugin.test.ts
       CLI_REGION: ap-northeast-1
     steps: *ref_9
@@ -1919,7 +1919,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
       CLI_REGION: ap-southeast-1
     steps: *ref_9
@@ -1929,7 +1929,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/migration/node.function.test.ts
       CLI_REGION: ap-southeast-2
     steps: *ref_9
@@ -1939,7 +1939,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/function_5.test.ts
       CLI_REGION: us-east-2
     steps: *ref_9
@@ -1949,7 +1949,7 @@ jobs:
     working_directory: ~/repo
     environment:
       AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-windows
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
       TEST_SUITE: src/__tests__/api_4.test.ts
       CLI_REGION: us-west-2
     steps: *ref_9
