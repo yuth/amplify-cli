@@ -180,6 +180,7 @@ commands:
             - run:
                 name: Run E2E tests
                 command: |
+                  source $BASH_ENV
                   cd packages/amplify-e2e-tests
                   yarn run e2e --maxWorkers=3 $TEST_SUITE
 
