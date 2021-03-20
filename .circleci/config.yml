@@ -2602,7 +2602,6 @@ workflows:
           matrix: &ref_13
             parameters:
               os:
-                - linux
                 - windows
           filters: &ref_14
             branches:

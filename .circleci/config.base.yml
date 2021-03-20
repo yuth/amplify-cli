@@ -862,7 +862,7 @@ workflows:
       - amplify_e2e_tests_pkg:
           matrix:
             parameters:
-              os: [linux, windows]
+              os: [windows]
           filters:
             branches:
               only:
