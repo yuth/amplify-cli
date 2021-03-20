@@ -178,6 +178,7 @@ export class Expect {
   public sendLine = (line: string): Expect => {
     let _sendline: ExecutionStep = {
       fn: () => {
+        console.log('sending', line);
         this.process.write(`${line}${EOL}`);
         return true;
       },
@@ -208,6 +209,7 @@ export class Expect {
   public send = (line: string): Expect => {
     let _send: ExecutionStep = {
       fn: () => {
+        console.log('sending', line);
         this.process.write(line);
         return true;
       },
