@@ -11,9 +11,6 @@ executors:
       resource_class: 'windows.medium'
       shell: powershell.exe
     working_directory: ~/repo
-    environment:
-      AMPLIFY_DIR: C:\home\circleci\repo\out
-      AMPLIFY_PATH: C:\home\circleci\repo\out\amplify-pkg-win.exe
 
   build_img: &build-executor
     docker:
@@ -24,7 +21,7 @@ executors:
     working_directory: ~/repo
     resource_class: large
 
-  test_img: &e2e-executor
+  linux: &e2e-executor
     docker:
       - image: ${AWS_ECR_ACCOUNT_URL}/amplify-cli-e2e-base-image-repo:latest
         aws_auth:
@@ -799,7 +796,7 @@ workflows:
       - build:
           matrix:
             parameters:
-              os: [build_img]
+              os: [build_img, windows]
       - test:
           matrix:
             parameters:
@@ -877,14 +874,17 @@ workflows:
       - amplify_e2e_tests_pkg:
           matrix:
             parameters:
-              os: [test_img]
+              os: [linux, windows]
           filters:
             branches:
               only:
                 - win-e2e
+                - master
           requires:
             - build_pkg_binaries
-          context: amplify-cli-ecr
+          context:
+            - amplify-cli-ecr
+            - amplify-cli-aws-creds-< matrix.os >>
       - done_with_pkg_e2e_tests:
           context: amplify-cli-ecr
           requires:

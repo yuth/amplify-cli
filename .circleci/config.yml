@@ -10,9 +10,6 @@ executors:
       resource_class: windows.medium
       shell: powershell.exe
     working_directory: ~/repo
-    environment:
-      AMPLIFY_DIR: C:\home\circleci\repo\out
-      AMPLIFY_PATH: C:\home\circleci\repo\out\amplify-pkg-win.exe
   build_img: &ref_2
     docker:
       - image: circleci/node:10
