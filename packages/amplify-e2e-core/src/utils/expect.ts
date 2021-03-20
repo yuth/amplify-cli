@@ -511,9 +511,9 @@ export class Expect {
   private onLine = (data: string | Buffer): void => {
     this.noOutputTimer?.reschedule(this.noOutputTimeout);
     data = data.toString();
-    if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+    // if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
       console.log(data);
-    }
+    // }
     if (this.stripColors) {
       data = strip(data);
     }
