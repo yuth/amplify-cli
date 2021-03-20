@@ -320,6 +320,11 @@ export class Expect {
   };
 
   public run = (cb: (err: any, signal?: any) => void): Expect => {
+    // Todo: Remove this debug console.logs
+    console.log('\n\n\n\n\n\n');
+    console.log('Running command =>', this.command);
+    console.log('With Parameter  =>', JSON.stringify(this.params));
+    console.log('\n\n\n\n\n\n');
     try {
       this.process = new Recorder(this.command, this.params, {
         cwd: this.cwd,
