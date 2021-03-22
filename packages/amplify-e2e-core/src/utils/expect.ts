@@ -12,7 +12,6 @@ import { AssertionError } from 'assert';
 import strip = require('strip-ansi');
 import { EOL } from 'os';
 import retimer = require('retimer');
-import { times } from 'lodash';
 
 const DEFAULT_NO_OUTPUT_TIMEOUT = 5 * 60 * 1000; // 5 Minutes
 const EXIT_CODE_TIMEOUT = 2;
@@ -185,7 +184,6 @@ export class Expect {
     let _sendline: ExecutionStep = {
       fn: async () => {
         return this.executeAndWait(() => {
-          console.log('sending', line);
           this.process.write(`${line}${EOL}`);
           return true;
         });
@@ -203,7 +201,6 @@ export class Expect {
     let _sendline: ExecutionStep = {
       fn: () => {
         return this.executeAndWait(() => {
-          console.log('Sending EOL => ', EOL);
           this.process.write(EOL);
           return true;
         });
@@ -221,7 +218,6 @@ export class Expect {
     let _send: ExecutionStep = {
       fn: async () => {
         return this.executeAndWait(() => {
-          console.log('sending', line);
           this.process.write(line);
           return true;
         });
@@ -339,11 +335,6 @@ export class Expect {
   };
 
   public run = (cb: (err: any, signal?: any) => void): Expect => {
-    // Todo: Remove this debug console.logs
-    console.log('\n\n\n\n\n\n');
-    console.log('Running command =>', this.command);
-    console.log('With Parameter  =>', JSON.stringify(this.params));
-    console.log('\n\n\n\n\n\n');
     try {
       this.process = new Recorder(this.command, this.params, {
         cwd: this.cwd,
@@ -559,9 +550,9 @@ export class Expect {
   private onLine = (data: string | Buffer): void => {
     this.noOutputTimer?.reschedule(this.noOutputTimeout);
     data = data.toString();
-    // if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
-    console.log(data);
-    // }
+    if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+      console.log(data);
+    }
     if (this.stripColors) {
       data = strip(data);
     }
