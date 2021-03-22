@@ -1864,7 +1864,7 @@ workflows:
               os:
                 - build_img
           requires:
-            - build
+            - build-build_img
       - mock_e2e_tests:
           matrix:
             parameters:
@@ -1880,7 +1880,7 @@ workflows:
                 - master
                 - iterative-update
           requires:
-            - build
+            - build-build_img
             - mock_e2e_tests
       - integration_test:
           context: amplify-cli-ecr
@@ -1890,7 +1890,7 @@ workflows:
                 - master
                 - beta
           requires:
-            - build
+            - build-build_img
             - mock_e2e_tests
       - publish_to_local_registry:
           context: amplify-cli-ecr
@@ -1905,7 +1905,7 @@ workflows:
                 - release
                 - compute-functions
           requires:
-            - build
+            - build-build_img
       - build_pkg_binaries:
           context: amplify-cli-ecr
           requires:
@@ -2080,24 +2080,28 @@ workflows:
                 - compute-functions
                 - iterative-update
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-6-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - function_1-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - import_s3_1-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-7-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2140,24 +2144,28 @@ workflows:
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-connection-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - migration-api-key-migration2-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - import_auth_2-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - auth_4-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2200,24 +2208,28 @@ workflows:
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - migration-api-connection-migration-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-11-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - import_auth_1-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - migration-api-key-migration1-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2254,24 +2266,28 @@ workflows:
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-model-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-9-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - api_3-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - layer-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2308,24 +2324,28 @@ workflows:
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-function-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - auth_2-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-4-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - auth_3-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2362,24 +2382,28 @@ workflows:
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - function_4-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - env-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-searchable-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - function_2-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2416,24 +2440,28 @@ workflows:
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-1-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - import_dynamodb_1-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - schema-auth-8-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_11
           filters: *ref_12
           requires:
+            - build
             - publish_to_local_registry
       - delete-amplify_e2e_tests:
           context: amplify-cli-ecr
@@ -2476,6 +2504,7 @@ workflows:
                 - win-e2e
                 - master
           requires:
+            - build
             - build_pkg_binaries
           context: &ref_15
             - amplify-cli-ecr
@@ -2484,18 +2513,21 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - function_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - import_s3_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-auth-7-amplify_e2e_tests_pkg:
@@ -2538,24 +2570,28 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-connection-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - migration-api-key-migration2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - import_auth_2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - auth_4-amplify_e2e_tests_pkg:
@@ -2598,24 +2634,28 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - migration-api-connection-migration-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-auth-11-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - import_auth_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - migration-api-key-migration1-amplify_e2e_tests_pkg:
@@ -2652,24 +2692,28 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-model-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-auth-9-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - api_3-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - layer-amplify_e2e_tests_pkg:
@@ -2706,24 +2750,28 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-function-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - auth_2-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-auth-4-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - auth_3-amplify_e2e_tests_pkg:
@@ -2760,24 +2808,28 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - function_4-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - env-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-searchable-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - function_2-amplify_e2e_tests_pkg:
@@ -2814,24 +2866,28 @@ workflows:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-auth-1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - import_dynamodb_1-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - schema-auth-8-amplify_e2e_tests_pkg:
           matrix: *ref_13
           filters: *ref_14
           requires:
+            - build
             - build_pkg_binaries
           context: *ref_15
       - delete-amplify_e2e_tests_pkg:
