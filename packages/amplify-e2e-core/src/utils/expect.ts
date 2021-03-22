@@ -203,6 +203,7 @@ export class Expect {
     let _sendline: ExecutionStep = {
       fn: () => {
         return this.executeAndWait(() => {
+          console.log('Sending EOL => ', EOL);
           this.process.write(EOL);
           return true;
         });
