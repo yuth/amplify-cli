@@ -53,6 +53,10 @@ export class Expect {
   private queue: ExecutionStep[];
   private noOutputTimer?: any;
   private stdout: string[] = [];
+
+  // concatenated text used in case of windows which are not tested for expect yet
+  private unProcessedLines: string = '';
+
   // Track if the execution state
   private errState?: Error;
   private responded: boolean = false;
@@ -350,12 +354,38 @@ export class Expect {
   };
 
   private testExpectation = (data: string, expectation: string | RegExp): boolean => {
-    if (types.isRegExp(expectation)) {
-      return expectation.test(data);
-    } else if (this.ignoreCase) {
-      return data.toLowerCase().indexOf(expectation.toLowerCase()) > -1;
+    if (process.platform === 'win32') {
+      let result;
+      if (types.isRegExp(expectation)) {
+        result = expectation.test(this.unProcessedLines);
+        if (result) {
+          const details = this.unProcessedLines.match(expectation);
+          if (typeof details.index !== undefined) {
+            this.unProcessedLines = this.unProcessedLines.substr(details.index + details[0].length);
+          }
+        }
+      } else if (this.ignoreCase) {
+        const index = this.unProcessedLines.toLowerCase().indexOf(expectation.toLowerCase());
+        result = index > -1;
+        if (result) {
+          this.unProcessedLines = this.unProcessedLines.substr(index + expectation.length);
+        }
+      } else {
+        const index = this.unProcessedLines.indexOf(expectation);
+        result = index > -1;
+        if (result) {
+          this.unProcessedLines = this.unProcessedLines.substr(index + expectation.length);
+        }
+      }
+      return result;
     } else {
-      return data.indexOf(expectation) > -1;
+      if (types.isRegExp(expectation)) {
+        return expectation.test(data);
+      } else if (this.ignoreCase) {
+        return data.toLowerCase().indexOf(expectation.toLowerCase()) > -1;
+      } else {
+        return data.indexOf(expectation) > -1;
+      }
     }
   };
 
@@ -514,7 +544,7 @@ export class Expect {
     this.noOutputTimer?.reschedule(this.noOutputTimeout);
     data = data.toString();
     // if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
-      console.log(data);
+    console.log(data);
     // }
     if (this.stripColors) {
       data = strip(data);
@@ -527,9 +557,8 @@ export class Expect {
     this.stdout = this.stdout.concat(lines);
 
     if (process.platform === 'win32') {
-      // Windows terminal inserts \r\n inside the lines and causes some expect string to fail as those are split between different lines.
-      // processing the data as single chunk instead
-      this.evalContext(lines.map(l => l.replace(new RegExp('\\r\\n', 'ig'), '')).join(''), null);
+      this.unProcessedLines += lines.map(l => l.replace(new RegExp('\\r\\n', 'ig'), '')).join('');
+      this.evalContext(lines.shift(), null);
     } else {
       while (lines.length > 0) {
         this.evalContext(lines.shift(), null);
