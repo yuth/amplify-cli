@@ -22,7 +22,7 @@ export const KEY_UP_ARROW = '\x1b[A';
 export const KEY_DOWN_ARROW = '\x1b[B';
 
 type ExecutionStep = {
-  fn: (data: string) => boolean;
+  fn: (data: string) => Promise<boolean>;
   shift: boolean;
   description: string;
   requiresInput: boolean;
@@ -116,8 +116,8 @@ export class Expect {
   }
   public expect = (expectation: string | RegExp): Expect => {
     let _expect: ExecutionStep = {
-      fn: data => {
-        return this.testExpectation(data, expectation);
+      fn: async data => {
+        return this.executeAndWait<boolean>(() => this.testExpectation(data, expectation));
       },
       name: '_expect',
       shift: true,
@@ -131,7 +131,7 @@ export class Expect {
 
   public pauseRecording = (): Expect => {
     let _pauseRecording: ExecutionStep = {
-      fn: () => {
+      fn: async () => {
         this.process?.pauseRecording();
         return true;
       },
@@ -146,7 +146,7 @@ export class Expect {
 
   public resumeRecording = (): Expect => {
     const _resumeRecording: ExecutionStep = {
-      fn: data => {
+      fn: async data => {
         this.process?.resumeRecording();
         return true;
       },
@@ -162,12 +162,14 @@ export class Expect {
 
   public wait = (expectation: string | RegExp, cb?: (data: string) => void): Expect => {
     let _wait: ExecutionStep = {
-      fn: data => {
-        let val = this.testExpectation(data, expectation);
-        if (val === true && typeof cb === 'function') {
-          cb(data);
-        }
-        return val;
+      fn: async data => {
+        return this.executeAndWait(() => {
+          let val = this.testExpectation(data, expectation);
+          if (val === true && typeof cb === 'function') {
+            cb(data);
+          }
+          return val;
+        });
       },
       name: '_wait',
       shift: false,
@@ -181,10 +183,12 @@ export class Expect {
 
   public sendLine = (line: string): Expect => {
     let _sendline: ExecutionStep = {
-      fn: () => {
-        console.log('sending', line);
-        this.process.write(`${line}${EOL}`);
-        return true;
+      fn: async () => {
+        return this.executeAndWait(() => {
+          console.log('sending', line);
+          this.process.write(`${line}${EOL}`);
+          return true;
+        });
       },
       name: '_sendline',
       shift: true,
@@ -198,8 +202,10 @@ export class Expect {
   public sendCarriageReturn = (): Expect => {
     let _sendline: ExecutionStep = {
       fn: () => {
-        this.process.write(EOL);
-        return true;
+        return this.executeAndWait(() => {
+          this.process.write(EOL);
+          return true;
+        });
       },
       name: '_sendline',
       shift: true,
@@ -212,10 +218,12 @@ export class Expect {
 
   public send = (line: string): Expect => {
     let _send: ExecutionStep = {
-      fn: () => {
-        console.log('sending', line);
-        this.process.write(line);
-        return true;
+      fn: async () => {
+        return this.executeAndWait(() => {
+          console.log('sending', line);
+          this.process.write(line);
+          return true;
+        });
       },
       name: '_send',
       shift: true,
@@ -229,9 +237,9 @@ export class Expect {
   public sendKeyDown = (repeat?: number): Expect => {
     const repetitions = repeat ? Math.max(1, repeat) : 1;
     let _send: ExecutionStep = {
-      fn: () => {
+      fn: async () => {
         for (let i = 0; i < repetitions; i++) {
-          this.process.write(KEY_DOWN_ARROW);
+          await this.executeAndWait(() => this.process.write(KEY_DOWN_ARROW));
         }
         return true;
       },
@@ -247,9 +255,9 @@ export class Expect {
   public sendKeyUp = (repeat?: number): Expect => {
     const repetitions = repeat ? Math.max(1, repeat) : 1;
     let _send: ExecutionStep = {
-      fn: () => {
+      fn: async () => {
         for (let i = 0; i < repetitions; i++) {
-          this.process.write(KEY_UP_ARROW);
+          await this.executeAndWait(() => this.process.write(KEY_UP_ARROW));
         }
         return true;
       },
@@ -264,9 +272,11 @@ export class Expect {
 
   public sendConfirmYes = (): Expect => {
     let _send: ExecutionStep = {
-      fn: () => {
-        this.process.write(`Y${EOL}`);
-        return true;
+      fn: async () => {
+        return this.executeAndWait(() => {
+          this.process.write(`Y${EOL}`);
+          return true;
+        });
       },
       name: '_send',
       shift: true,
@@ -279,9 +289,11 @@ export class Expect {
 
   public sendConfirmNo = (): Expect => {
     let _send: ExecutionStep = {
-      fn: () => {
-        this.process.write(`N${EOL}`);
-        return true;
+      fn: async () => {
+        return this.executeAndWait(() => {
+          this.process.write(`N${EOL}`);
+          return true;
+        });
       },
       name: '_send',
       shift: true,
@@ -294,9 +306,11 @@ export class Expect {
 
   public sendEof = (): Expect => {
     let _sendEof: ExecutionStep = {
-      fn: () => {
-        this.process.write('');
-        return true;
+      fn: async () => {
+        return this.executeAndWait(() => {
+          this.process.write('');
+          return true;
+        });
       },
       shift: true,
       name: '_sendEof',
@@ -309,12 +323,10 @@ export class Expect {
 
   public delay = (milliseconds: number): Expect => {
     let _delay: ExecutionStep = {
-      fn: () => {
-        const startCallback = Date.now();
-
-        while (Date.now() - startCallback < milliseconds) {}
-
-        return true;
+      fn: async () => {
+        return this.executeAndWait(() => {
+          return true;
+        }, milliseconds);
       },
       shift: true,
       name: '_delay',
@@ -389,7 +401,7 @@ export class Expect {
     }
   };
 
-  private exitHandler = (code: number, signal: any) => {
+  private exitHandler = async (code: number, signal: any) => {
     this.noOutputTimer?.clear();
     this.process?.removeOnExitHandlers(this.exitHandler);
     if (code !== 0) {
@@ -412,7 +424,7 @@ export class Expect {
       }
       return this.onError(new Error(`Process exited with non zero exit code ${code}`), false);
     } else {
-      if (this.queue.length && !this.flushQueue()) {
+      if (this.queue.length && !(await this.flushQueue())) {
         // if flushQueue returned false, onError was called
         return;
       }
@@ -478,7 +490,7 @@ export class Expect {
    * @param callerFunctionName
    * @returns
    */
-  private evalContext = (data: string, callerFunctionName?: string): void => {
+  private evalContext = async (data: string, callerFunctionName?: string): Promise<void> => {
     var step = this.queue[0];
     const { fn: currentFn, name: currentFnName, shift } = step;
 
@@ -504,8 +516,8 @@ export class Expect {
       // to evaluate the next function
       // This is needed as some of the functions don't need any output from the program that is being
       // executed. For instance one would wait for a prompt and as soon as the prompt is seen send input
-      return currentFn(data) === true
-        ? this.evalContext(data, '_expect')
+      return (await currentFn(data)) === true
+        ? await this.evalContext(data, '_expect')
         : this.onError(this.createExpectationError(step.expectation, data), true);
     } else if (currentFnName === '_wait') {
       //
@@ -513,7 +525,7 @@ export class Expect {
       // then evaluate the function (in case it is a `_sendline` function).
       // This is different from _expect as in case of _wait, when condition is fulfilled, the wait condition
       // has to be removed from the queue
-      if (currentFn(data) === true) {
+      if ((await currentFn(data)) === true) {
         this.queue.shift();
         this.evalContext(data, '_expect');
       }
@@ -521,10 +533,10 @@ export class Expect {
       //
       // If the `currentFn` is any other function then evaluate it
       //
-      if (currentFn(data)) {
+      if (await currentFn(data)) {
         // Evaluate the next function if it does not need input
         var nextFn = this.queue[0];
-        if (nextFn && !nextFn.requiresInput) this.evalContext(data);
+        if (nextFn && !nextFn.requiresInput) await this.evalContext(data);
       }
     }
   };
@@ -570,7 +582,7 @@ export class Expect {
    *  Helper function which flushes any remaining functions from
    * @returns if the queue is empty
    */
-  private flushQueue = (): boolean => {
+  private flushQueue = async (): Promise<boolean> => {
     const remainingQueue = this.queue.slice().map(item => {
       const description = ['_sendline', '_send'].includes(item.name) ? `[${item.name}] **redacted**` : item.description;
       return {
@@ -597,7 +609,7 @@ export class Expect {
       this.onError(new Error('Cannot call sendline after the process has exited'), false);
       return false;
     } else if (currentFnName === '_wait' || currentFnName === '_expect') {
-      if (currentFn(lastLine) !== true) {
+      if ((await currentFn(lastLine)) !== true) {
         this.onError(this.createExpectationError(step.expectation, lastLine), false);
         return false;
       }
@@ -649,6 +661,13 @@ export class Expect {
 
   private getRecording = (): string | void => {
     return this.process?.getRecording();
+  };
+
+  private executeAndWait = async <T>(fn: () => T, msec: number = 300): Promise<T> => {
+    const result = await fn();
+    return new Promise(resolve => {
+      setTimeout(() => resolve(result), msec);
+    });
   };
 }
 
