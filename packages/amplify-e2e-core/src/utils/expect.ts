@@ -492,6 +492,9 @@ export class Expect {
    * @returns
    */
   private evalContext = async (data: string, callerFunctionName?: string): Promise<void> => {
+    if (this.queue.length === 0) {
+      return;
+    }
     var step = this.queue[0];
     const { fn: currentFn, name: currentFnName, shift } = step;
 
