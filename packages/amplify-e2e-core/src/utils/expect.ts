@@ -603,9 +603,10 @@ export class Expect {
     });
     const step = this.queue.shift();
     const { fn: currentFn, name: currentFnName } = step;
-    const nonEmptyLines = this.stdout.map(line => line.replace('\r', '').trim()).filter(line => line !== '');
+    const newlineRegEx = process.platform == 'win32' ? new RegExp('\\r\\n', 'ig') : '\r';
+    const nonEmptyLines = this.stdout.map(line => line.replace(newlineRegEx, '').trim()).filter(line => line !== '');
 
-    let lastLine = process.platform === 'win32' ? this.unProcessedLines : nonEmptyLines[nonEmptyLines.length - 1];
+    let lastLine = nonEmptyLines[nonEmptyLines.length - 1];
 
     if (!lastLine) {
       this.onError(this.createUnexpectedEndError('No data from child with non-empty queue.', remainingQueue), false);
