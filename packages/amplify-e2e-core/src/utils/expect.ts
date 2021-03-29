@@ -137,7 +137,7 @@ export class Expect {
       name: '_pauseRecording',
       shift: true,
       description: '[pauseRecording]',
-      requiresInput: true,
+      requiresInput: false,
     };
     this.queue.push(_pauseRecording);
     return this;
@@ -147,7 +147,7 @@ export class Expect {
     const _resumeRecording: ExecutionStep = {
       fn: async data => {
         this.process?.resumeRecording();
-        return true;
+        return false;
       },
       name: '_resumeRecording',
       shift: true,
