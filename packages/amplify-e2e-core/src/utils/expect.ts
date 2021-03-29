@@ -359,6 +359,12 @@ export class Expect {
 
   private testExpectation = (data: string, expectation: string | RegExp): boolean => {
     if (process.platform === 'win32') {
+      // Todo: remove this before PR. For debugging in CircleCI
+      console.log('testExpectation');
+      console.log('expectation ===>', expectation);
+      console.log('unProcessedLines =>>>', this.unProcessedLines);
+      console.log('\n\n\n\n\n\n\n\n\n');
+
       let result;
       if (types.isRegExp(expectation)) {
         result = expectation.test(this.unProcessedLines);
@@ -550,9 +556,9 @@ export class Expect {
   private onLine = (data: string | Buffer): void => {
     this.noOutputTimer?.reschedule(this.noOutputTimeout);
     data = data.toString();
-    if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
-      console.log(data);
-    }
+    // if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+    console.log(data);
+    // }
     if (this.stripColors) {
       data = strip(data);
     }
