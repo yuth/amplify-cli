@@ -147,7 +147,7 @@ export class Expect {
     const _resumeRecording: ExecutionStep = {
       fn: async data => {
         this.process?.resumeRecording();
-        return false;
+        return true;
       },
       name: '_resumeRecording',
       shift: true,
@@ -541,7 +541,13 @@ export class Expect {
       if (await currentFn(data)) {
         // Evaluate the next function if it does not need input
         var nextFn = this.queue[0];
-        if (nextFn && !nextFn.requiresInput) await this.evalContext(data);
+        if (['_pauseRecording', '_resumeRecording'].includes(step.name)) {
+          await this.evalContext(data, '_expect');
+        } else if (nextFn && !nextFn.requiresInput) {
+          console.log('next function does not require input. Executing it');
+          await this.evalContext(data);
+          console.log('next function execution done');
+        }
       }
     }
   };
