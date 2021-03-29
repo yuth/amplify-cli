@@ -336,6 +336,7 @@ export class Expect {
 
   public run = (cb: (err: any, signal?: any) => void): Expect => {
     try {
+      console.log('Starting the command', this.command, this.params);
       this.process = new Recorder(this.command, this.params, {
         cwd: this.cwd,
         env: this.env,
