@@ -608,6 +608,9 @@ export class Expect {
 
     let lastLine = nonEmptyLines[nonEmptyLines.length - 1];
 
+    console.log('STDOUT =======>', this.stdout);
+    console.log('\n\n\n\n\n\n\n\n\nlast line ====>', lastLine, '\n\n\n\n\n\n\n\n\n');
+
     if (!lastLine) {
       this.onError(this.createUnexpectedEndError('No data from child with non-empty queue.', remainingQueue), false);
       return false;
