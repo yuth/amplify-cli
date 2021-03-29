@@ -512,6 +512,9 @@ export class Expect {
       return;
     }
 
+    console.log('eval context');
+    console.log(JSON.stringify(step));
+
     if (currentFnName === '_expect') {
       //
       // If this is an `_expect` function, then evaluate it and attempt
@@ -594,7 +597,10 @@ export class Expect {
     });
     const step = this.queue.shift();
     const { fn: currentFn, name: currentFnName } = step;
-    const nonEmptyLines = this.stdout.map(line => line.replace('\r', '').trim()).filter(line => line !== '');
+    const nonEmptyLines =
+      process.platform === 'win32'
+        ? this.unProcessedLines
+        : this.stdout.map(line => line.replace('\r', '').trim()).filter(line => line !== '');
 
     let lastLine = nonEmptyLines[nonEmptyLines.length - 1];
 
