@@ -21,7 +21,7 @@ export const KEY_UP_ARROW = '\x1b[A';
 export const KEY_DOWN_ARROW = '\x1b[B';
 
 type ExecutionStep = {
-  fn: (data: string) => Promise<boolean> | boolean;
+  fn: (data: string, lastLine?: boolean) => Promise<boolean> | boolean;
   shift: boolean;
   description: string;
   requiresInput: boolean;
@@ -115,7 +115,7 @@ export class Expect {
   }
   public expect = (expectation: string | RegExp): Expect => {
     let _expect: ExecutionStep = {
-      fn: async data => {
+      fn: async (data, lastLine: boolean) => {
         return this.executeAndWait<boolean>(() => this.testExpectation(data, expectation));
       },
       name: '_expect',
@@ -159,14 +159,11 @@ export class Expect {
     return this;
   };
 
-  public wait = (expectation: string | RegExp, cb?: (data: string) => void): Expect => {
+  public wait = (expectation: string | RegExp, lastLine?: boolean): Expect => {
     let _wait: ExecutionStep = {
       fn: async data => {
         return this.executeAndWait(() => {
-          let val = this.testExpectation(data, expectation);
-          if (val === true && typeof cb === 'function') {
-            cb(data);
-          }
+          let val = this.testExpectation(data, expectation, lastLine);
           return val;
         });
       },
@@ -358,8 +355,8 @@ export class Expect {
     return this;
   };
 
-  private testExpectation = (data: string, expectation: string | RegExp): boolean => {
-    if (process.platform === 'win32') {
+  private testExpectation = (data: string, expectation: string | RegExp, lastLine: boolean = false): boolean => {
+    if (process.platform === 'win32' && !lastLine) {
       // Todo: remove this before PR. For debugging in CircleCI
       console.log('testExpectation');
       console.log('expectation ===>', expectation);
@@ -624,7 +621,7 @@ export class Expect {
       this.onError(new Error('Cannot call sendline after the process has exited'), false);
       return false;
     } else if (currentFnName === '_wait' || currentFnName === '_expect') {
-      if ((await currentFn(lastLine)) !== true) {
+      if ((await currentFn(lastLine, true)) !== true) {
         this.onError(this.createExpectationError(step.expectation, lastLine), false);
         return false;
       }
