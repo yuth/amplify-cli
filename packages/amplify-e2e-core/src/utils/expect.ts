@@ -21,7 +21,7 @@ export const KEY_UP_ARROW = '\x1b[A';
 export const KEY_DOWN_ARROW = '\x1b[B';
 
 type ExecutionStep = {
-  fn: (data: string) => Promise<boolean>;
+  fn: (data: string) => Promise<boolean> | boolean;
   shift: boolean;
   description: string;
   requiresInput: boolean;
@@ -130,7 +130,7 @@ export class Expect {
 
   public pauseRecording = (): Expect => {
     let _pauseRecording: ExecutionStep = {
-      fn: async () => {
+      fn: () => {
         this.process?.pauseRecording();
         return true;
       },
@@ -145,7 +145,7 @@ export class Expect {
 
   public resumeRecording = (): Expect => {
     const _resumeRecording: ExecutionStep = {
-      fn: async data => {
+      fn: data => {
         this.process?.resumeRecording();
         return true;
       },
@@ -603,12 +603,9 @@ export class Expect {
     });
     const step = this.queue.shift();
     const { fn: currentFn, name: currentFnName } = step;
-    const nonEmptyLines =
-      process.platform === 'win32'
-        ? this.unProcessedLines
-        : this.stdout.map(line => line.replace('\r', '').trim()).filter(line => line !== '');
+    const nonEmptyLines = this.stdout.map(line => line.replace('\r', '').trim()).filter(line => line !== '');
 
-    let lastLine = nonEmptyLines[nonEmptyLines.length - 1];
+    let lastLine = process.platform === 'win32' ? this.unProcessedLines : nonEmptyLines[nonEmptyLines.length - 1];
 
     if (!lastLine) {
       this.onError(this.createUnexpectedEndError('No data from child with non-empty queue.', remainingQueue), false);
