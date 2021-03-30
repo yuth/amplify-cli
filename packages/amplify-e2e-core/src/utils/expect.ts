@@ -630,7 +630,7 @@ export class Expect {
 
         console.log(
           'data ====>',
-          Array.from(types.isRegExp(step.expectation) ? step.expectation.toString() : step.expectation)
+          Array.from(types.isRegExp(step.expectation) ? step.expectation.toString() : (step.expectation as string))
             .map(c => c.charCodeAt(0))
             .join(' '),
         );
