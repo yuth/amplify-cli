@@ -333,7 +333,7 @@ export class Expect {
 
   public run = (cb: (err: any, signal?: any) => void): Expect => {
     try {
-      console.log('Starting the command', this.command, this.params);
+      // console.log('Starting the command', this.command, this.params);
       this.process = new Recorder(this.command, this.params, {
         cwd: this.cwd,
         env: this.env,
@@ -509,8 +509,8 @@ export class Expect {
       return;
     }
 
-    console.log('eval context');
-    console.log(JSON.stringify(step));
+    // console.log('eval context');
+    // console.log(JSON.stringify(step));
 
     if (currentFnName === '_expect') {
       //
@@ -541,9 +541,9 @@ export class Expect {
         if (['_pauseRecording', '_resumeRecording'].includes(step.name)) {
           await this.evalContext(data, '_expect');
         } else if (nextFn && !nextFn.requiresInput) {
-          console.log('next function does not require input. Executing it');
+          // console.log('next function does not require input. Executing it');
           await this.evalContext(data);
-          console.log('next function execution done');
+          // console.log('next function execution done');
         }
       }
     }
@@ -564,7 +564,7 @@ export class Expect {
     this.noOutputTimer?.reschedule(this.noOutputTimeout);
     data = data.toString();
     // if (process.env && process.env.VERBOSE_LOGGING_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
-    console.log(data);
+    // console.log(data);
     // }
     if (this.stripColors) {
       data = strip(data);
