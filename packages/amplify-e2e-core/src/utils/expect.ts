@@ -357,28 +357,11 @@ export class Expect {
 
   private testExpectation = (data: string, expectation: string | RegExp, lastLine: boolean = false): boolean => {
     if (process.platform === 'win32' && !lastLine) {
-      // Todo: remove this before PR. For debugging in CircleCI
-      console.log('testExpectation');
-      console.log('expectation ===>', expectation);
-      console.log('unProcessedLines =>>>', this.unProcessedLines);
-      console.log('\n\n\n\n\n\n\n\n\n');
-
-      // Todo: remove. check why strings dont match
-      if (lastLine) {
-        console.log(
-          'data ====>',
-          Array.from(data)
-            .map(c => c.charCodeAt(0))
-            .join(' '),
-        );
-
-        console.log(
-          'data ====>',
-          Array.from(types.isRegExp(expectation) ? expectation.toString() : expectation)
-            .map(c => c.charCodeAt(0))
-            .join(' '),
-        );
-      }
+      // // Todo: remove this before PR. For debugging in CircleCI
+      // console.log('testExpectation');
+      // console.log('expectation ===>', expectation);
+      // console.log('unProcessedLines =>>>', this.unProcessedLines);
+      // console.log('\n\n\n\n\n\n\n\n\n');
 
       let result;
       if (types.isRegExp(expectation)) {
@@ -622,9 +605,6 @@ export class Expect {
 
     let lastLine = nonEmptyLines[nonEmptyLines.length - 1];
 
-    console.log('STDOUT =======>', this.stdout);
-    console.log('\n\n\n\n\n\n\n\n\nlast line ====>', lastLine, '\n\n\n\n\n\n\n\n\n');
-
     if (!lastLine) {
       this.onError(this.createUnexpectedEndError('No data from child with non-empty queue.', remainingQueue), false);
       return false;
@@ -639,6 +619,22 @@ export class Expect {
       return false;
     } else if (currentFnName === '_wait' || currentFnName === '_expect') {
       if ((await currentFn(lastLine, true)) !== true) {
+        // Todo: remove. check why strings dont match
+
+        console.log(
+          'lastLine ====>',
+          Array.from(lastLine)
+            .map(c => c.charCodeAt(0))
+            .join(' '),
+        );
+
+        console.log(
+          'data ====>',
+          Array.from(types.isRegExp(step.expectation) ? step.expectation.toString() : step.expectation)
+            .map(c => c.charCodeAt(0))
+            .join(' '),
+        );
+
         this.onError(this.createExpectationError(step.expectation, lastLine), false);
         return false;
       }
