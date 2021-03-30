@@ -159,9 +159,9 @@ export class Expect {
     return this;
   };
 
-  public wait = (expectation: string | RegExp, lastLine?: boolean): Expect => {
+  public wait = (expectation: string | RegExp): Expect => {
     let _wait: ExecutionStep = {
-      fn: async data => {
+      fn: async (data, lastLine?: boolean) => {
         return this.executeAndWait(() => {
           let val = this.testExpectation(data, expectation, lastLine);
           return val;
@@ -619,22 +619,6 @@ export class Expect {
       return false;
     } else if (currentFnName === '_wait' || currentFnName === '_expect') {
       if ((await currentFn(lastLine, true)) !== true) {
-        // Todo: remove. check why strings dont match
-
-        console.log(
-          'lastLine ====>',
-          Array.from(lastLine)
-            .map(c => c.charCodeAt(0))
-            .join(' '),
-        );
-
-        console.log(
-          'data ====>',
-          Array.from(types.isRegExp(step.expectation) ? step.expectation.toString() : (step.expectation as string))
-            .map(c => c.charCodeAt(0))
-            .join(' '),
-        );
-
         this.onError(this.createExpectationError(step.expectation, lastLine), false);
         return false;
       }
