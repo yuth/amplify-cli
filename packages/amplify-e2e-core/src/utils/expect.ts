@@ -363,6 +363,23 @@ export class Expect {
       console.log('unProcessedLines =>>>', this.unProcessedLines);
       console.log('\n\n\n\n\n\n\n\n\n');
 
+      // Todo: remove. check why strings dont match
+      if (lastLine) {
+        console.log(
+          'data ====>',
+          Array.from(data)
+            .map(c => c.charCodeAt(0))
+            .join(' '),
+        );
+
+        console.log(
+          'data ====>',
+          Array.from(types.isRegExp(expectation) ? expectation.toString() : expectation)
+            .map(c => c.charCodeAt(0))
+            .join(' '),
+        );
+      }
+
       let result;
       if (types.isRegExp(expectation)) {
         result = expectation.test(this.unProcessedLines);
