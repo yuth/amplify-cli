@@ -1,4 +1,5 @@
-import * as pty from 'node-pty-prebuilt-multiarch';
+// import * as pty from 'node-pty-prebuilt-multiarch';
+import * as pty from 'node-pty';
 import chalk from 'chalk';
 
 export type RecordingHeader = {
@@ -9,7 +10,6 @@ export type RecordingHeader = {
   title: string;
   env: any;
 };
-
 export type RecordingFrame = [number, 'o' | 'i', string];
 export type Recording = {
   header: RecordingHeader;
@@ -30,8 +30,8 @@ export class Recorder {
     private args: string[],
     private options: any,
     cwd?: string,
-    private cols: number = 120,
-    private rows: number = 30,
+    private cols: number = 150,
+    private rows: number = 80,
   ) {
     this.exitCode = undefined;
     this.cwd = options.cwd || process.cwd();
@@ -59,6 +59,7 @@ export class Recorder {
       rows: this.rows,
       cwd: this.cwd,
       ...this.options,
+      // useConpty: process.platform === 'win32' ? true : false,
     });
     this.addFrame(this.renderPrompt(this.cwd, this.cmd, this.args));
     this.childProcess.onData(this.onData.bind(this));

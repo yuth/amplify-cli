@@ -1,7 +1,7 @@
 import { $TSAny, JSONUtilities } from 'amplify-cli-core';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { ExecutionContext, getCLIPath, nspawn as spawn } from '..';
+import { nspawn as spawn, Expect, getCLIPath, KEY_DOWN_ARROW } from '..';
 import { getBackendAmplifyMeta } from '../utils';
 import { getLayerVersion, listVersions } from '../utils/sdk-calls';
 import { multiSelect } from '../utils/selectors';
@@ -131,7 +131,7 @@ export function addLayer(
   };
   settings = { ...defaultSettings, ...settings };
   return new Promise((resolve, reject) => {
-    const chain: ExecutionContext = spawn(getCLIPath(testingWithLatestCodebase), ['add', 'function'], { cwd, stripColors: true })
+    const chain: Expect = spawn(getCLIPath(testingWithLatestCodebase), ['add', 'function'], { cwd, stripColors: true })
       .wait('Select which capability you want to add:')
       .sendKeyDown()
       .sendCarriageReturn() // Layer
@@ -248,7 +248,7 @@ export function updateLayer(
   testingWithLatestCodebase: boolean = false,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const chain: ExecutionContext = spawn(getCLIPath(testingWithLatestCodebase), ['update', 'function'], { cwd, stripColors: true })
+    const chain: Expect = spawn(getCLIPath(testingWithLatestCodebase), ['update', 'function'], { cwd, stripColors: true })
       .wait('Select which capability you want to update:')
       .sendKeyDown()
       .sendCarriageReturn(); // Layer
@@ -371,7 +371,7 @@ function getLayerRuntimeInfo(runtime: LayerRuntime) {
 }
 
 function waitForLayerSuccessPrintout(
-  chain: ExecutionContext,
+  chain: Expect,
   settings: { layerName?: string; projName?: string; runtimes?: LayerRuntime[] } | $TSAny,
   action: string,
 ) {

@@ -1,14 +1,12 @@
-import { ExecutionContext } from '..';
+import { Expect } from '..';
 
-export const moveDown = (chain: ExecutionContext, nMoves: number) =>
-  Array.from(Array(nMoves).keys()).reduce((chain, _idx) => chain.send('j'), chain);
+export const moveDown = (chain: Expect, nMoves: number) => chain.sendKeyDown(nMoves);
 
-export const moveUp = (chain: ExecutionContext, nMoves: number) =>
-  Array.from(Array(nMoves).keys()).reduce((chain, _idx) => chain.send('k'), chain);
+export const moveUp = (chain: Expect, nMoves: number) => chain.sendKeyUp(nMoves);
 
-export const singleSelect = <T>(chain: ExecutionContext, item: T, allChoices: T[]) => multiSelect(chain, [item], allChoices);
+export const singleSelect = <T>(chain: Expect, item: T, allChoices: T[]) => multiSelect(chain, [item], allChoices);
 
-export const multiSelect = <T>(chain: ExecutionContext, items: T[] = [], allChoices: T[]) => {
+export const multiSelect = <T>(chain: Expect, items: T[] = [], allChoices: T[]) => {
   items
     .map(item => allChoices.indexOf(item))
     .filter(idx => idx > -1)

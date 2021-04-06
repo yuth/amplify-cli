@@ -12,7 +12,7 @@ import {
   createNewProjectDir,
   deleteProject,
   deleteProjectDir,
-  ExecutionContext,
+  Expect,
   expectDeployedLayerDescription,
   expectEphemeralDataIsUndefined,
   expectEphemeralPermissions,
@@ -277,7 +277,7 @@ describe('amplify add lambda layer with changes', () => {
       layerName,
       projName,
       layerOptions: {
-        layerWalkthrough: (chain: ExecutionContext): void => {
+        layerWalkthrough: (chain: Expect): void => {
           chain
             .wait('Provide existing layers')
             .sendCarriageReturn()

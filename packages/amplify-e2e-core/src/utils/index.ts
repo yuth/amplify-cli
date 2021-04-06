@@ -11,7 +11,7 @@ export * from './appsync';
 export * from './envVars';
 export * from './getAppId';
 export * from './headless';
-export * from './nexpect';
+export * from './expect';
 export * from './pinpoint';
 export * from './projectMeta';
 export * from './readJsonFile';

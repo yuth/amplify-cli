@@ -1,9 +1,37 @@
 version: 2.1
-orbs:
-  aws-ecr: circleci/aws-ecr@6.15.3
+
 machine:
   environment:
     PATH: '${PATH}:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin'
+
+executors:
+  windows: &windows-executor
+    machine:
+      image: 'windows-server-2019-vs2019:stable'
+      resource_class: 'windows.medium'
+      shell: powershell.exe
+    working_directory: ~/repo
+
+  build_img: &build-executor
+    docker:
+      - image: circleci/node:12
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_ACCESS_TOKEN
+    working_directory: ~/repo
+    resource_class: large
+
+  linux: &e2e-executor
+    docker:
+      - image: ${AWS_ECR_ACCOUNT_URL}/amplify-cli-e2e-base-image-repo:latest
+        aws_auth:
+          aws_access_key_id: $ECR_ACCESS_KEY
+          aws_secret_access_key: $ECR_SECRET_ACCESS_KEY
+    working_directory: ~/repo
+    resource_class: large
+    environment:
+      AMPLIFY_DIR: /home/circleci/repo/out
+      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
 
 node12: &node12
   working_directory: ~/repo
@@ -66,34 +94,160 @@ install_cli_from_local_registery: &install_cli_from_local_registery
     npm install -g amplify-app
     unsetNpmRegistryUrl
 
+commands:
+  install_packaged_cli:
+    description: 'Install Amplify Packaged CLI to PATH'
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            equal: [*windows-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Rename the Packaged CLI to amplify
+                command: |
+                  # rename the command to amplify
+                  cd C:\home\circleci\repo\out
+                  mv amplify-pkg-win.exe amplify.exe
+            - run:
+                name: Move to CLI Binary to already existing PATH
+                command: |
+                  # This is a Hack to make sure the Amplify CLI is in the PATH
+                  cp C:\home\circleci\repo\out\amplify.exe C:\Users\circleci\AppData\Local\Microsoft\WindowsApps
+            - run:
+                name: Confirm Amplify CLI is installed and available in PATH
+                command: amplify version
+
+      - when:
+          condition:
+            or:
+              - equal: [*e2e-executor, << parameters.os >>]
+              - equal: [*build-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Symlink Amplify packaged CLI
+                command: |
+                  cd out
+                  ln -sf amplify-pkg-linux amplify
+                  echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
+                  source $BASH_ENV
+            - run:
+                name: Confirm Amplify CLI is installed and available in PATH
+                command: amplify version
+
+  install_yarn:
+    description: 'Install Amplify Packaged CLI to PATH'
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            equal: [*windows-executor, << parameters.os >>]
+          steps:
+            - run: nvm install 12
+            - run: nvm use 12
+            - run: npm install -g yarn
+  install_java:
+    description: 'Install Java on Linux and Docker images'
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            or:
+              - equal: [*e2e-executor, << parameters.os >>]
+              - equal: [*build-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Install Java
+                command: |
+                  sudo apt-get update && sudo apt-get install default-jdk
+
+  run_e2e_tests:
+    description: 'Run Amplify E2E tests'
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            equal: [*windows-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Run E2E tests
+                command: |
+                  cd packages/amplify-e2e-tests
+                  yarn run e2e --maxWorkers=3 $ENV:TEST_SUITE
+                no_output_timeout: 90m
+      - when:
+          condition:
+            or:
+              - equal: [*e2e-executor, << parameters.os >>]
+              - equal: [*build-executor, << parameters.os >>]
+          steps:
+            - run:
+                name: Run E2E tests
+                command: |
+                  source $BASH_ENV
+                  amplify version
+                  cd packages/amplify-e2e-tests
+                  yarn run e2e --maxWorkers=3 $TEST_SUITE
+                no_output_timeout: 90m
+
 jobs:
   build:
-    <<: *node12
+    parameters:
+      os:
+        type: executor
+        default: os.build_img
+    executor: << parameters.os >>
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+      - install_yarn:
+          os: << parameters.os >>
       - run: yarn run production-build
       - save_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          key: amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
           paths:
-            - ~/.cache
+            - ./**/node_modules
+            - ./node_modules
+      - save_cache:
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+          paths:
+            - .
       - save_cache:
           key: amplify-cli-ssh-deps-{{ .Branch }}
           paths:
             - ~/.ssh
-      - persist_to_workspace:
-          root: .
-          paths: .
+      # - persist_to_workspace:
+      #     root: .
+      #     paths: packages
 
   test:
-    <<: *node12
+    parameters:
+      os:
+        type: executor
+        default: os.build_img
+    executor: << parameters.os >>
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
-      - run:
-          name: Install Java
-          command: sudo apt-get update && sudo apt-get install default-jdk
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+      - install_java:
+          os: <<parameters.os >>
       - run:
           name: Lint
           command: yarn lint
@@ -105,18 +259,23 @@ jobs:
           command: yarn coverage
 
   mock_e2e_tests:
-    <<: *node12
+    parameters:
+      os:
+        type: executor
+        default: os.build_img
+    executor: << parameters.os >>
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
-      - run:
-          name: Install Java
-          command: sudo apt-get update && sudo apt-get install default-jdk
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
+      - install_java:
+          os: <<parameters.os >>
       - run:
           name: Run Transformer end-to-end tests with mock server
-          command: cd packages/amplify-util-mock/ && yarn e2e
+          command: |
+            cd packages/amplify-util-mock/
+            yarn e2e
           no_output_timeout: 90m
           environment:
             JEST_JUNIT_OUTPUT: 'reports/junit/js-test-results.xml'
@@ -129,7 +288,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - run:
           name: Publish to verdaccio
           command: |
@@ -169,7 +330,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -192,7 +354,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Run GraphQL end-to-end tests
           command: cd packages/graphql-transformers-e2e-tests/ && yarn e2e --maxWorkers=3
@@ -207,7 +370,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Update OS Packages
           command: sudo apt-get update
@@ -228,6 +392,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+      - restore_cache:
           key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
       - run: *install_cli_from_local_registery
       - run: *run_e2e_tests
@@ -242,33 +409,31 @@ jobs:
     steps:
       - run: echo 'Done with Node CLI E2E Tests'
 
-  done_with_pkg_linux_e2e_tests:
+  done_with_pkg_e2e_tests:
     <<: *node12
     steps:
       - run: echo 'Done with pkg CLI E2E Tests'
 
-  amplify_e2e_tests_pkg_linux:
-    <<: *defaults
-    environment:
-      AMPLIFY_DIR: /home/circleci/repo/out
-      AMPLIFY_PATH: /home/circleci/repo/out/amplify-pkg-linux
+  amplify_e2e_tests_pkg:
+    parameters:
+      os:
+        type: executor
+        default: os.build_img
+    executor: << parameters.os >>
+    working_directory: ~/repo
     steps:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          key: amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Symlink Amplify packaged CLI
-          command: |
-            cd out
-            ln -sf amplify-pkg-linux amplify
-            echo "export PATH=$AMPLIFY_DIR:$PATH" >> $BASH_ENV
-            source $BASH_ENV
-            amplify version
-      - run: *install_cli_from_local_registery
-      - run: *run_e2e_tests
+      - install_yarn:
+          os: << parameters.os >>
+      - install_packaged_cli:
+          os: << parameters.os >>
+      - run_e2e_tests:
+          os: << parameters.os >>
       - run: *scan_e2e_test_artifacts
       - store_test_results:
           path: packages/amplify-e2e-tests/
@@ -282,7 +447,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Run tests migrating from CLI v4.0.0
           command: |
@@ -354,7 +520,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Update OS Packages
           command: sudo apt-get update
@@ -379,7 +546,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run:
           name: Run tests migrating from latest CLI
           command: |
@@ -401,7 +569,8 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-verdaccio-cache-{{ .Branch }}-{{ .Revision }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
       - run: *install_cli_from_local_registery
       - run:
           command: |
@@ -553,6 +722,10 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
+      - restore_cache:
           key: amplify-unified-changelog-{{ .Branch }}-{{ .Revision }}
       - restore_cache:
           key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
@@ -592,7 +765,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-pkg-binaries-{{ .Branch }}-{{ .Revision }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - restore_cache:
           key: amplfiy-pkg-tag-{{ .Branch }}-{{ .Revision }}
       - run:
@@ -606,7 +781,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - run:
           name: 'Run cleanup script'
           command: |
@@ -624,7 +801,9 @@ jobs:
       - attach_workspace:
           at: ./
       - restore_cache:
-          key: amplify-cli-yarn-deps-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          keys:
+            - amplify-build-artifact-{{ .Revision }}-{{ arch }}
+            - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - run:
           name: 'Run cleanup script'
           command: |
@@ -647,7 +826,10 @@ workflows:
               only:
                 - master
     jobs:
-      - build
+      - build:
+          matrix:
+            parameters:
+              os: [windows, build_img]
       - publish_to_local_registry:
           requires:
             - build
@@ -669,7 +851,10 @@ workflows:
               only:
                 - master
     jobs:
-      - build
+      - build:
+          matrix:
+            parameters:
+              os: [build_img]
       - cleanup_resources:
           context:
             - cleanup-resources
@@ -679,11 +864,20 @@ workflows:
 
   build_test_deploy:
     jobs:
-      - build
+      - build:
+          matrix:
+            parameters:
+              os: [build_img, windows]
       - test:
+          matrix:
+            parameters:
+              os: [build_img]
           requires:
-            - build
+            - build-build_img
       - mock_e2e_tests:
+          matrix:
+            parameters:
+              os: [build_img]
           requires:
             - build
       - graphql_e2e_tests:
@@ -697,7 +891,7 @@ workflows:
                 - func-env-vars-secrets
                 - iterative-update
           requires:
-            - build
+            - build-build_img
             - mock_e2e_tests
       - integration_test:
           context:
@@ -710,7 +904,7 @@ workflows:
                 - func-env-vars-secrets
                 - beta
           requires:
-            - build
+            - build-build_img
             - mock_e2e_tests
       - publish_to_local_registry:
           filters:
@@ -719,12 +913,13 @@ workflows:
                 - master
                 - func-env-vars-secrets
                 - beta
+                - win-e2e
                 - backendManager
                 - iterative-update
                 - release
                 - compute-functions
           requires:
-            - build
+            - build-build_img
       - build_pkg_binaries:
           requires:
             - publish_to_local_registry
@@ -752,11 +947,15 @@ workflows:
                 - compute-functions
                 - iterative-update
           requires:
+            - build
             - publish_to_local_registry
       - done_with_node_e2e_tests:
           requires:
             - amplify_e2e_tests
-      - amplify_e2e_tests_pkg_linux:
+      - amplify_e2e_tests_pkg:
+          matrix:
+            parameters:
+              os: [windows]
           context:
             - amplify-ecr-image-pull
             - clean_e2e_resources
@@ -767,13 +966,17 @@ workflows:
           filters:
             branches:
               only:
+                - win-e2e
                 - master
           requires:
-            - done_with_node_e2e_tests
+            - build
             - build_pkg_binaries
-      - done_with_pkg_linux_e2e_tests:
+      - done_with_pkg_e2e_tests:
+          context:
+            - amplify-cli-ecr
+            - amplify-cli-aws-creds-< matrix.os >>
           requires:
-            - amplify_e2e_tests_pkg_linux
+            - amplify_e2e_tests_pkg
       - amplify_migration_tests_latest:
           context:
             - amplify-ecr-image-pull
@@ -877,7 +1080,7 @@ workflows:
             - cleanup-resources
             - e2e-test-context
           requires:
-            - done_with_pkg_linux_e2e_tests
+            - done_with_pkg_e2e_tests
             - amplify_migration_tests_latest
             - amplify_migration_tests_v4
             - amplify_migration_tests_v4_30_0
@@ -892,7 +1095,7 @@ workflows:
             - mock_e2e_tests
             - graphql_e2e_tests
             - integration_test
-            - done_with_pkg_linux_e2e_tests
+            - done_with_pkg_e2e_tests
             - amplify_sudo_install_test
             - amplify_console_integration_tests
             - amplify_migration_tests_latest

@@ -1,4 +1,5 @@
 import { nspawn as spawn, getCLIPath, singleSelect } from '..';
+import { Expect } from '../utils';
 
 type AmplifyConfiguration = {
   accessKeyId: string;
@@ -91,6 +92,8 @@ export function amplifyConfigureProject(settings: {
     configLevel = 'project',
     region = defaultSettings.region,
   } = settings;
+
+  const confirmContainers: keyof Pick<Expect, 'sendConfirmYes' | 'sendConfirmNo'> = enableContainers ? 'sendConfirmYes' : 'sendConfirmNo';
 
   return new Promise((resolve, reject) => {
     const chain = spawn(getCLIPath(), ['configure', 'project'], { cwd, stripColors: true }).wait('Which setting do you want to configure?');

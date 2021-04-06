@@ -167,7 +167,7 @@ function splitTests(
     const newJob = {
       ...job,
       environment: {
-        ...job.environment,
+        ...(job?.environment || {}),
         TEST_SUITE: suite,
         CLI_REGION: testRegion,
       },
@@ -316,7 +316,7 @@ function main(): void {
   );
   const splitPkgTests = splitTests(
     splitNodeTests,
-    'amplify_e2e_tests_pkg_linux',
+    'amplify_e2e_tests_pkg',
     'build_test_deploy',
     join(process.cwd(), 'packages', 'amplify-e2e-tests'),
     CONCURRENCY,

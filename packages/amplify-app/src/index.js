@@ -417,12 +417,8 @@ async function createIosHelperFiles() {
     fs.writeFileSync(amplifyConfigFile, configJsonStr);
   }
 
-  console.log('Checking for existing amplify project...');
   if (fs.existsSync(path.join(amplifyDir, 'backend'))) {
-    const spinner = new Ora('Generating Amplify configuration files...');
-    spinner.start();
     await addAmplifyFiles();
-    spinner.succeed();
   }
 }
 
