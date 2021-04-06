@@ -1,4 +1,4 @@
-import { nspawn as spawn, ExecutionContext, KEY_DOWN_ARROW, getCLIPath, getProjectMeta, getBackendAmplifyMeta, invokeFunction } from '..';
+import { nspawn as spawn, Expect, KEY_DOWN_ARROW, getCLIPath, getProjectMeta, getBackendAmplifyMeta, invokeFunction } from '..';
 import { Lambda } from 'aws-sdk';
 import { singleSelect, multiSelect, moveUp, moveDown } from '../utils/selectors';
 import * as glob from 'glob';
@@ -39,7 +39,7 @@ const crudOptions = ['create', 'read', 'update', 'delete'];
 
 const appSyncOptions = ['Query', 'Mutation', 'Subscription'];
 
-const additionalPermissions = (cwd: string, chain: ExecutionContext, settings: any) => {
+const additionalPermissions = (cwd: string, chain: Expect, settings: any) => {
   multiSelect(
     chain.sendLine('y').wait('Select the categories you want this function to have access to'),
     settings.additionalPermissions.permissions,
@@ -64,7 +64,7 @@ const additionalPermissions = (cwd: string, chain: ExecutionContext, settings: a
   });
 };
 
-const updateFunctionCore = (cwd: string, chain: ExecutionContext, settings: any) => {
+const updateFunctionCore = (cwd: string, chain: Expect, settings: any) => {
   singleSelect(
     chain.wait('Which setting do you want to update?'),
     settings.additionalPermissions
@@ -185,7 +185,7 @@ const coreFunction = (
   });
 };
 
-const runChain = (chain: ExecutionContext, resolve, reject) => {
+const runChain = (chain: Expect, resolve, reject) => {
   chain.run((err: Error) => {
     if (!err) {
       resolve();
@@ -208,7 +208,7 @@ export const updateFunction = (cwd: string, settings: any, runtime: FunctionRunt
   return coreFunction(cwd, settings, 'update', runtime, undefined);
 };
 
-export const addLambdaTrigger = (chain: ExecutionContext, cwd: string, settings: any) => {
+export const addLambdaTrigger = (chain: Expect, cwd: string, settings: any) => {
   chain = singleSelect(
     chain.wait('What event source do you want to associate with Lambda trigger'),
     settings.triggerType === 'Kinesis' ? 'Amazon Kinesis Stream' : 'Amazon DynamoDB Stream',
@@ -283,7 +283,7 @@ export interface LayerOptions {
   customArns?: string[]; // external ARNs to enter
 }
 
-const addLayerWalkthrough = (chain: ExecutionContext, options: LayerOptions) => {
+const addLayerWalkthrough = (chain: Expect, options: LayerOptions) => {
   const prependedListOptions = ['Provide existing Lambda layer ARNs', ...options.expectedListOptions];
   const amendedSelection = [...options.select];
   const hasCustomArns = options.customArns && options.customArns.length > 0;
@@ -312,7 +312,7 @@ const addLayerWalkthrough = (chain: ExecutionContext, options: LayerOptions) => 
   }
 };
 
-const cronWalkthrough = (chain: ExecutionContext, settings: any, action: string) => {
+const cronWalkthrough = (chain: Expect, settings: any, action: string) => {
   if (action === 'create') {
     addCron(chain, settings);
   } else {
@@ -335,17 +335,17 @@ const cronWalkthrough = (chain: ExecutionContext, settings: any, action: string)
   return chain;
 };
 
-const addminutes = (chain: ExecutionContext) => {
+const addminutes = (chain: Expect) => {
   chain.wait('Enter rate for minutes(1-59)?').sendLine('5').sendCarriageReturn();
   return chain;
 };
 
-const addhourly = (chain: ExecutionContext) => {
+const addhourly = (chain: Expect) => {
   chain.wait('Enter rate for hours(1-23)?').sendLine('5').sendCarriageReturn();
   return chain;
 };
 
-const addWeekly = (chain: ExecutionContext) => {
+const addWeekly = (chain: Expect) => {
   chain
     .wait('Select the day to invoke the function:')
     .sendCarriageReturn()
@@ -354,17 +354,17 @@ const addWeekly = (chain: ExecutionContext) => {
   return chain;
 };
 
-const addMonthly = (chain: ExecutionContext) => {
+const addMonthly = (chain: Expect) => {
   chain.wait('Select date to start cron').sendCarriageReturn();
   return chain;
 };
 
-const addYearly = (chain: ExecutionContext) => {
+const addYearly = (chain: Expect) => {
   chain.wait('Select date to start cron').sendCarriageReturn();
   return chain;
 };
 
-const addCron = (chain: ExecutionContext, settings: any) => {
+const addCron = (chain: Expect, settings: any) => {
   chain.wait('At which interval should the function be invoked:');
 
   switch (settings.schedulePermissions.interval) {

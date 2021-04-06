@@ -195,7 +195,7 @@
 
 "@aws-amplify/graphql-docs-generator@2.3.3":
   version "2.3.3"
-  resolved "https://registry.yarnpkg.com/@aws-amplify/graphql-docs-generator/-/graphql-docs-generator-2.3.3.tgz#dbb1b975a9d9951a9268d38e9870c1e3824adb58"
+  resolved "https://registry.npmjs.org/@aws-amplify/graphql-docs-generator/-/graphql-docs-generator-2.3.3.tgz#dbb1b975a9d9951a9268d38e9870c1e3824adb58"
   integrity sha512-nHKNYia1rEJ2BS1GCMPFgv/zQkC3Yl7v6kcNvDLH5TI9WVgjErZfrg0x0k+hJRhxiUY7uz3sv9HCcfiI6BgE0A==
   dependencies:
     change-case "^4.1.1"
@@ -7822,7 +7822,7 @@ amdefine@>=0.0.4:
 
 amplify-codegen@^2.23.1:
   version "2.23.1"
-  resolved "https://registry.yarnpkg.com/amplify-codegen/-/amplify-codegen-2.23.1.tgz#87f8b6eeb47833923aeae8978266583784e1839f"
+  resolved "https://registry.npmjs.org/amplify-codegen/-/amplify-codegen-2.23.1.tgz#87f8b6eeb47833923aeae8978266583784e1839f"
   integrity sha512-+4lIJAvRbfkmcVAwWAinpmuZjYV+DJI848/WcVxnUPOIxrNDwo8aJOauMU2FycTSRl1FoTp5qCYMemlPVm3bZg==
   dependencies:
     "@aws-amplify/appsync-modelgen-plugin" "1.22.10"
@@ -18239,6 +18239,13 @@ node-pty-prebuilt-multiarch@^0.9.0:
     nan "^2.14.0"
     prebuild-install "^5.2.5"
 
+node-pty@^0.10.0:
+  version "0.10.0"
+  resolved "https://registry.npmjs.org/node-pty/-/node-pty-0.10.0.tgz#c98d23967b076b35c9fb216c542a04d0b5db4821"
+  integrity sha512-Q65ookKbjhqWUYKmtZ6iPn0nnqNdzpm3YJOBmzwWJde/TrenBxK9FgqGGtSW0Wjz4YsR1grQF4a7RS5nBwuW9A==
+  dependencies:
+    nan "^2.14.0"
+
 node-releases@^1.1.61:
   version "1.1.71"
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-1.1.71.tgz#cb1334b179896b1c89ecfdd4b725fb7bbdfc7dbb"
@@ -21322,6 +21329,11 @@ retimer@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/retimer/-/retimer-2.0.0.tgz#e8bd68c5e5a8ec2f49ccb5c636db84c04063bbca"
   integrity sha512-KLXY85WkEq2V2bKex/LOO1ViXVn2KGYe4PYysAdYdjmraYIUsVkXu8O4am+8+5UbaaGl1qho4aqAAPHNQ4GSbg==
+
+retimer@3.0.0:
+  version "3.0.0"
+  resolved "https://registry.npmjs.org/retimer/-/retimer-3.0.0.tgz#98b751b1feaf1af13eb0228f8ea68b8f9da530df"
+  integrity sha512-WKE0j11Pa0ZJI5YIk0nflGI7SQsfl2ljihVy7ogh7DeQSeYAUi0ubZ/yEueGtDfUPk6GH5LRw1hBdLq4IwUBWA==
 
 retry@^0.10.0:
   version "0.10.1"

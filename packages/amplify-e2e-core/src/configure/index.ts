@@ -1,4 +1,5 @@
 import { nspawn as spawn, getCLIPath, singleSelect } from '..';
+import { Expect } from '../utils';
 
 type AmplifyConfiguration = {
   accessKeyId: string;
@@ -75,11 +76,13 @@ export function amplifyConfigure(settings: AmplifyConfiguration): Promise<void> 
 export function amplifyConfigureProject(settings: { cwd: string; enableContainers: boolean }): Promise<void> {
   const { enableContainers = false, cwd } = settings;
 
+  const confirmContainers: keyof Pick<Expect, 'sendConfirmYes' | 'sendConfirmNo'> = enableContainers ? 'sendConfirmYes' : 'sendConfirmNo';
+
   return new Promise((resolve, reject) => {
     const chain = spawn(getCLIPath(), ['configure', 'project'], { cwd, stripColors: true }).wait('Which setting do you want to configure?');
     if (enableContainers) {
       singleSelect(chain, 'containers', configurationOptions);
-      chain.wait('Do you want to enable container-based deployments?').sendLine('y');
+      chain.wait('Do you want to enable container-based deployments?').sendConfirmYes();
     } else {
       singleSelect(chain, 'profile', configurationOptions);
       chain.wait('Do you want to update or remove the project level AWS profile?');

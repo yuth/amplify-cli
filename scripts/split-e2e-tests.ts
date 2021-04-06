@@ -165,7 +165,7 @@ function splitTests(
     const newJob = {
       ...job,
       environment: {
-        ...job.environment,
+        ...(job?.environment || {}),
         TEST_SUITE: suite,
         CLI_REGION: testRegion,
       },
