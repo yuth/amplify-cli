@@ -1257,14 +1257,6 @@ jobs:
     environment:
       TEST_SUITE: src/__tests__/plugin.test.ts
       CLI_REGION: ap-northeast-1
-  schema-iterative-update-locking-amplify_e2e_tests:
-    working_directory: ~/repo
-    docker: *ref_3
-    resource_class: large
-    steps: *ref_7
-    environment:
-      TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
-      CLI_REGION: ap-southeast-1
   migration-node-function-amplify_e2e_tests:
     working_directory: ~/repo
     docker: *ref_3
@@ -1272,15 +1264,7 @@ jobs:
     steps: *ref_7
     environment:
       TEST_SUITE: src/__tests__/migration/node.function.test.ts
-      CLI_REGION: ap-southeast-2
-  function_5-amplify_e2e_tests:
-    working_directory: ~/repo
-    docker: *ref_3
-    resource_class: large
-    steps: *ref_7
-    environment:
-      TEST_SUITE: src/__tests__/function_5.test.ts
-      CLI_REGION: us-east-2
+      CLI_REGION: ap-southeast-1
   api_4-amplify_e2e_tests:
     working_directory: ~/repo
     docker: *ref_3
@@ -1288,6 +1272,22 @@ jobs:
     steps: *ref_7
     environment:
       TEST_SUITE: src/__tests__/api_4.test.ts
+      CLI_REGION: ap-southeast-2
+  schema-iterative-update-locking-amplify_e2e_tests:
+    working_directory: ~/repo
+    docker: *ref_3
+    resource_class: large
+    steps: *ref_7
+    environment:
+      TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
+      CLI_REGION: us-east-2
+  function_5-amplify_e2e_tests:
+    working_directory: ~/repo
+    docker: *ref_3
+    resource_class: large
+    steps: *ref_7
+    environment:
+      TEST_SUITE: src/__tests__/function_5.test.ts
       CLI_REGION: us-west-2
   schema-iterative-update-4-amplify_e2e_tests_pkg_linux:
     environment:
@@ -1533,21 +1533,21 @@ jobs:
     environment:
       TEST_SUITE: src/__tests__/plugin.test.ts
       CLI_REGION: ap-northeast-1
-  schema-iterative-update-locking-amplify_e2e_tests_pkg_linux:
-    environment:
-      TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
-      CLI_REGION: ap-southeast-1
   migration-node-function-amplify_e2e_tests_pkg_linux:
     environment:
       TEST_SUITE: src/__tests__/migration/node.function.test.ts
-      CLI_REGION: ap-southeast-2
-  function_5-amplify_e2e_tests_pkg_linux:
-    environment:
-      TEST_SUITE: src/__tests__/function_5.test.ts
-      CLI_REGION: us-east-2
+      CLI_REGION: ap-southeast-1
   api_4-amplify_e2e_tests_pkg_linux:
     environment:
       TEST_SUITE: src/__tests__/api_4.test.ts
+      CLI_REGION: ap-southeast-2
+  schema-iterative-update-locking-amplify_e2e_tests_pkg_linux:
+    environment:
+      TEST_SUITE: src/__tests__/schema-iterative-update-locking.test.ts
+      CLI_REGION: us-east-2
+  function_5-amplify_e2e_tests_pkg_linux:
+    environment:
+      TEST_SUITE: src/__tests__/function_5.test.ts
       CLI_REGION: us-west-2
 workflows:
   version: 2
@@ -1666,11 +1666,11 @@ workflows:
             - hostingPROD-amplify_e2e_tests
             - amplify-app-amplify_e2e_tests
             - init-amplify_e2e_tests
-            - function_5-amplify_e2e_tests
+            - schema-iterative-update-locking-amplify_e2e_tests
             - predictions-amplify_e2e_tests
             - schema-predictions-amplify_e2e_tests
             - amplify-configure-amplify_e2e_tests
-            - api_4-amplify_e2e_tests
+            - function_5-amplify_e2e_tests
             - function_3-amplify_e2e_tests
             - containers-api-amplify_e2e_tests
             - interactions-amplify_e2e_tests
@@ -1686,11 +1686,11 @@ workflows:
             - schema-key-amplify_e2e_tests
             - analytics-amplify_e2e_tests
             - notifications-amplify_e2e_tests
-            - schema-iterative-update-locking-amplify_e2e_tests
+            - migration-node-function-amplify_e2e_tests
             - schema-auth-10-amplify_e2e_tests
             - hosting-amplify_e2e_tests
             - tags-amplify_e2e_tests
-            - migration-node-function-amplify_e2e_tests
+            - api_4-amplify_e2e_tests
       - amplify_e2e_tests_pkg:
           matrix:
             parameters:
@@ -1864,7 +1864,7 @@ workflows:
           filters: *ref_10
           requires:
             - schema-auth-7-amplify_e2e_tests
-      - function_5-amplify_e2e_tests:
+      - schema-iterative-update-locking-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_9
           filters: *ref_10
@@ -1928,7 +1928,7 @@ workflows:
           filters: *ref_10
           requires:
             - auth_4-amplify_e2e_tests
-      - api_4-amplify_e2e_tests:
+      - function_5-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_9
           filters: *ref_10
@@ -2160,7 +2160,7 @@ workflows:
           filters: *ref_10
           requires:
             - schema-searchable-amplify_e2e_tests
-      - schema-iterative-update-locking-amplify_e2e_tests:
+      - migration-node-function-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_9
           filters: *ref_10
@@ -2218,7 +2218,7 @@ workflows:
           filters: *ref_10
           requires:
             - schema-auth-8-amplify_e2e_tests
-      - migration-node-function-amplify_e2e_tests:
+      - api_4-amplify_e2e_tests:
           context: amplify-cli-ecr
           post-steps: *ref_9
           filters: *ref_10

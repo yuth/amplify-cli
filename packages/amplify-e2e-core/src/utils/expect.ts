@@ -108,7 +108,7 @@ export class Expect {
     this.cwd = options.cwd;
     this.env = childEnv;
     this.ignoreCase = options.ignoreCase || true;
-    this.noOutputTimeout = options.noOutputTimeout || DEFAULT_NO_OUTPUT_TIMEOUT;
+    this.noOutputTimeout = options.noOutputTimeout ? options.noOutputTimeout * 1000 : DEFAULT_NO_OUTPUT_TIMEOUT;
     this.params = params;
     this.queue = [];
     this.stripColors = options.stripColors;
@@ -228,8 +228,9 @@ export class Expect {
     return this;
   };
 
-  public sendKeyDown = (repeat?: number): Expect => {
-    const repetitions = repeat ? Math.max(1, repeat) : 1;
+  public sendKeyDown = (repetitions: number = 1): Expect => {
+    if (repetitions === 0) return this;
+
     let _send: ExecutionStep = {
       fn: async () => {
         for (let i = 0; i < repetitions; i++) {
@@ -246,8 +247,9 @@ export class Expect {
     return this;
   };
 
-  public sendKeyUp = (repeat?: number): Expect => {
-    const repetitions = repeat ? Math.max(1, repeat) : 1;
+  public sendKeyUp = (repetitions: number = 1): Expect => {
+    if (repetitions === 0) return this;
+
     let _send: ExecutionStep = {
       fn: async () => {
         for (let i = 0; i < repetitions; i++) {
@@ -356,12 +358,6 @@ export class Expect {
 
   private testExpectation = (data: string, expectation: string | RegExp, lastLine: boolean = false): boolean => {
     if (process.platform === 'win32' && !lastLine) {
-      // // Todo: remove this before PR. For debugging in CircleCI
-      // console.log('testExpectation');
-      // console.log('expectation ===>', expectation);
-      // console.log('unProcessedLines =>>>', this.unProcessedLines);
-      // console.log('\n\n\n\n\n\n\n\n\n');
-
       let result;
       if (types.isRegExp(expectation)) {
         result = expectation.test(this.unProcessedLines);

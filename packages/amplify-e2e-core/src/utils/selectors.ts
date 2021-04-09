@@ -1,8 +1,8 @@
 import { Expect } from '..';
 
-export const moveDown = (chain: Expect, nMoves: number) => chain.sendKeyDown(nMoves);
+export const moveDown = (chain: Expect, nMoves: number) => (nMoves > 0 ? chain.sendKeyDown(nMoves) : chain);
 
-export const moveUp = (chain: Expect, nMoves: number) => chain.sendKeyUp(nMoves);
+export const moveUp = (chain: Expect, nMoves: number) => (nMoves > 0 ? chain.sendKeyUp(nMoves) : chain);
 
 export const singleSelect = <T>(chain: Expect, item: T, allChoices: T[]) => multiSelect(chain, [item], allChoices);
 
