@@ -14,28 +14,20 @@ jobs:
           cache-name: cache-node-modules
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
-          path: node_modules
+          path: ~/.npm
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
-      - name: Cache built artifacts
-        uses: actions/cache@v2
-        env:
-          cache-name: build-artifacts
-        with:
-          path: /
-            - packages/*/lib
-            - packages/*/build
-            - packages/*/resources
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
       - run: yarn production-build
-
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: amplify-cli-build-${{ github.sha }}
+          path: |
+            node_modules/
+            packages/
   lint:
     needs: build
     runs-on: ubuntu-latest
@@ -44,33 +36,9 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: '10.x'
-      - name: Cache node modules
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-node-modules
+      - uses: actions/download-artifact@v2
         with:
-          path: node_modules
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
-      - name: Cache built artifacts
-        uses: actions/cache@v2
-        env:
-          cache-name: build-artifacts
-        with:
-          path: /
-            - packages/*/lib
-            - packages/*/build
-            - packages/*/resources
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
+          name: amplify-cli-build-${{ github.sha }}
       - run: yarn lint
   test:
     needs: build
@@ -80,32 +48,8 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: '10.x'
-      - name: Cache node modules
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-node-modules
+      - uses: actions/download-artifact@v2
         with:
-          path: node_modules
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
-      - name: Cache built artifacts
-        uses: actions/cache@v2
-        env:
-          cache-name: build-artifacts
-        with:
-          path: /
-            - packages/*/lib
-            - packages/*/build
-            - packages/*/resources
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
+          name: amplify-cli-build-${{ github.sha }}
       - run: yarn test-ci
       - run: yarn coverage
