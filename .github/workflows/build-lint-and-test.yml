@@ -25,7 +25,10 @@ jobs:
         env:
           cache-name: build-artifacts
         with:
-          path: packages/*/lib
+          path: /
+            - packages/*/lib
+            - packages/*/build
+            - packages/*/resources
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
@@ -58,8 +61,10 @@ jobs:
         env:
           cache-name: build-artifacts
         with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
-          path: packages/*/lib
+          path: /
+            - packages/*/lib
+            - packages/*/build
+            - packages/*/resources
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
@@ -92,8 +97,10 @@ jobs:
         env:
           cache-name: build-artifacts
         with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
-          path: packages/*/lib
+          path: /
+            - packages/*/lib
+            - packages/*/build
+            - packages/*/resources
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
