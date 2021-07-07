@@ -168,7 +168,7 @@ export class Expect {
       fn: async (data, lastLine?: boolean) => {
         return this.executeAndWait(() => {
           let val = this.testExpectation(data, expectation, lastLine);
-          if (val === true) {
+          if (val === true && typeof cb === 'function') {
             cb(data);
           }
           return val;
