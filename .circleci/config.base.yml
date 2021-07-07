@@ -786,6 +786,7 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - run:
           name: 'Run cleanup script'
+          shell: /bin/sh
           command: |
             cd packages/amplify-e2e-tests
             yarn clean-e2e-resources

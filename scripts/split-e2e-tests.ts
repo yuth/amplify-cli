@@ -129,7 +129,8 @@ export type CircleCIConfig = {
 };
 
 function getTestFiles(dir: string, pattern = 'src/**/*.test.ts'): string[] {
-  return sortTestsBasedOnTime(glob.sync(pattern, { cwd: dir })).reverse();
+  // Todo: add reverse to run longest tests first
+  return sortTestsBasedOnTime(glob.sync(pattern, { cwd: dir })); // .reverse();
 }
 
 function generateJobName(baseName: string, testSuitePath: string): string {
