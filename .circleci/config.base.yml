@@ -61,6 +61,7 @@ clean_e2e_resources: &clean_e2e_resources
 
 scan_e2e_test_artifacts: &scan_e2e_test_artifacts
   name: Scan And Cleanup E2E Test Artifacts
+  shell: /bin/sh
   command: |
     if ! yarn ts-node .circleci/scan_artifacts.ts; then
       echo "Cleaning the repository"
@@ -786,7 +787,6 @@ jobs:
             - amplify-cli-yarn-deps-{{ arch }}-{{ checksum "yarn.lock" }}
       - run:
           name: 'Run cleanup script'
-          shell: /bin/sh
           command: |
             cd packages/amplify-e2e-tests
             yarn clean-e2e-resources
