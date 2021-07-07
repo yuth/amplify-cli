@@ -54,7 +54,6 @@ clean_e2e_resources: &ref_11
   working_directory: ~/repo
 scan_e2e_test_artifacts: &ref_7
   name: Scan And Cleanup E2E Test Artifacts
-  shell: /bin/sh
   command: |
     if ! yarn ts-node .circleci/scan_artifacts.ts; then
       echo "Cleaning the repository"
@@ -209,6 +208,48 @@ commands:
                   cd packages/amplify-e2e-tests
                   yarn run e2e --maxWorkers=3 $TEST_SUITE
                 no_output_timeout: 90m
+  scan_e2e_test_artifacts:
+    description: Scan And Cleanup E2E Test Artifacts
+    parameters:
+      os:
+        type: executor
+        default: e2e-executor
+    steps:
+      - when:
+          condition:
+            equal:
+              - *ref_0
+              - << parameters.os >>
+          steps:
+            - run:
+                name: Scan E2E artifacts
+                shell: bash.exe
+                command: |
+                  if ! yarn ts-node .circleci/scan_artifacts.ts; then
+                    echo "Cleaning the repository"
+                    git clean -fdx
+                    exit 1
+                  fi
+                when: always
+      - when:
+          condition:
+            or:
+              - equal:
+                  - *ref_1
+                  - << parameters.os >>
+              - equal:
+                  - *ref_2
+                  - << parameters.os >>
+          steps:
+            - run:
+                name: Scan E2E artifacts
+                command: |
+                  if ! yarn ts-node .circleci/scan_artifacts.ts; then
+                    echo "Cleaning the repository"
+                    git clean -fdx
+                    exit 1
+                  fi
+                when: always
 jobs:
   build:
     parameters:
@@ -445,7 +486,8 @@ jobs:
           os: << parameters.os >>
       - run_e2e_tests:
           os: << parameters.os >>
-      - run: *ref_7
+      - scan_e2e_test_artifacts:
+          os: << parameters.os >>
       - store_test_results:
           path: packages/amplify-e2e-tests/
       - store_artifacts:

@@ -694,9 +694,11 @@ export class Expect {
 
   private executeAndWait = async <T>(fn: () => T, msec: number = 50): Promise<T> => {
     const result = await fn();
-    return new Promise(resolve => {
-      setTimeout(() => resolve(result), msec);
-    });
+    return;
+    // Todo: See if we need to wait
+    // return new Promise(resolve => {
+    //   setTimeout(() => resolve(result), msec);
+    // });
   };
 }
 
