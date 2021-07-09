@@ -2052,6 +2052,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
             - mock_e2e_tests
@@ -2065,6 +2068,9 @@ workflows:
                 - master
                 - beta
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
             - mock_e2e_tests
@@ -2076,6 +2082,9 @@ workflows:
                 - beta
                 - release
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
       - build_pkg_binaries:
@@ -2090,6 +2099,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
       - done_with_node_e2e_tests:
           requires:
             - analytics-amplify_e2e_tests
@@ -2161,6 +2173,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
       - amplify_migration_tests_v4:
@@ -2174,6 +2189,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
       - amplify_migration_tests_v4_30_0:
@@ -2187,6 +2205,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
       - amplify_migration_tests_non_multi_env_layers:
@@ -2200,6 +2221,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
       - amplify_migration_tests_multi_env_layers:
@@ -2213,6 +2237,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - build
       - amplify_console_integration_tests:
@@ -2302,6 +2329,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - publish_to_local_registry
       - schema-auth-6-amplify_e2e_tests:
@@ -2755,6 +2785,9 @@ workflows:
               only:
                 - master
                 - /tagged-release\/.*/
+                - /run-e2e\/*./
+              ignore:
+                - /.*\/no-e2e-tests$/
           requires:
             - done_with_node_e2e_tests
             - build_pkg_binaries
